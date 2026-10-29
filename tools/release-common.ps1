@@ -141,6 +141,29 @@ function Invoke-Fm4Download {
     }
 }
 
+# Through the toolchain's Python, in parallel ranged parts: GitHub and other far-away hosts cap
+# each connection's speed on some players' lines (84 KB/s on one connection, 559 KB/s on eight).
+function Invoke-Fm4ParallelDownload {
+    param(
+        [Parameter(Mandatory)] [string]$Uri,
+        [Parameter(Mandatory)] [string]$Destination,
+        [Parameter(Mandatory)] [string]$Sha256,
+        [Parameter(Mandatory)] [string]$What,
+        [Parameter(Mandatory)] [int]$Percent,
+        [Parameter(Mandatory)] [int]$EndPercent,
+        [string]$Stage = 'tools',
+        [switch]$JsonEvents
+    )
+    $run = Invoke-Fm4ToolchainPython -JsonEvents:$JsonEvents -Arguments @('download', '--url', $Uri,
+        '--sha256', $Sha256, '--destination', $Destination, '--what', $What, '--stage', $Stage,
+        '--percent', "$Percent", "$EndPercent", '--json-events')
+    if ($run.ExitCode -ne 0) {
+        $failure = [Exception]::new("Downloading $What failed: $(Get-Fm4ToolchainRunMessage -Run $run)")
+        $failure.Data['step'] = $Stage
+        throw $failure
+    }
+}
+
 # Expand-Archive checks an existing destination with wildcards, so a folder named with brackets
 # breaks it in both PowerShell editions. Existing files are replaced. The archive is deleted once
 # unpacked: provisioning reads it only while its tool is missing, and a new pin has a new name.

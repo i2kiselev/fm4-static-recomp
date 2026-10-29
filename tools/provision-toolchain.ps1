@@ -69,44 +69,8 @@ function New-Fm4ToolchainFailure {
     $failure
 }
 
-Write-Fm4Event tools 18 'Preparing Git.' -JsonEvents:$JsonEvents
-$gitRoot = Resolve-Fm4ToolchainPath -RelativePath $config.git.install_path
-$gitExe = Join-Path $gitRoot $config.git.executable
-if (-not (Test-Path -LiteralPath $gitExe -PathType Leaf)) {
-    $archive = Join-Path $downloads "mingit-$($config.git.version).zip"
-    Invoke-Fm4Download -Uri $config.git.url -Destination $archive -Sha256 $config.git.sha256
-    [void](New-Item -ItemType Directory -Force -Path $gitRoot)
-    Expand-Fm4Zip -Archive $archive -Destination $gitRoot
-}
-
-Write-Fm4Event tools 20 'Preparing the pinned LLVM compiler.' -JsonEvents:$JsonEvents
-$xzRoot = Resolve-Fm4ToolchainPath -RelativePath $config.xz.install_path
-$xzExe = Join-Path $xzRoot $config.xz.executable
-if (-not (Test-Path -LiteralPath $xzExe -PathType Leaf)) {
-    $archive = Join-Path $downloads "xz-$($config.xz.version)-windows.zip"
-    Invoke-Fm4Download -Uri $config.xz.url -Destination $archive -Sha256 $config.xz.sha256
-    if (Test-Path -LiteralPath $xzRoot) { Remove-Item -LiteralPath $xzRoot -Recurse -Force }
-    [void](New-Item -ItemType Directory -Force -Path $xzRoot)
-    Expand-Fm4Zip -Archive $archive -Destination $xzRoot
-}
-
-$llvmRoot = Resolve-Fm4ToolchainPath -RelativePath $config.llvm.install_path
-$llvmExe = Join-Path $llvmRoot $config.llvm.executable
-if (-not (Test-Path -LiteralPath $llvmExe -PathType Leaf)) {
-    $archive = Join-Path $downloads "llvm-$($config.llvm.version).tar.xz"
-    Invoke-Fm4Download -Uri $config.llvm.url -Destination $archive -Sha256 $config.llvm.sha256
-    $staging = Resolve-Fm4ToolchainPath -RelativePath "llvm-$($config.llvm.version)-staging"
-    if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force }
-    [void](New-Item -ItemType Directory -Force -Path $staging)
-    Expand-Fm4TarXz -Archive $archive -Destination $staging -XzPath $xzExe
-    $children = @(Get-ChildItem -LiteralPath $staging -Directory)
-    if ($children.Count -ne 1) { throw 'The LLVM archive layout is not recognized.' }
-    if (Test-Path -LiteralPath $llvmRoot) { Remove-Item -LiteralPath $llvmRoot -Recurse -Force }
-    Move-Item -LiteralPath $children[0].FullName -Destination $llvmRoot
-    Remove-Item -LiteralPath $staging -Recurse -Force
-}
-
-Write-Fm4Event tools 23 'Preparing the local shader tooling runtime.' -JsonEvents:$JsonEvents
+# Python first: it downloads the larger tools below in parallel parts.
+Write-Fm4Event tools 18 'Preparing the local Python runtime.' -JsonEvents:$JsonEvents
 $pythonRoot = Resolve-Fm4ToolchainPath -RelativePath $config.python.install_path
 $pythonExe = Join-Path $pythonRoot $config.python.executable
 $pythonCheck = "import hashlib, json, struct, subprocess, tomllib, zipfile; assert hasattr(hashlib, 'file_digest')"
@@ -124,11 +88,52 @@ if (-not $pythonReady) {
 & $pythonExe -I -c $pythonCheck
 if ($LASTEXITCODE -ne 0) { throw 'The local Python runtime failed its shader tooling check.' }
 
+Write-Fm4Event tools 19 'Preparing Git.' -JsonEvents:$JsonEvents
+$gitRoot = Resolve-Fm4ToolchainPath -RelativePath $config.git.install_path
+$gitExe = Join-Path $gitRoot $config.git.executable
+if (-not (Test-Path -LiteralPath $gitExe -PathType Leaf)) {
+    $archive = Join-Path $downloads "mingit-$($config.git.version).zip"
+    Invoke-Fm4ParallelDownload -Uri $config.git.url -Destination $archive -Sha256 $config.git.sha256 `
+        -What 'Git' -Percent 19 -EndPercent 19 -JsonEvents:$JsonEvents
+    [void](New-Item -ItemType Directory -Force -Path $gitRoot)
+    Expand-Fm4Zip -Archive $archive -Destination $gitRoot
+}
+
+Write-Fm4Event tools 20 'Preparing the pinned LLVM compiler.' -JsonEvents:$JsonEvents
+$xzRoot = Resolve-Fm4ToolchainPath -RelativePath $config.xz.install_path
+$xzExe = Join-Path $xzRoot $config.xz.executable
+if (-not (Test-Path -LiteralPath $xzExe -PathType Leaf)) {
+    $archive = Join-Path $downloads "xz-$($config.xz.version)-windows.zip"
+    Invoke-Fm4ParallelDownload -Uri $config.xz.url -Destination $archive -Sha256 $config.xz.sha256 `
+        -What 'XZ' -Percent 20 -EndPercent 20 -JsonEvents:$JsonEvents
+    if (Test-Path -LiteralPath $xzRoot) { Remove-Item -LiteralPath $xzRoot -Recurse -Force }
+    [void](New-Item -ItemType Directory -Force -Path $xzRoot)
+    Expand-Fm4Zip -Archive $archive -Destination $xzRoot
+}
+
+$llvmRoot = Resolve-Fm4ToolchainPath -RelativePath $config.llvm.install_path
+$llvmExe = Join-Path $llvmRoot $config.llvm.executable
+if (-not (Test-Path -LiteralPath $llvmExe -PathType Leaf)) {
+    $archive = Join-Path $downloads "llvm-$($config.llvm.version).tar.xz"
+    Invoke-Fm4ParallelDownload -Uri $config.llvm.url -Destination $archive -Sha256 $config.llvm.sha256 `
+        -What 'LLVM' -Percent 20 -EndPercent 23 -JsonEvents:$JsonEvents
+    $staging = Resolve-Fm4ToolchainPath -RelativePath "llvm-$($config.llvm.version)-staging"
+    if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force }
+    [void](New-Item -ItemType Directory -Force -Path $staging)
+    Expand-Fm4TarXz -Archive $archive -Destination $staging -XzPath $xzExe
+    $children = @(Get-ChildItem -LiteralPath $staging -Directory)
+    if ($children.Count -ne 1) { throw 'The LLVM archive layout is not recognized.' }
+    if (Test-Path -LiteralPath $llvmRoot) { Remove-Item -LiteralPath $llvmRoot -Recurse -Force }
+    Move-Item -LiteralPath $children[0].FullName -Destination $llvmRoot
+    Remove-Item -LiteralPath $staging -Recurse -Force
+}
+
 Write-Fm4Event tools 24 'Preparing CMake with support for the build presets.' -JsonEvents:$JsonEvents
 $cmakeRoot = Resolve-Fm4ToolchainPath -RelativePath $config.cmake.install_path
 if (-not (Test-Path -LiteralPath (Join-Path $cmakeRoot $config.cmake.executable) -PathType Leaf)) {
     $archive = Join-Path $downloads "cmake-$($config.cmake.version).zip"
-    Invoke-Fm4Download -Uri $config.cmake.url -Destination $archive -Sha256 $config.cmake.sha256
+    Invoke-Fm4ParallelDownload -Uri $config.cmake.url -Destination $archive -Sha256 $config.cmake.sha256 `
+        -What 'CMake' -Percent 24 -EndPercent 24 -JsonEvents:$JsonEvents
     Expand-Fm4Zip -Archive $archive -Destination (Split-Path $cmakeRoot -Parent)
 }
 
@@ -136,7 +141,8 @@ Write-Fm4Event tools 25 'Preparing Ninja.' -JsonEvents:$JsonEvents
 $ninjaRoot = Resolve-Fm4ToolchainPath -RelativePath $config.ninja.install_path
 if (-not (Test-Path -LiteralPath (Join-Path $ninjaRoot $config.ninja.executable) -PathType Leaf)) {
     $archive = Join-Path $downloads "ninja-$($config.ninja.version)-win.zip"
-    Invoke-Fm4Download -Uri $config.ninja.url -Destination $archive -Sha256 $config.ninja.sha256
+    Invoke-Fm4ParallelDownload -Uri $config.ninja.url -Destination $archive -Sha256 $config.ninja.sha256 `
+        -What 'Ninja' -Percent 25 -EndPercent 25 -JsonEvents:$JsonEvents
     [void](New-Item -ItemType Directory -Force -Path $ninjaRoot)
     Expand-Fm4Zip -Archive $archive -Destination $ninjaRoot
 }
@@ -186,7 +192,7 @@ elseif ($null -eq (Get-Fm4BuildToolset | Where-Object { $null -ne $_ -and $_.Sou
 
 $environment = Enter-Fm4BuildEnvironment
 $git = Get-Fm4Git
-foreach ($required in @(
+$tools = @(
     @{ Name = 'Git'; Path = $git },
     @{ Name = 'XZ'; Path = $xzExe },
     @{ Name = 'CMake'; Path = $environment.CMake },
@@ -194,7 +200,8 @@ foreach ($required in @(
     @{ Name = 'LLVM'; Path = $llvmExe },
     @{ Name = 'Python'; Path = $pythonExe },
     @{ Name = 'rc.exe'; Path = $environment.Toolset.Rc }
-)) {
+)
+foreach ($required in $tools) {
     if (-not (Test-Path -LiteralPath $required.Path -PathType Leaf)) {
         throw "$($required.Name) was not provisioned correctly: $($required.Path)"
     }

@@ -8,14 +8,26 @@ _RANGE = re.compile(r"bytes=(\d+)-(\d*)$")
 
 
 @contextlib.contextmanager
-def serve(files, honour_range=True, fail=frozenset()):
-    """Serves `files` (path -> bytes) on 127.0.0.1; yields the base URL. `hits` counts requests per path."""
+def serve(files, honour_range=True, fail=frozenset(), cut_once=frozenset(), busy_once=frozenset()):
+    """Serves `files` (path -> bytes) on 127.0.0.1; yields the base URL. `hits` counts requests per path.
+
+    A ranged request for a path in `cut_once` that starts at 0 (not the 1-byte probe) gets half its bytes and a closed
+    connection the first time, as a player's line drops one connection of several. The first request for a path in
+    `busy_once` gets a 503.
+    """
+    cut = set()
+    busy = set()
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             path = self.path.split("?", 1)[0]
             with lock:
                 server.hits[path] = server.hits.get(path, 0) + 1
+                answer_busy = path in busy_once and path not in busy
+                busy.add(path)
+            if answer_busy:
+                self.send_error(503)
+                return
             if path in fail:
                 self.send_error(500)
                 return
@@ -32,6 +44,14 @@ def serve(files, honour_range=True, fail=frozenset()):
                 self.send_header("Content-Range", f"bytes {start}-{end}/{len(body)}")
                 self.send_header("Content-Length", str(len(part)))
                 self.end_headers()
+                with lock:
+                    cutting = path in cut_once and start == 0 and end > 0 and path not in cut
+                    if cutting:
+                        cut.add(path)
+                if cutting:
+                    self.wfile.write(part[:len(part) // 2])
+                    self.close_connection = True
+                    return
                 self.wfile.write(part)
                 return
             self.send_response(200)

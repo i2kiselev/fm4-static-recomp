@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from toolchain import msvc, sdk_downloads, windows_sdk
+from toolchain import fetch, msvc, sdk_downloads, windows_sdk
 
 # Where each command's progress sits in setup's ::fm4:: stages.
 EVENT_RANGES = {"windows-sdk": ("tools", 26, 28), "msvc": ("tools", 29, 31), "sdk-downloads": ("build", 66, 69)}
@@ -54,6 +54,14 @@ def _parser():
             command.add_argument("--version", required=True)
             command.add_argument("--package", action="append", required=True, metavar="ID=SHA256")
             command.add_argument("--base-url", default=windows_sdk.NUGET)
+    download = commands.add_parser("download")
+    download.add_argument("--url", required=True)
+    download.add_argument("--sha256", required=True)
+    download.add_argument("--destination", required=True, type=Path)
+    download.add_argument("--what", required=True)
+    download.add_argument("--stage", default="tools")
+    download.add_argument("--percent", nargs=2, type=int, default=[0, 100], metavar=("LOW", "HIGH"))
+    download.add_argument("--json-events", action="store_true")
     prefetch = commands.add_parser("sdk-downloads")
     prefetch.add_argument("--sdk-root", required=True, type=Path)
     prefetch.add_argument("--dlss-dir", required=True, type=Path)
@@ -86,6 +94,14 @@ def _run(args):
             return 4, {"error": "missing"}
         return 0, {"msvc": msvc_record(found_msvc), "windows_sdk": sdk_record(found_sdk)}
     events = Events(args.json_events, args.command)
+    if args.command == "download":
+        events.stage, (events.low, events.high) = args.stage, args.percent
+        try:
+            # Hosts such as GitHub cap each connection's speed on some players' lines.
+            fetch.download([args.url], args.destination, args.sha256, parts=16, progress=events.download(args.what))
+        except Exception as error:
+            return 2, {"error": "download", "message": str(error)}
+        return 0, {"path": str(args.destination)}
     if args.command == "sdk-downloads":
         try:
             events.emit("Fetching the upscaler runtimes (DLSS, FidelityFX).", force=True)

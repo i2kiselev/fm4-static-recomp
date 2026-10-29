@@ -1,8 +1,12 @@
 """Downloads checked against a pinned SHA-256, in parallel ranged parts when the server allows."""
+import glob
 import hashlib
+import http.client
 import os
 import re
 import threading
+import time
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -11,6 +15,8 @@ USER_AGENT = "fm4-static-recomp-setup"
 TIMEOUT = 30
 _CHUNK = 1 << 20
 _MIN_PART = 256 << 10
+_ATTEMPTS = 5
+_PAUSE = 1.0
 _CONTENT_RANGE = re.compile(r"bytes (\d+)-(\d+)/(\d+)$")
 
 
@@ -49,7 +55,7 @@ def download(urls, destination, sha256, parts=8, progress=None, text_lf=False):
         except Exception as error:
             errors.append(f"{url}: {error}" if not isinstance(error, DownloadError) else str(error))
         finally:
-            _remove_temporaries(partial, parts)
+            _remove_temporaries(partial)
     raise DownloadError("; ".join(errors) or "no URL given")
 
 
@@ -65,7 +71,7 @@ def _open(url, headers=None):
 
 
 def _fetch(url, partial, parts, progress):
-    with _open(url, {"Range": "bytes=0-0"}) as probe:
+    with _retry(lambda: _open(url, {"Range": "bytes=0-0"})) as probe:
         match = _CONTENT_RANGE.match(probe.headers.get("Content-Range", ""))
         if probe.status == 206 and match:
             total = int(match.group(3))
@@ -76,7 +82,9 @@ def _fetch(url, partial, parts, progress):
             return
     report = _Progress(total, progress)
     bounds = _split(total, parts)
-    files = [_part_name(partial, n) for n in range(len(bounds))]
+    # Named by the file's size and split: a part left by a killed run resumes only into the same split.
+    files = [partial.with_name(f"{partial.name.removesuffix('.partial')}.part{n}-of-{len(bounds)}-{total}")
+             for n in range(len(bounds))]
     with ThreadPoolExecutor(len(bounds)) as pool:
         for future in [pool.submit(_fetch_part, url, start, end, file, report)
                        for (start, end), file in zip(bounds, files)]:
@@ -94,19 +102,53 @@ def _split(total, parts):
     return [(start, min(start + size, total) - 1) for start in range(0, total, size)]
 
 
+def _retry(action):
+    """`action()`, again after a short pause while it fails as a flaky line or a busy server does."""
+    for attempt in range(_ATTEMPTS):
+        if attempt:
+            time.sleep(attempt * _PAUSE)
+        try:
+            return action()
+        except (OSError, http.client.HTTPException) as error:
+            if attempt == _ATTEMPTS - 1 or not _transient(error):
+                raise
+
+
+def _transient(error):
+    if isinstance(error, urllib.error.HTTPError):
+        return error.code in (408, 429) or error.code >= 500
+    return True
+
+
 def _fetch_part(url, start, end, file, report):
-    with _open(url, {"Range": f"bytes={start}-{end}"}) as response:
-        match = _CONTENT_RANGE.match(response.headers.get("Content-Range", ""))
-        if response.status != 206 or not match or int(match.group(1)) != start:
-            raise DownloadError(f"{url}: the server stopped answering the range {start}-{end}")
-        written = _stream(response, file, report)
-    if written != end - start + 1:
-        raise DownloadError(f"{url}: range {start}-{end} ended after {written} bytes")
+    """Resumes where a dropped connection left off: on some players' lines one of the parallel
+    connections drops now and then, and the whole file would otherwise start again."""
+    error = None
+    for attempt in range(_ATTEMPTS):
+        done = file.stat().st_size if file.exists() else 0
+        if done == end - start + 1:
+            return
+        if attempt:
+            time.sleep(attempt * _PAUSE)
+        try:
+            with _open(url, {"Range": f"bytes={start + done}-{end}"}) as response:
+                match = _CONTENT_RANGE.match(response.headers.get("Content-Range", ""))
+                if response.status != 206 or not match or int(match.group(1)) != start + done:
+                    raise DownloadError(f"{url}: the server stopped answering the range {start + done}-{end}")
+                _stream(response, file, report, mode="ab")
+        except (OSError, http.client.HTTPException) as caught:
+            if not _transient(caught):
+                raise
+            error = caught
+    done = file.stat().st_size if file.exists() else 0
+    if done != end - start + 1:
+        raise DownloadError(f"{url}: range {start}-{end} ended after {done} bytes"
+                            + (f" ({error})" if error else ""))
 
 
-def _stream(response, path, report):
+def _stream(response, path, report, mode="wb"):
     written = 0
-    with open(path, "wb") as out:
+    with open(path, mode) as out:
         for chunk in iter(lambda: response.read(_CHUNK), b""):
             out.write(chunk)
             written += len(chunk)
@@ -114,12 +156,9 @@ def _stream(response, path, report):
     return written
 
 
-def _part_name(partial, n):
-    return partial.with_name(partial.name.removesuffix(".partial") + f".part{n}")
-
-
-def _remove_temporaries(partial, parts):
-    for path in [partial] + [_part_name(partial, n) for n in range(parts)]:
+def _remove_temporaries(partial):
+    stem = glob.escape(partial.name.removesuffix(".partial"))
+    for path in [partial, *partial.parent.glob(stem + ".part*")]:
         try:
             path.unlink()
         except FileNotFoundError:
