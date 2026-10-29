@@ -29,7 +29,8 @@ $output = [IO.Path]::GetFullPath((Join-Path $root "out/build/$preset"))
 Get-ChildItem -LiteralPath $output -Filter '*.inuse-*' -File -ErrorAction SilentlyContinue |
     ForEach-Object { try { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop } catch {} }
 foreach ($process in @(Get-Process fm4_static_recomp -ErrorAction SilentlyContinue)) {
-    $loaded = @($process.Modules | ForEach-Object FileName |
+    # Windows PowerShell gives $null for a process it may not read (elevated, or exiting).
+    $loaded = @($process.Modules | Where-Object { $_ } | ForEach-Object FileName |
         Where-Object { $_.StartsWith($output + '\', [StringComparison]::OrdinalIgnoreCase) })
     foreach ($file in $loaded) {
         $aside = "$file.inuse-$($process.Id)"
