@@ -45,6 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Built from a fork of https://github.com/arcanite24/shiftglue-sdk (BSD-3; its own LICENSE
 names its authors and the Xenia project).
 
+## LLVM
+
+Setup downloads the part of the official LLVM 20.1.8 release for 64-bit Windows that the build
+uses (clang, lld and their headers), unmodified, from the SDK fork's releases
+(`tools/package-llvm.py` makes the archive). LLVM is licensed under the Apache License v2.0
+with LLVM Exceptions; the archive carries the LLVM, Clang and LLD licence texts.
+
 ## Barlow Condensed
 
 The launcher ships the Barlow Condensed fonts (`launcher/Fm4StaticRecomp.Launcher/Assets/Fonts`).

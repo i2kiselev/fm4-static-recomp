@@ -41,10 +41,30 @@
   },
   "llvm": {
     "version": "20.1.8",
-    "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/clang%2Bllvm-20.1.8-x86_64-pc-windows-msvc.tar.xz",
-    "sha256": "F229769F11D6A6EDC8ADA599C0CDA964B7DEE6AB1A08C6CF9DD7F513E85B107F",
+    "url": "https://github.com/i2kiselev/shiftglue-sdk/releases/download/toolchain-llvm-20.1.8/clang%2Bllvm-20.1.8-x86_64-pc-windows-msvc-fm4.tar.xz",
+    "sha256": "5DD9D0F22966DC515D2B53CDD2AB1D58FAEA18998A24BCFD070AAFBC8DCB247D",
     "install_path": "llvm-20.1.8",
-    "executable": "bin/clang-cl.exe"
+    "executable": "bin/clang.exe",
+    "package": {
+      "source_url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/clang%2Bllvm-20.1.8-x86_64-pc-windows-msvc.tar.xz",
+      "source_sha256": "F229769F11D6A6EDC8ADA599C0CDA964B7DEE6AB1A08C6CF9DD7F513E85B107F",
+      "files": [
+        "bin/clang.exe",
+        "bin/clang++.exe",
+        "bin/lld-link.exe",
+        "bin/llvm-ar.exe",
+        "bin/llvm-lib.exe",
+        "bin/llvm-ranlib.exe",
+        "bin/llvm-rc.exe",
+        "bin/llvm-mt.exe",
+        "lib/clang/"
+      ],
+      "licenses": {
+        "llvm": "8D85C1057D742E597985C7D4E6320B015A9139385CFF4CBAE06FFC0EBE89AFEE",
+        "clang": "EBCD9BBF783A73D05C53BA4D586B8D5813DCDF3BBEC50265860CCC885E606F47",
+        "lld": "F7891568956E34643EB6A0DB1462DB30820D40D7266E2A78063F2FE233ECE5A0"
+      }
+    }
   },
   "python": {
     "version": "3.13.15",
