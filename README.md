@@ -142,7 +142,7 @@ Known problems are tracked as
 
 ## Roadmap
 
-1. **Upscaler polish**: the mirrors and the remaining shimmer (see
+1. **Upscaler polish**: the remaining shimmer (see
    [Known limitations](guide/upscalers.md#known-limitations)).
 2. **Project Forza Plus** support.
 3. **Racing wheels**, starting with MOZA wheels.

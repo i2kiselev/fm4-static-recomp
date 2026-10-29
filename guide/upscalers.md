@@ -101,6 +101,7 @@ again in the next frame by its mesh and its place among the draws.
 | **Texture detail of the output size** | Textures pick their mip level as if rendered at the output resolution (a LOD bias of `log2(render / output)`, -1 from 720p to 1440p), so the upscaled picture is not blurry. |
 | **Sharper car shadows at 1x** | Taking a 1x frame, the races' ground shadow map is drawn at 512 instead of 256 and the car's own shadow map at 768 instead of 512, so their edges are not blocky after a 2x upscale. |
 | **One sharpening pass** | SHARPNESS drives one RCAS pass after the upscaler, for all three; FSR's built-in sharpening is off, so nothing is sharpened twice. |
+| **Mirrors from the frame** | The rear-view mirrors (the cockpit's, the hood camera's at the top of the screen) show what the mirror's own camera sees, which moves differently from the glass, so no motion lets the upscaler follow it and it smeared. The glass is drawn without jitter and put back over the upscale from the render, as the HUD is; its rim stays the upscaler's, for smooth edges. `--present_upscaler_mirrors=false` turns this off. |
 | **Steady cut-outs** | Foliage, fences and crowds are alpha-to-coverage cut-outs; at 1x they take one steady threshold, where a dither would flicker under the jitter. |
 
 ## Shaders
@@ -111,9 +112,8 @@ background while the game draws with the ordinary pipeline, instead of freezing.
 
 ## Known limitations
 
-- **Mirrors** carry the wrong motion: the cockpit's mirrors, the hood camera's rear-view
-  mirror at the top of the screen, and the side mirrors seen from the chase camera, which look
-  too reflective.
+- **The side mirrors seen from the chase camera** look too reflective.
+- **The mirrors** are at the render resolution, scaled up, like the HUD.
 - **Thin details** shimmer in places: road cracks and painted lines in the distance, distant
   fences, trees and crowds.
 - **The HUD and menus** stay at the render resolution, scaled up; the 3D picture behind a

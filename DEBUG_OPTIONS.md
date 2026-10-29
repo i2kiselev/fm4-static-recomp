@@ -22,6 +22,7 @@ Switches of the fixes that give the upscaler correct motion. Turn one off to see
 | `--present_upscaler_spin_free_wheels` | `true` | Spinning wheels move with their hub, without the spin, which is too fast to follow |
 | `--present_upscaler_shadow_motion` | `true` | The player car's ground shadow moves with the car |
 | `--present_upscaler_decal_motion` | `true` | Other cars' ground shadows move with their cars |
+| `--present_upscaler_mirrors` | `true` | Live. The rear-view mirrors (cockpit, and the hood camera's mirror at the top) are drawn unjittered and put back after the upscale from the frame, as the HUD: their reflections move with the mirror's own camera, which the upscaler cannot follow, and smeared |
 | `--present_upscaler_uniform_alpha_to_coverage` | `false` | Above 1x, cut-outs (foliage, crowds, fences) take one steady threshold instead of an ordered dither, which can show as hatching on leaf edges |
 | `--fm4_upscaler_replay_blur` | `false` | Keep the replay cameras' motion blur while an upscaler runs (`false`: no blur, whose smear around the car's mirrors and exhaust pipes the upscaler turns into ghosting) |
 | `--present_upscaler_hud` | `composite` | What the upscaler gets where the HUD is: `composite` (the frame without the HUD, the HUD drawn after the upscale), `off` (the frame with the HUD) or `debug` (the frame without the HUD, shown so) |
