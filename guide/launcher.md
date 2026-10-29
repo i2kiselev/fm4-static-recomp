@@ -61,10 +61,10 @@ an unknown profile name, when the game does not start, and after a crash (REPORT
 Everything lives in `data\` beside the launcher: the extracted disc, the build tools, the
 builds, your saves and settings. Move or back up the folder as a whole.
 
-- A first setup with Disc 2 took **19 GB** there (Disc 1 7.6 GB, Disc 2 2.8 GB, the build
-  tools, and the game's source and build), and setup asks for a 2 GB margin on top while it
-  works.
-- An update builds the new version beside the old one, about 3 GB more until the older one
+- A first setup with Disc 2 takes about **13 GB** there (Disc 1 7.7 GB, Disc 2 2.8 GB, the
+  build tools 1.4 GB, and the game's source and build 1 GB), and setup asks for a 2 GB margin
+  on top while it works.
+- An update builds the new version beside the old one, about 1 GB more until the older one
   is removed.
 
 > [!IMPORTANT]

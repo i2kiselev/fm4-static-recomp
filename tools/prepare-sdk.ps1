@@ -17,6 +17,34 @@ if (-not [string]::Equals($sdkRoot, $managedRoot, [StringComparison]::OrdinalIgn
     Write-Fm4Event sdk 44 "Using the SDK at $sdkRoot" -JsonEvents:$JsonEvents
     return
 }
+$bundle = Get-Fm4SdkBundle
+if ($bundle) {
+    # Written once the bundle is unpacked, as fm4-prepared is for a checkout; it names the archive,
+    # so a bundle published again for the same SDK revision replaces the old one.
+    $marker = Join-Path $bundle 'fm4-prepared'
+    if ((Test-Path -LiteralPath $marker -PathType Leaf) -and
+        ([IO.File]::ReadAllText($marker).Trim() -eq $config.sdk.bundle.sha256)) {
+        Write-Fm4Event sdk 44 'The prebuilt SDK is ready.' -JsonEvents:$JsonEvents
+        return
+    }
+    if (Test-Path -LiteralPath $bundle) { Remove-Item -LiteralPath $bundle -Recurse -Force }
+    $archive = Resolve-Fm4LocalPath -RelativePath ".local/downloads/shiftglue-sdk-$($config.sdk.revision).tar.xz"
+    Write-Fm4Event sdk 36 'Downloading the prebuilt ShiftGlue SDK.' -JsonEvents:$JsonEvents
+    Invoke-Fm4ParallelDownload -Uri $config.sdk.bundle.url -Destination $archive -Sha256 $config.sdk.bundle.sha256 `
+        -What 'the prebuilt ShiftGlue SDK' -Percent 36 -EndPercent 43 -Stage sdk -JsonEvents:$JsonEvents
+    $staging = "$bundle-staging"
+    if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force }
+    [void](New-Item -ItemType Directory -Force -Path $staging)
+    $xz = Join-Path (Resolve-Fm4ToolchainPath -RelativePath $config.xz.install_path) $config.xz.executable
+    Expand-Fm4TarXz -Archive $archive -Destination $staging -XzPath $xz
+    $children = @(Get-ChildItem -LiteralPath $staging -Directory)
+    if ($children.Count -ne 1) { throw 'The prebuilt SDK archive layout is not recognized.' }
+    Move-Item -LiteralPath $children[0].FullName -Destination $bundle
+    Remove-Item -LiteralPath $staging -Recurse -Force
+    [IO.File]::WriteAllText($marker, $config.sdk.bundle.sha256)
+    Write-Fm4Event sdk 44 'The prebuilt SDK is ready.' -JsonEvents:$JsonEvents
+    return
+}
 $git = Get-Fm4Git
 $repository = if ($env:FM4_SDK_REPOSITORY) { $env:FM4_SDK_REPOSITORY } else { $config.sdk.repository }
 $logs = Resolve-Fm4LocalPath -RelativePath '.local/logs'

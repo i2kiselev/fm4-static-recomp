@@ -6,8 +6,10 @@ public static class SpaceCheck
 {
     public const long Disc1 = 7_600_000_000;
     public const long Disc2 = 2_800_000_000;
-    public const long Toolchain = 6_300_000_000;
-    public const long Version = 3_100_000_000;
+    // Measured on a fresh install: 1.4 GB of tools, plus the LLVM archive while it unpacks.
+    public const long Toolchain = 2_000_000_000;
+    // The source, the prebuilt SDK and the build: 0.97 GB.
+    public const long Version = 1_200_000_000;
     public const long Margin = 2_000_000_000;
 
     public static long Needed(bool disc1, bool disc2, bool toolchain, bool version) =>

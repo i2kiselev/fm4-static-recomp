@@ -62,8 +62,11 @@ stay on your PC; `tools\microsoft-licences.ps1` prints the current links.
 <details>
 <summary>What setup does</summary>
 
-1. Downloads pinned, hash-checked copies of CMake, Ninja, LLVM/clang, MinGit, xz, Python and
-   the ShiftGlue SDK into `.local`.
+1. Downloads pinned, hash-checked copies of CMake, Ninja, LLVM/clang, xz and Python, and the
+   ShiftGlue SDK prebuilt for this release, into `.local`. The LLVM copy holds only the files
+   the build uses, taken unmodified from the official LLVM release (`tools\package-llvm.py`
+   makes it); the SDK is built from its pinned source by `tools\package-sdk.ps1` and holds no
+   game code. Large files download over several connections at once.
 2. Downloads Microsoft's C++ runtime (the MSVC 14.44 headers and libraries, from Microsoft's
    Visual Studio channel) and the Windows SDK (from Microsoft's NuGet packages) into
    `.local\toolchain`, each checked against Microsoft's published hash.

@@ -88,10 +88,12 @@ if (-not $pythonReady) {
 & $pythonExe -I -c $pythonCheck
 if ($LASTEXITCODE -ne 0) { throw 'The local Python runtime failed its shader tooling check.' }
 
-Write-Fm4Event tools 19 'Preparing Git.' -JsonEvents:$JsonEvents
+# Git only checks the SDK source out; a prebuilt SDK needs none.
+$needsGit = $null -eq (Get-Fm4SdkBundle)
 $gitRoot = Resolve-Fm4ToolchainPath -RelativePath $config.git.install_path
 $gitExe = Join-Path $gitRoot $config.git.executable
-if (-not (Test-Path -LiteralPath $gitExe -PathType Leaf)) {
+if ($needsGit -and -not (Test-Path -LiteralPath $gitExe -PathType Leaf)) {
+    Write-Fm4Event tools 19 'Preparing Git.' -JsonEvents:$JsonEvents
     $archive = Join-Path $downloads "mingit-$($config.git.version).zip"
     Invoke-Fm4ParallelDownload -Uri $config.git.url -Destination $archive -Sha256 $config.git.sha256 `
         -What 'Git' -Percent 19 -EndPercent 19 -JsonEvents:$JsonEvents
@@ -191,9 +193,8 @@ elseif ($null -eq (Get-Fm4BuildToolset | Where-Object { $null -ne $_ -and $_.Sou
 }
 
 $environment = Enter-Fm4BuildEnvironment
-$git = Get-Fm4Git
+$git = if ($needsGit) { Get-Fm4Git } else { $null }
 $tools = @(
-    @{ Name = 'Git'; Path = $git },
     @{ Name = 'XZ'; Path = $xzExe },
     @{ Name = 'CMake'; Path = $environment.CMake },
     @{ Name = 'Ninja'; Path = $environment.Ninja },
@@ -201,6 +202,7 @@ $tools = @(
     @{ Name = 'Python'; Path = $pythonExe },
     @{ Name = 'rc.exe'; Path = $environment.Toolset.Rc }
 )
+if ($needsGit) { $tools += @{ Name = 'Git'; Path = $git } }
 foreach ($required in $tools) {
     if (-not (Test-Path -LiteralPath $required.Path -PathType Leaf)) {
         throw "$($required.Name) was not provisioned correctly: $($required.Path)"

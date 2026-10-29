@@ -106,6 +106,18 @@ function Resolve-Fm4SdkRoot {
     Resolve-Fm4LocalPath -RelativePath (Get-Fm4ReleaseToolchain).sdk.fallback_path
 }
 
+# The prebuilt SDK (tools/package-sdk.ps1) a payload builds against where it would otherwise
+# check the pinned SDK source out itself; $null when an SDK source tree is in use.
+function Get-Fm4SdkBundle {
+    $config = Get-Fm4ReleaseToolchain
+    if (-not $config.sdk.PSObject.Properties['bundle']) { return $null }
+    $managedRoot = Resolve-Fm4LocalPath -RelativePath $config.sdk.fallback_path
+    if (-not [string]::Equals((Resolve-Fm4SdkRoot), $managedRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        return $null
+    }
+    Resolve-Fm4LocalPath -RelativePath $config.sdk.bundle.install_path
+}
+
 function Invoke-Fm4Download {
     param(
         [Parameter(Mandatory)] [string]$Uri,
@@ -219,14 +231,14 @@ function Expand-Fm4TarXz {
     try {
         & $xzPath --decompress --keep --force -- $archive
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $tarArchive -PathType Leaf)) {
-            throw 'Unable to decompress the LLVM toolchain archive.'
+            throw "Unable to decompress $archive."
         }
         # Windows' own bsdtar by path: a GNU tar earlier in PATH (Git's optional Unix
         # tools, MSYS2) reads "C:\..." as a remote host and fails to extract.
         $tarExe = Join-Path ([Environment]::SystemDirectory) 'tar.exe'
         if (-not (Test-Path -LiteralPath $tarExe -PathType Leaf)) { $tarExe = 'tar.exe' }
         & $tarExe -xf $tarArchive -C $destination
-        if ($LASTEXITCODE -ne 0) { throw 'Unable to extract the LLVM toolchain.' }
+        if ($LASTEXITCODE -ne 0) { throw "Unable to extract $archive." }
     }
     finally {
         if (Test-Path -LiteralPath $tarArchive) {

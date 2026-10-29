@@ -18,7 +18,8 @@ if (-not $GameRoot) { $GameRoot = [IO.Path]::GetFullPath((Join-Path $root '../ex
 
 $environment = Enter-Fm4BuildEnvironment
 $sdkRoot = Resolve-Fm4SdkRoot
-$rexglueExe = Join-Path $sdkRoot 'out/win-amd64/Release/rexglue.exe'
+$bundle = Get-Fm4SdkBundle
+$rexglueExe = if ($bundle) { Join-Path $bundle 'bin/rexglue.exe' } else { Join-Path $sdkRoot 'out/win-amd64/Release/rexglue.exe' }
 $logs = Join-Path $root '.local/logs'
 [void](New-Item -ItemType Directory -Force -Path $logs)
 if ($Parallel -eq 0) { $Parallel = Get-Fm4BuildJobCount }
@@ -35,7 +36,7 @@ $manifest = Join-Path $root 'config/rexglue/fm4_manifest.local.toml'
     (Get-Content -LiteralPath $tracked -Raw).Replace('../../../extracted/fm4', $game),
     [Text.UTF8Encoding]::new($false))
 
-if (-not $SkipSdkBuild) {
+if (-not $SkipSdkBuild -and -not $bundle) {
     Push-Location -LiteralPath $sdkRoot
     try {
         Invoke-Fm4BuildCommand $environment.CMake (@('--preset', 'win-amd64',

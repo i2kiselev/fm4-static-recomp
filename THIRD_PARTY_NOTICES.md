@@ -45,6 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Built from a fork of https://github.com/arcanite24/shiftglue-sdk (BSD-3; its own LICENSE
 names its authors and the Xenia project).
 
+Setup downloads it prebuilt from the fork's releases (`tools/package-sdk.ps1` makes the
+archive from the pinned source). The archive holds no game code and carries, in `licenses/`,
+the licences of the SDK and of the libraries built into it (FFmpeg and libmspack under the
+LGPL 2.1, SDL, fmt, spdlog, glslang, SPIRV-Tools, Vulkan headers, imgui and others; NVIDIA's
+DLSS loader under NVIDIA's licence). Its code generator, `rexglue.exe`, also holds GNU
+binutils' PowerPC disassembler under the GPL 2 or later. The same release publishes their
+complete source: the SDK's own source archive and one of every submodule at its pinned commit.
+
 ## LLVM
 
 Setup downloads the part of the official LLVM 20.1.8 release for 64-bit Windows that the build

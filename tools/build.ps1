@@ -47,13 +47,17 @@ foreach ($process in @(Get-Process fm4_static_recomp -ErrorAction SilentlyContin
 # with no progress; fetched here instead, CMake finds them in place. What failed is left to CMake
 # as before: an empty REXGLUE_DLSS_SDK_DIR clears a folder an earlier configure cached.
 $sdkRoot = Resolve-Fm4SdkRoot
-$dlssCommit = Select-String -LiteralPath (Join-Path $sdkRoot 'cmake/rexglue_dlss.cmake') `
+$bundle = Get-Fm4SdkBundle
+# The prebuilt SDK carries the two CMake files that pin the runtimes.
+$sdkPins = if ($bundle) { $bundle } else { $sdkRoot }
+$sdkArgument = if ($bundle) { "-DREXSDK_PREFIX=$bundle" } else { "-DREXSDK_DIR=$sdkRoot" }
+$dlssCommit = Select-String -LiteralPath (Join-Path $sdkPins 'cmake/rexglue_dlss.cmake') `
     -Pattern 'set\(_rexglue_dlss_commit ([0-9a-fA-F]{40})\)' | Select-Object -First 1
 $dlssDirectory = ''
 if ($dlssCommit) {
     $candidate = Resolve-Fm4ToolchainPath -RelativePath "nvidia-dlss-$($dlssCommit.Matches[0].Groups[1].Value.Substring(0, 12))"
     $prefetch = Invoke-Fm4ToolchainPython -JsonEvents:$JsonEvents -Arguments @('sdk-downloads',
-        '--sdk-root', $sdkRoot, '--dlss-dir', $candidate, '--build-dir', $output, '--json-events')
+        '--sdk-root', $sdkPins, '--dlss-dir', $candidate, '--build-dir', $output, '--json-events')
     if ($null -ne $prefetch.Result -and $prefetch.Result.PSObject.Properties['dlss_dir']) { $dlssDirectory = $candidate }
     if ($prefetch.ExitCode -ne 0) {
         Write-Host "Some upscaler runtimes were not prefetched; CMake fetches them. $(Get-Fm4ToolchainRunMessage -Run $prefetch)"
@@ -65,7 +69,7 @@ Push-Location -LiteralPath $root
 try {
     # The Vulkan backend's glslang reads its version through Python.
     Invoke-Fm4BuildCommand $environment.CMake (@('--preset', $preset,
-        "-DPYTHON_EXECUTABLE=$(Get-Fm4Python)", "-DREXSDK_DIR=$sdkRoot",
+        "-DPYTHON_EXECUTABLE=$(Get-Fm4Python)", $sdkArgument,
         "-DREXGLUE_DLSS_SDK_DIR=$($dlssDirectory.Replace('\', '/'))") +
         (Get-Fm4CMakeToolArguments -Environment $environment)) `
         (Join-Path $logs 'configure.log') 'Configuration failed.'

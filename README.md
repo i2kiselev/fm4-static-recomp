@@ -57,7 +57,8 @@ here for FM4.
 > it finish. Later starts take a second or two; the compile runs again after an update and after
 > a GPU driver update.
 
-The first setup takes about 40 minutes. Details: [Launcher guide](guide/launcher.md). Prefer
+The first setup takes about 10 minutes (under 8 on the [test bench](guide/performance.md#test-bench)).
+Details: [Launcher guide](guide/launcher.md). Prefer
 the command line? See the [manual install](guide/manual-install.md).
 
 ## Documentation
@@ -128,10 +129,10 @@ size and hash.
 - An internet connection for the first setup. No administrator permission and no Visual
   Studio: setup downloads the parts of Microsoft's C++ runtime and Windows SDK the build
   needs (about 300 MB) once you accept their licences.
-- About 17 GB of disk space (Disc 1 7.6 GB, the repository with the SDK and build 3.3 GB,
-  the build tools with Microsoft's files and their downloads 6.3 GB), plus about 5 GB for
-  Disc 2 and DLC.
-- About 40 minutes for the first setup; a rebuild after an update takes minutes.
+- About 10 GB of disk space (Disc 1 7.7 GB, the build tools with Microsoft's files 1.4 GB, the
+  source with the prebuilt SDK and the build 1 GB), plus about 5 GB for Disc 2 and DLC.
+- About 10 minutes for the first setup (under 0.5 GB to download, most of it from Microsoft);
+  a rebuild after an update takes a few minutes.
 
 ## Known issues
 

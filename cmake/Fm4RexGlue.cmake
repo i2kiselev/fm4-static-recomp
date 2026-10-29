@@ -2,8 +2,10 @@
 # Shift's cmake/PinyonShiftRexGlue.cmake.
 
 set(REXSDK_DIR "" CACHE PATH "Path to the ShiftGlue SDK source tree")
-if(NOT REXSDK_DIR)
-    message(FATAL_ERROR "Set REXSDK_DIR to the ShiftGlue source tree; use the checked-in presets")
+set(REXSDK_PREFIX "" CACHE PATH "Path to a prebuilt ShiftGlue SDK (tools/package-sdk.ps1)")
+if(NOT REXSDK_DIR AND NOT REXSDK_PREFIX)
+    message(FATAL_ERROR "Set REXSDK_DIR to the ShiftGlue source tree or REXSDK_PREFIX to a prebuilt "
+        "SDK; use the checked-in presets")
 endif()
 
 set(REXGLUE_ENABLE_TRACY OFF CACHE BOOL "Disable Tracy networking" FORCE)
@@ -18,16 +20,27 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
     endif()
 endif()
 
-# Keep the consumer build's runtime, GPU plugin and tools inside its own binary
-# tree so a host relink cannot overwrite the SDK's standalone out/ artifacts.
-set(REXGLUE_OUTPUT_DIRECTORY
-    "${CMAKE_CURRENT_BINARY_DIR}/rexglue-artifacts"
-    CACHE PATH "ShiftGlue artifacts for the FM4 host build" FORCE)
-add_subdirectory("${REXSDK_DIR}" rexglue-sdk EXCLUDE_FROM_ALL)
-
-set(FM4_STATIC_RECOMP_REXGLUE_CODEGEN
-    "${REXSDK_DIR}/out/win-amd64/Release/rexglue${CMAKE_HOST_EXECUTABLE_SUFFIX}"
-    CACHE FILEPATH "The standalone ShiftGlue generator")
+if(REXSDK_PREFIX)
+    find_package(rexglue CONFIG REQUIRED PATHS "${REXSDK_PREFIX}" NO_DEFAULT_PATH)
+    # The SDK's own upscaler rules, run here as an in-tree SDK runs them at configure: they find
+    # the files tools/build.ps1 fetched and name the runtimes rexglue_configure_target stages.
+    include("${REXSDK_PREFIX}/cmake/rexglue_dlss.cmake")
+    include("${REXSDK_PREFIX}/cmake/rexglue_ffx_api_headers.cmake")
+    add_library(renderdoc ALIAS rex::renderdoc)
+    set(FM4_STATIC_RECOMP_REXGLUE_CODEGEN
+        "${REXSDK_PREFIX}/bin/rexglue${CMAKE_HOST_EXECUTABLE_SUFFIX}"
+        CACHE FILEPATH "The standalone ShiftGlue generator")
+else()
+    # Keep the consumer build's runtime, GPU plugin and tools inside its own binary
+    # tree so a host relink cannot overwrite the SDK's standalone out/ artifacts.
+    set(REXGLUE_OUTPUT_DIRECTORY
+        "${CMAKE_CURRENT_BINARY_DIR}/rexglue-artifacts"
+        CACHE PATH "ShiftGlue artifacts for the FM4 host build" FORCE)
+    add_subdirectory("${REXSDK_DIR}" rexglue-sdk EXCLUDE_FROM_ALL)
+    set(FM4_STATIC_RECOMP_REXGLUE_CODEGEN
+        "${REXSDK_DIR}/out/win-amd64/Release/rexglue${CMAKE_HOST_EXECUTABLE_SUFFIX}"
+        CACHE FILEPATH "The standalone ShiftGlue generator")
+endif()
 if(NOT EXISTS "${FM4_STATIC_RECOMP_REXGLUE_CODEGEN}")
     message(FATAL_ERROR
         "The standalone generator is missing. Run tools/codegen.ps1 before configuring.")
@@ -127,30 +140,33 @@ function(fm4_static_recomp_attach_rexglue target_name)
     target_include_directories(${target_name} PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        "${FM4_STATIC_RECOMP_GENERATED_DIR}"
-        # The source-tree helper injects rex_app.cpp into the consumer, while
-        # imgui remains a private SDK dependency.
-        "${REXSDK_DIR}/thirdparty/imgui")
+        "${FM4_STATIC_RECOMP_GENERATED_DIR}")
     target_link_libraries(${target_name} PRIVATE rex::runtime)
     add_dependencies(${target_name} fm4_static_recomp_codegen)
     rexglue_configure_target(${target_name} GPU_PLUGINS fh1)
-    # rex/version.h is configured into the SDK sub-build and is needed only by
-    # the injected rex_app.cpp consumer source.
-    set_property(SOURCE "${REXGLUE_SHARE_DIR}/rex_app.cpp" APPEND PROPERTY
-        INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/rexglue-sdk/include")
+    # A prebuilt SDK installs imgui's headers and rex/version.h beside its own.
+    if(NOT REXSDK_PREFIX)
+        # The source-tree helper injects rex_app.cpp into the consumer, while
+        # imgui remains a private SDK dependency.
+        target_include_directories(${target_name} PRIVATE "${REXSDK_DIR}/thirdparty/imgui")
+        # rex/version.h is configured into the SDK sub-build and is needed only by
+        # the injected rex_app.cpp consumer source.
+        set_property(SOURCE "${REXGLUE_SHARE_DIR}/rex_app.cpp" APPEND PROPERTY
+            INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/rexglue-sdk/include")
+    endif()
 
     # The SDK helper copies runtime DLLs only after the host links; this target
     # keeps them exact after an SDK-only relink.
     add_custom_target(${target_name}_stage_rexruntime ALL
         COMMAND ${CMAKE_COMMAND}
-            -DSOURCE=$<TARGET_FILE:rexruntime>
-            -DDESTINATION=$<TARGET_FILE_DIR:${target_name}>/$<TARGET_FILE_NAME:rexruntime>
+            -DSOURCE=$<TARGET_FILE:rex::runtime>
+            -DDESTINATION=$<TARGET_FILE_DIR:${target_name}>/$<TARGET_FILE_NAME:rex::runtime>
             -P ${FM4_STATIC_RECOMP_STAGE_FILE_SCRIPT}
         COMMAND ${CMAKE_COMMAND}
-            -DSOURCE=$<TARGET_FILE:rexgpu-fh1>
-            -DDESTINATION=$<TARGET_FILE_DIR:${target_name}>/$<TARGET_FILE_NAME:rexgpu-fh1>
+            -DSOURCE=$<TARGET_FILE:rex::gpu-fh1>
+            -DDESTINATION=$<TARGET_FILE_DIR:${target_name}>/$<TARGET_FILE_NAME:rex::gpu-fh1>
             -P ${FM4_STATIC_RECOMP_STAGE_FILE_SCRIPT}
-        DEPENDS ${target_name} rexruntime rexgpu-fh1
+        DEPENDS ${target_name}
         COMMENT "Staging the current ShiftGlue runtime and graphics backend beside ${target_name}"
         VERBATIM)
 endfunction()
