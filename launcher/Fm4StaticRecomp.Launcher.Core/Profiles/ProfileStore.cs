@@ -115,6 +115,32 @@ public sealed class ProfileStore(InstallLayout layout, IPlatform platform)
         platform.CreateDirectoryLink(Path.Combine(folder, "user", ContentFolderName), layout.Content);
     }
 
+    public void EnsureContentLink(Profile profile) =>
+        EnsureContentLink(platform, Path.Combine(profile.User, ContentFolderName), layout.Content);
+
+    // A junction holds an absolute path, so a launcher folder moved since still links to the old
+    // content, and one copied in Explorer has an empty folder in the link's place. A folder holding
+    // files is someone's own content and stays.
+    public static void EnsureContentLink(IPlatform platform, string link, string content)
+    {
+        if (new DirectoryInfo(link).LinkTarget is { } target)
+        {
+            if (SamePath(target, content)) return;
+            Directory.Delete(link);
+        }
+        else if (Directory.Exists(link))
+        {
+            if (Directory.EnumerateFileSystemEntries(link).Any()) return;
+            Directory.Delete(link);
+        }
+        Directory.CreateDirectory(content);
+        platform.CreateDirectoryLink(link, content);
+    }
+
+    private static bool SamePath(string a, string b) =>
+        string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)), StringComparison.OrdinalIgnoreCase);
+
     private static Profile Read(string folder)
     {
         var file = TomlFile.Load(Path.Combine(folder, FileName));

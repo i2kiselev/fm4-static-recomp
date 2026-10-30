@@ -21,7 +21,11 @@ public sealed class GameSession(LauncherHost host)
         host.GameRunning = true;
         try
         {
-            await Task.Run(() => PlayPreparation.BackupIfNeeded(profile, version, host.Profiles, host.Layout, host.Platform));
+            await Task.Run(() =>
+            {
+                host.Profiles.EnsureContentLink(profile);
+                PlayPreparation.BackupIfNeeded(profile, version, host.Profiles, host.Layout, host.Platform);
+            });
             Directory.CreateDirectory(host.Layout.Logs);
             var start = new ProcessStartInfo(host.Layout.GameExecutable(version))
             {

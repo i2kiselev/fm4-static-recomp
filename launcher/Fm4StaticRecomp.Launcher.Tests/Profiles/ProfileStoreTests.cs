@@ -38,6 +38,53 @@ public class ProfileStoreTests
         Assert.Empty(Directory.GetDirectories(layout.Profiles));
     }
 
+    [Fact]
+    public void A_moved_launcher_folder_gets_its_content_link_pointed_at_the_new_content()
+    {
+        using var temp = new TempDir();
+        var old = new InstallLayout(Path.Combine(temp.Path, "old", "data"));
+        new ProfileStore(old, Platforms.Current).Create("Main");
+        Directory.Move(Path.Combine(temp.Path, "old"), Path.Combine(temp.Path, "new"));
+        var layout = new InstallLayout(Path.Combine(temp.Path, "new", "data"));
+        File.WriteAllText(Path.Combine(layout.Content, "probe"), "x");
+        var store = new ProfileStore(layout, Platforms.Current);
+        var profile = store.List().Single();
+        Assert.False(File.Exists(Path.Combine(profile.User, ProfileStore.ContentFolderName, "probe")));
+        store.EnsureContentLink(profile);
+        Assert.True(File.Exists(Path.Combine(profile.User, ProfileStore.ContentFolderName, "probe")));
+        store.EnsureContentLink(profile);
+        Assert.True(File.Exists(Path.Combine(profile.User, ProfileStore.ContentFolderName, "probe")));
+    }
+
+    [Fact]
+    public void A_copied_launcher_folder_gets_its_empty_content_folder_replaced_by_the_link()
+    {
+        var (temp, store, layout) = Make();
+        using var _ = temp;
+        File.WriteAllText(Path.Combine(layout.Content, "probe"), "x");
+        var profile = store.Create("Main");
+        var link = Path.Combine(profile.User, ProfileStore.ContentFolderName);
+        Directory.Delete(link);
+        Directory.CreateDirectory(link);
+        store.EnsureContentLink(profile);
+        Assert.True(Platforms.Current.IsDirectoryLink(link));
+        Assert.True(File.Exists(Path.Combine(link, "probe")));
+    }
+
+    [Fact]
+    public void A_content_folder_holding_files_is_left_alone()
+    {
+        var (temp, store, _) = Make();
+        using var _t = temp;
+        var profile = store.Create("Main");
+        var link = Path.Combine(profile.User, ProfileStore.ContentFolderName);
+        Directory.Delete(link);
+        temp.File(Path.Combine(link, "4D530910", "00000002", "pack", "big.bin"), [2]);
+        store.EnsureContentLink(profile);
+        Assert.False(Platforms.Current.IsDirectoryLink(link));
+        Assert.True(File.Exists(Path.Combine(link, "4D530910", "00000002", "pack", "big.bin")));
+    }
+
     private sealed class NoLinks : IPlatform
     {
         public bool SupportsDxgiPresentation => false;

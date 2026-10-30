@@ -21,12 +21,8 @@ public sealed class ContentInstaller(InstallLayout layout, IPlatform platform)
         IProgress<ContentEvent> progress, CancellationToken cancellation)
     {
         Directory.CreateDirectory(layout.ContentInstallUser);
-        var link = Path.Combine(layout.ContentInstallUser, ProfileStore.ContentFolderName);
-        if (!platform.IsDirectoryLink(link))
-        {
-            Directory.CreateDirectory(layout.Content);
-            platform.CreateDirectoryLink(link, layout.Content);
-        }
+        ProfileStore.EnsureContentLink(platform, Path.Combine(layout.ContentInstallUser, ProfileStore.ContentFolderName),
+            layout.Content);
         RememberNames(disc2Folder);
         RememberNames(dlcFolder);
         Directory.CreateDirectory(layout.Logs);
