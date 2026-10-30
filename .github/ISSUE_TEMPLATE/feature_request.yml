@@ -4,7 +4,9 @@ labels: [enhancement]
 body:
   - type: markdown
     attributes:
-      value: Check the [roadmap](https://github.com/i2kiselev/fm4-static-recomp#roadmap) and the open issues first.
+      value: |
+        Check the [roadmap](https://github.com/i2kiselev/fm4-static-recomp#roadmap) and the open issues first.
+        One feature per issue: open another issue for each further idea.
   - type: textarea
     id: what
     attributes:

@@ -224,7 +224,21 @@ try {
     $archivePath = Join-Path $reportsRoot "FM4StaticRecomp-$fingerprint-$timestamp.zip"
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [IO.Compression.ZipFile]::CreateFromDirectory($stagingRoot, $archivePath, [IO.Compression.CompressionLevel]::Optimal, $false)
-    $issueUrl = "$RepositoryUrl/issues/new?title=$([Uri]::EscapeDataString($title))&body=$([Uri]::EscapeDataString($body))&labels=crash"
+    # The crash form, not a blank issue with a body: its required fields stop an empty report.
+    $details = Protect-ReportText (@(
+        "- Exit code: $exitHex",
+        "- Windows build: $($manifest.system.os_build)",
+        "- GPU: $(@($gpus | ForEach-Object { $_.Name }) -join '; ')"
+    ) -join "`n") $replacements
+    $fields = [ordered]@{
+        template = 'crash_report.yml'
+        title = $title
+        'crash-id' = $fingerprint
+        version = [string]$manifest.release.version
+        details = $details
+    }
+    $query = @($fields.GetEnumerator() | ForEach-Object { "$($_.Key)=$([Uri]::EscapeDataString($_.Value))" }) -join '&'
+    $issueUrl = "$RepositoryUrl/issues/new?$query"
     $record = [ordered]@{
         schema = 1
         created_utc = [DateTime]::UtcNow.ToString('o')

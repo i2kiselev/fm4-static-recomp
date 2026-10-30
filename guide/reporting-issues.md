@@ -2,6 +2,21 @@
 
 [← Back to the README](../README.md)
 
+## Rules
+
+- **One problem per issue.** Two problems, even found in the same race, are two issues: each
+  is fixed and closed on its own. The same goes for feature ideas: one per issue.
+- **Facts, not just a title.** An issue needs what happens, where, and the log (or the crash
+  report's ZIP; for graphics, a screenshot or a short video). One without them, or without the
+  answer to a question asked in it, is closed after 7 days. Add what is missing in a comment and
+  it is reopened.
+
+## Crashes
+
+When the game closes on its own, the launcher offers **REPORT CRASH**: it opens the Crash
+report form with the crash's details filled in and shows the diagnostic ZIP. Drag the ZIP into
+**Diagnostic report** and say what you were doing. **REPORT FOLDER** shows the ZIP again later.
+
 ## Before you open an issue
 
 - [ ] Check the [open issues](https://github.com/i2kiselev/fm4-static-recomp/issues) and add

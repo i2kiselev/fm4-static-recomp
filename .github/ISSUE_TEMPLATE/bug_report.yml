@@ -7,8 +7,10 @@ body:
       value: |
         Title: `<Area>: <what happens> (<where>)`, for example
         `Graphics: car shadows flicker at 3x (Bernese Alps, cockpit view)`.
-        Write "unknown" rather than leaving a field out. More in
-        [Reporting issues](https://github.com/i2kiselev/fm4-static-recomp/blob/main/guide/reporting-issues.md).
+        Write "unknown" rather than leaving a field out. One problem per issue: open another
+        issue for a second one. A crash goes through the launcher's REPORT CRASH instead.
+        An issue without the log (or, for graphics, a screenshot or video) is closed after 7 days.
+        More in [Reporting issues](https://github.com/i2kiselev/fm4-static-recomp/blob/main/guide/reporting-issues.md).
   - type: checkboxes
     id: checks
     attributes:
@@ -90,3 +92,5 @@ body:
         Setup problems: `.local\logs\setup-error.json` and the logs next to it. Graphics problems: a screenshot or a short video.
         Logs can contain your Windows user name; edit it out if you prefer. Never attach game files, disc images or a built executable.
       placeholder: Drag files here.
+    validations:
+      required: true

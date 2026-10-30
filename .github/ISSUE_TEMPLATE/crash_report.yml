@@ -1,0 +1,54 @@
+name: Crash report
+description: The game closed on its own. Open it from the launcher's REPORT CRASH, which fills in the details.
+labels: [crash]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Drag the ZIP the launcher showed into **Diagnostic report** and say what you were doing.
+        A crash report without the ZIP and a description cannot be investigated and is closed
+        after 7 days. More in
+        [Reporting issues](https://github.com/i2kiselev/fm4-static-recomp/blob/main/guide/reporting-issues.md).
+  - type: input
+    id: crash-id
+    attributes:
+      label: Crash ID
+      description: Filled in by the launcher.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Filled in by the launcher.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Crash details
+      description: Filled in by the launcher.
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What you were doing
+      description: The screen or the race (mode, track, car) and what you did right before the crash.
+    validations:
+      required: true
+  - type: input
+    id: often
+    attributes:
+      label: How often
+      placeholder: Every time at the same spot / sometimes / once
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Diagnostic report
+      description: The `FM4StaticRecomp-fm4crash-...zip` file the launcher showed (REPORT FOLDER opens it again). It holds no game files, saves or memory dumps.
+      placeholder: Drag the ZIP here.
+    validations:
+      required: true
