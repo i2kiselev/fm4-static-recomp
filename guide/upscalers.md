@@ -35,6 +35,18 @@ AA apply again.
 upscales by more than 1.8x on an RTX 40 or later GPU, and K otherwise. K, M, J and L force one;
 Default leaves the choice to the DLSS runtime and the NVIDIA app.
 
+## FSR 1: the light one
+
+UPSCALER also offers **FSR 1** (AMD FidelityFX Super Resolution 1), on any GPU. It is not
+temporal: it upscales the finished picture alone, then sharpens it, at a small cost on the GPU.
+MSAA and post AA stay on, and come first: the game draws and resolves its MSAA, post AA (if on)
+smooths the picture, then FSR 1 upscales it to the screen. It suits a 1080p screen at 1x
+(1280x720 to 1920x1080, e.g. a handheld) where a temporal upscaler costs too much or ghosts.
+SHARPNESS sets its sharpening; FSR 1 always sharpens a little, even at Off. Strong sharpening
+makes fences and fine nets (e.g. the 599 GTO's grille) shimmer with moiré: the default 30 % or
+a little more suits most screens. Post AA softens the picture before FSR 1 sharpens it: try FSR 1
+with post AA off first.
+
 ## What an upscaler needs
 
 A temporal upscaler builds each frame from many earlier ones. The game draws the scene a

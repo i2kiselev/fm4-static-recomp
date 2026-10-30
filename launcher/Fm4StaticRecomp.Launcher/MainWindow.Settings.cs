@@ -190,7 +190,7 @@ public partial class MainWindow
                     if (combo.SelectedIndex < 0) return;
                     graphics.Set(row.Key!, choices[combo.SelectedIndex].Value);
                     if (upscalerRow && graphics.FitScaleToUpscaler(_displaySize) is { } lowered)
-                        _upscalerNote = $"Resolution scale lowered to {lowered}x: {graphics.TemporalUpscaler(_displaySize)} runs up to "
+                        _upscalerNote = $"Resolution scale lowered to {lowered}x: {graphics.RunningUpscaler(_displaySize)} runs up to "
                                         + $"{lowered}x on this {_displaySize!.Value.Width}x{_displaySize.Value.Height} screen.";
                     // Rows shown only for some of this setting's values, and the rows the upscaler
                     // and scale decide, follow it.

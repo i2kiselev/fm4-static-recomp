@@ -146,7 +146,7 @@ public class GraphicsSettingsTests
         var json = temp.File("schema.json", """
             {"schema_version":1,"blocks":[{"rows":[
              {"label":"RESOLUTION SCALE","key":"resolution_scale","string":false,"kind":"choice","choices":[{"label":"1X","value":"1"},{"label":"2X","value":"2"},{"label":"3X","value":"3"},{"label":"4X","value":"4"}],"default":"1","description":"d"},
-             {"label":"UPSCALER","key":"present_effect","string":true,"kind":"choice","choices":[{"label":"OFF","value":"bilinear"},{"label":"FSR 2","value":"fsr2"},{"label":"DLSS","value":"dlss"}],"default":"bilinear","description":"d"}]}],
+             {"label":"UPSCALER","key":"present_effect","string":true,"kind":"choice","choices":[{"label":"OFF","value":"bilinear"},{"label":"FSR 1","value":"fsr"},{"label":"FSR 2","value":"fsr2"},{"label":"DLSS","value":"dlss"}],"default":"bilinear","description":"d"}]}],
              "presets":[]}
             """u8.ToArray());
         return new GraphicsSettings(GraphicsSchema.Load(json), temp.File("g.toml", System.Text.Encoding.UTF8.GetBytes(toml)), temp.Path);
@@ -195,6 +195,20 @@ public class GraphicsSettingsTests
         Assert.Equal("2", settings.Value("resolution_scale"));
         Assert.Equal("FSR 2", settings.TemporalUpscaler((2560, 1440)));
         Assert.Null(settings.FitScaleToUpscaler((2560, 1440)));
+    }
+
+    [Fact]
+    public void FSR_1_lowers_the_scale_like_the_others_but_leaves_the_anti_aliasing()
+    {
+        using var temp = new TempDir();
+        var settings = UpscalerSettings(temp, "resolution_scale = 3\n");
+        settings.Set("present_effect", "fsr");
+        Assert.Equal(2, settings.FitScaleToUpscaler((2560, 1440)));
+        Assert.Equal("FSR 1", settings.RunningUpscaler((2560, 1440)));
+        Assert.Null(settings.TemporalUpscaler((2560, 1440)));
+        settings.Set("present_effect", "fsr2");
+        Assert.Equal("FSR 2", settings.RunningUpscaler((2560, 1440)));
+        Assert.Equal("FSR 2", settings.TemporalUpscaler((2560, 1440)));
     }
 
     [Fact]

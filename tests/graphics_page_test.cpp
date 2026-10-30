@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -44,14 +45,23 @@ rex::ui::UpscalerInfo Upscaler(const char* id, bool available, const char* reaso
   return info;
 }
 
-// FSR 2 and 3 run, DLSS does not: the page on an AMD GPU.
+// The presenter lists FSR 1 among its spatial effects, on any GPU.
+rex::ui::UpscalerInfo Fsr1() {
+  rex::ui::UpscalerInfo info;
+  info.id = "fsr";
+  info.kind = rex::ui::UpscalerKind::kSpatial;
+  info.available = true;
+  return info;
+}
+
+// FSR 1, 2 and 3 run, DLSS does not: the page on an AMD GPU.
 ui::GraphicsPageServices Services() {
   ui::GraphicsPageServices services;
   services.draw_resolution_scale = [] { return 1u; };
   services.output_size = [] { return std::optional(std::pair{2560u, 1440u}); };
   services.upscalers = [] {
-    return std::vector{Upscaler("dlss", false, "needs an NVIDIA RTX GPU"), Upscaler("fsr3", true),
-                       Upscaler("fsr2", true)};
+    return std::vector{Fsr1(), Upscaler("dlss", false, "needs an NVIDIA RTX GPU"),
+                       Upscaler("fsr3", true), Upscaler("fsr2", true)};
   };
   return services;
 }
@@ -60,7 +70,8 @@ ui::GraphicsPageServices Services() {
 ui::GraphicsPageServices NvidiaServices() {
   auto services = Services();
   services.upscalers = [] {
-    return std::vector{Upscaler("dlss", true), Upscaler("fsr3", true), Upscaler("fsr2", true)};
+    return std::vector{Fsr1(), Upscaler("dlss", true), Upscaler("fsr3", true),
+                       Upscaler("fsr2", true)};
   };
   return services;
 }
@@ -173,6 +184,8 @@ TEST_CASE("UPSCALER steps past an upscaler the GPU cannot run", "[graphics_page]
   const auto page = ui::CreateGraphicsPage(config, Services());
   const MenuRow& row = *Find(*page, "UPSCALER");
   CHECK(row.value() == "OFF");
+  row.adjust(+1);
+  CHECK(row.value() == "FSR 1");
   row.adjust(+1);
   CHECK(row.value() == "FSR 2");
   row.adjust(+1);
@@ -452,6 +465,64 @@ TEST_CASE("Every live and drafted upscaler and scale greys exactly the anti-alia
       CHECK(note.find("shown at that size with") == std::string::npos);
     }
   }
+}
+
+TEST_CASE("FSR 1 upscales after MSAA and post AA, which stay, and SHARPNESS sets its sharpening",
+          "[graphics_page]") {
+  const auto path = TempFile("fsr1.toml");
+  std::filesystem::remove(path);
+  config::HostConfig config(path);
+  const CvarsRestored restored({"swap_post_effect", "fm4_race_msaa", "resolution_scale",
+                                "present_upscaler_sharpness", "present_fsr_sharpness_reduction"});
+  rex::cvar::SetFlagByName("swap_post_effect", "fxaa");
+  rex::cvar::SetFlagByName("fm4_race_msaa", "4x");
+  {
+    // Like the others, FSR 1 only upscales: choosing it lowers 3x to the 2x that fits 1440p.
+    const Upscaling upscaling("bilinear", false);
+    rex::cvar::SetFlagByName("resolution_scale", "3");
+    auto services = Services();
+    services.draw_resolution_scale = [] { return 3u; };
+    const auto page = ui::CreateGraphicsPage(config, services);
+    Choose(*Find(*page, "UPSCALER"), "FSR 1");
+    CHECK(Find(*page, "RESOLUTION SCALE")->value() == "2X");
+    CHECK(Find(*page, "UPSCALER")->note() ==
+          "Resolution scale lowered to 2x: FSR 1 runs up to 2x on this 2560x1440 screen.");
+  }
+  const Upscaling upscaling("fsr", false);
+  rex::cvar::SetFlagByName("resolution_scale", "1");
+  const auto page = ui::CreateGraphicsPage(config, Services());
+  CHECK(Find(*page, "UPSCALER")->note() ==
+        "Renders 1280x720, upscaled to 2560x1440 by FSR 1 (2.0x).");
+  CHECK(Find(*page, "POST AA")->value() == "FXAA");
+  CHECK(Find(*page, "POST AA")->is_enabled());
+  CHECK(Find(*page, "RACE MSAA")->value() == "4X");
+  CHECK(Find(*page, "RACE MSAA")->is_enabled());
+  CHECK(Find(*page, "SHARPNESS")->is_enabled());
+  Choose(*Find(*page, "SHARPNESS"), "80 %");
+  page->Handle(NavCommand::kApply);
+  Settle(*page);
+  CHECK(rex::cvar::GetFlagByName("present_upscaler_sharpness") == "80");
+  CHECK(std::abs(std::stod(rex::cvar::GetFlagByName("present_fsr_sharpness_reduction")) - 0.4) <
+        1e-6);
+  std::filesystem::remove(path);
+}
+
+TEST_CASE("A saved FSR 1 at a scale larger than the screen is idle, without taking the "
+          "anti-aliasing",
+          "[graphics_page]") {
+  config::HostConfig config(TempFile("idle_fsr1.toml"));
+  const Upscaling upscaling("fsr", false);
+  const CvarsRestored restored({"resolution_scale"});
+  rex::cvar::SetFlagByName("resolution_scale", "3");
+  auto services = Services();
+  services.draw_resolution_scale = [] { return 3u; };
+  const auto page = ui::CreateGraphicsPage(config, services);
+  CHECK(Find(*page, "UPSCALER")->value() == "FSR 1 (OFF AT 3X)");
+  CHECK(Find(*page, "UPSCALER")->note() ==
+        "FSR 1 runs up to 2x on this 2560x1440 screen: at 3x the picture is downscaled without "
+        "it.");
+  CHECK_FALSE(Find(*page, "SHARPNESS")->is_enabled());
+  CHECK(Find(*page, "RACE MSAA")->is_enabled());
 }
 
 TEST_CASE("A preset chosen while an upscaler greys the anti-aliasing rows sets them for later",

@@ -58,7 +58,11 @@ const Setting kDetail = {"fm4_level_of_detail",
 const Setting kScale = {"resolution_scale", false, {{"1X", "1"}, {"2X", "2"}, {"3X", "3"}, {"4X", "4"}}};
 const Setting kUpscaler = {"present_effect",
                            true,
-                           {{"OFF", "bilinear"}, {"FSR 2", "fsr2"}, {"FSR 3", "fsr3"}, {"DLSS", "dlss"}}};
+                           {{"OFF", "bilinear"},
+                            {"FSR 1", "fsr"},
+                            {"FSR 2", "fsr2"},
+                            {"FSR 3", "fsr3"},
+                            {"DLSS", "dlss"}}};
 const Setting kDlssPreset = {
     "present_dlss_preset",
     true,
@@ -160,17 +164,18 @@ const RowText kRows[] = {
     {"RESOLUTION SCALE", &kScale,
      "Renders the game at a multiple of 1280x720: sharper edges and textures, more GPU load."},
     {"UPSCALER", &kUpscaler,
-     "Upscales the picture from the resolution scale to your display with the game's depth and "
-     "motion, and smooths edges on the way: DLSS on NVIDIA RTX GPUs, FSR 2 and FSR 3 on any. "
-     "Off stretches the picture. While one runs, MSAA and post AA are off; the MSAA change "
-     "applies from the next screen."},
+     "Upscales the picture from the resolution scale to your display. DLSS (NVIDIA RTX GPUs), "
+     "FSR 2 and FSR 3 (any GPU) use the game's depth and motion and smooth edges themselves: "
+     "while one runs, MSAA and post AA are off, the MSAA change from the next screen. FSR 1 "
+     "(any GPU, light) upscales and sharpens the finished picture, after MSAA and post AA. Off "
+     "stretches the picture."},
     {"DLSS PRESET", &kDlssPreset,
      "The DLSS model. Auto takes M where DLSS upscales by more than 1.8x on an RTX 40 or later "
      "GPU, else K; Default leaves the choice to the DLSS runtime and the NVIDIA app's override.",
      false, &kUpscaler, "dlss"},
     {"SHARPNESS", &kSharpness,
-     "Sharpens the picture after DLSS, FSR 2 or FSR 3. Off leaves the upscaler's picture as it "
-     "is."},
+     "Sharpens the picture after the upscaler. Off leaves the picture of DLSS, FSR 2 or FSR 3 "
+     "as it is; FSR 1 always sharpens a little."},
     {"GRAPHICS PRESET", nullptr,
      "Sets every setting below. Console is the game as on the console; "
      "High raises most, adds FXAA and uses 2x MSAA everywhere; Ultra also raises the level of "
@@ -463,22 +468,33 @@ std::string IdleUpscalerNote(const Draft& draft, const GraphicsPageServices& ser
   return (largest ? upscaler + " runs up to " + std::to_string(largest) + "x on this " + screen
                   : upscaler + " does not run on this " + screen) +
          " screen: at " + std::to_string(DraftedScale(draft, services)) +
-         "x the picture is downscaled without it, with MSAA and post AA instead.";
+         "x the picture is downscaled without it" +
+         (upscaler == "FSR 1" ? "." : ", with MSAA and post AA instead.");
 }
 
-// The temporal upscaler that is upscaling, or will once the drafted upscaler
-// or scale is applied; empty for none.
-std::string TemporalUpscalerName(const Draft& draft, const GraphicsPageServices& services) {
+// The upscaler that is upscaling, or will once the drafted upscaler or scale
+// is applied; empty for none.
+std::string UpscalerName(const Draft& draft, const GraphicsPageServices& services) {
   if (!draft.values.contains(&kUpscaler) && !draft.values.contains(&kScale)) {
+    const std::string effect = Live("present_effect");
+    if (effect == "fsr") {
+      return RenderFits(draft, services) ? "FSR 1" : std::string();
+    }
     if (!rex::ui::IsTemporalUpscalerActive()) {
       return std::string();
     }
-    const std::string effect = Live("present_effect");
     return effect == "dlss" ? "DLSS" : effect == "fsr3" ? "FSR 3" : "FSR 2";
   }
   return !UpscalerChosen(draft, services) || !RenderFits(draft, services)
              ? std::string()
              : Label(kUpscaler, Find(kUpscaler, draft.Value(kUpscaler)));
+}
+
+// The upscaler that takes over the anti-aliasing; FSR 1 works on the finished
+// picture and leaves it to MSAA and post AA.
+std::string TemporalUpscalerName(const Draft& draft, const GraphicsPageServices& services) {
+  const std::string upscaler = UpscalerName(draft, services);
+  return upscaler == "FSR 1" ? std::string() : upscaler;
 }
 
 std::string ResolutionLine(const Draft& draft, const GraphicsPageServices& services) {
@@ -494,11 +510,15 @@ std::string ResolutionLine(const Draft& draft, const GraphicsPageServices& servi
     return line;
   }
   const auto [output_width, output_height] = *output;
-  const std::string upscaler = TemporalUpscalerName(draft, services);
+  const std::string upscaler = UpscalerName(draft, services);
   if (output_width == render_width && output_height == render_height) {
-    // At 1:1 the upscalers only anti-alias, under the names NVIDIA and AMD give that mode.
+    // At 1:1 the upscalers only anti-alias, under the names NVIDIA and AMD give that mode;
+    // FSR 1 only sharpens.
     if (upscaler.empty()) {
       return line + ", shown at that size.";
+    }
+    if (upscaler == "FSR 1") {
+      return line + ", shown at that size, sharpened by FSR 1.";
     }
     return line + ", shown at that size with " + (upscaler == "DLSS" ? "DLAA" : upscaler + " Native AA") + ".";
   }
@@ -514,12 +534,26 @@ std::string ResolutionLine(const Draft& draft, const GraphicsPageServices& servi
   return line + ", downscaled to " + size(output_width, output_height) + ".";
 }
 
+// FSR 1's sharpening reads its own cvar, in stops below the sharpest: SHARPNESS
+// sets it as the SDK derives the temporal upscalers' (GetRcasSharpnessReduction).
+void SetFsr1Sharpness() {
+  constexpr const char* kReduction = "present_fsr_sharpness_reduction";
+  if (FromCommandLine(kReduction)) {
+    return;
+  }
+  const double stops = 2.0 * (1.0 - LiveNumber(kSharpness.name) / 100.0);
+  rex::cvar::SetFlagByName(kReduction, std::to_string(stops));
+}
+
 void SetLive(const Setting& setting, const std::string& value) {
   if (!rex::cvar::SetFlagByName(setting.name, value)) {
     REXLOG_ERROR("Graphics page: {} refused {}", setting.name, value);
     return;
   }
   REXLOG_INFO("Graphics page: {} = {}", setting.name, value);
+  if (&setting == &kSharpness) {
+    SetFsr1Sharpness();
+  }
   if (&setting == &kScale) {
     // The per-axis scales win over resolution_scale while either is set.
     for (const char* axis : {"draw_resolution_scale_x", "draw_resolution_scale_y"}) {
@@ -686,7 +720,7 @@ MenuRow UpscalerRow(const std::shared_ptr<Draft>& draft, const GraphicsPageServi
              Label(kUpscaler, Find(kUpscaler, draft->Value(kUpscaler))) + " runs up to " + scale +
              "x on this " + ScreenSize(services) + " screen.";
     }
-    if (!TemporalUpscalerName(*draft, services).empty()) {
+    if (!UpscalerName(*draft, services).empty()) {
       return ResolutionLine(*draft, services);
     }
     if (std::string idle = IdleUpscalerNote(*draft, services); !idle.empty()) {
@@ -747,6 +781,7 @@ void ApplySavedGraphicsSettings(const config::HostConfig& config) {
       REXLOG_INFO("Graphics settings: {} = {}", setting->name, *value);
     }
   }
+  SetFsr1Sharpness();
 }
 
 uint32_t DisplayRefreshHz(void* native_window) {
@@ -826,9 +861,7 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
   rows.push_back(UpscalerRow(draft, services));
 
   MenuRow sharpness = Row("SHARPNESS", kSharpness, draft);
-  sharpness.enabled = [draft, services] {
-    return !TemporalUpscalerName(*draft, services).empty();
-  };
+  sharpness.enabled = [draft, services] { return !UpscalerName(*draft, services).empty(); };
   rows.push_back(std::move(sharpness));
 
   MenuRow preset;

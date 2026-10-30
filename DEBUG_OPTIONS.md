@@ -31,7 +31,7 @@ Switches of the fixes that give the upscaler correct motion. Turn one off to see
 | `--fm4_ground_shadow_size` | `0` | Races' ground shadow map size (the car seen from the sun) from the next scene load: `0` is 512 while an upscaler takes a 1x frame, else 256 (the console's); `256` to `768` fixes it |
 | `--present_dlss_runtime` | empty | Folder holding `nvngx_dlss.dll`; empty uses the newest one next to the executable |
 | `--present_fsr_quality_mode` | `auto` | FSR mode: `auto`, `nativeaa`, `quality`, `balanced`, `performance`, `ultra_performance` |
-| `--present_fsr_sharpness_reduction` | `0.2` | FSR 1's RCAS sharpening reduction, in stops |
+| `--present_fsr_sharpness_reduction` | set by SHARPNESS | FSR 1's RCAS sharpening reduction, in stops: SHARPNESS sets it to `2 × (1 − sharpness)` (`1.4` at 30 %); given on the command line, it stays as given |
 
 Views and measurements:
 

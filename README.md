@@ -68,7 +68,7 @@ the command line? See the [manual install](guide/manual-install.md).
 | [Launcher](guide/launcher.md) | First setup, profiles, content, the `data` folder, updates |
 | [Manual install](guide/manual-install.md) | Command-line setup, Disc 2 and DLC, updating |
 | [Graphics settings](guide/graphics.md) | The in-game GRAPHICS page, presets, what each setting does |
-| [Upscalers](guide/upscalers.md) | DLSS, FSR 2 and FSR 3: what to pick, how the port feeds them, known limits |
+| [Upscalers](guide/upscalers.md) | DLSS, FSR 2, FSR 3 and FSR 1: what to pick, how the port feeds them, known limits |
 | [High frame rates](guide/high-frame-rate.md) | Picking a frame rate, how the game runs at up to 240 fps at real speed, limits |
 | [Keyboard](guide/controls.md) | Key layout for driving and menus, rebinding |
 | [Launch options](guide/launch-options.md) | Command-line options, languages, `-Compat`, frame generation, setting options, logs and crash reports |

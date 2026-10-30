@@ -41,7 +41,7 @@ public sealed class GraphicsSettings(GraphicsSchema schema, string tomlPath, str
         return displayHz is > 0 ? Math.Clamp(displayHz.Value, row.Low, row.High) : row.High;
     }
 
-    // The game runs a temporal upscaler only while the render (1280x720 x scale) fits the
+    // The game runs an upscaler only while the render (1280x720 x scale) fits the
     // display (src\ui\graphics_page.cpp LargestFittingScale); 0 when no scale fits, null while
     // the display size is unknown.
     public static int? LargestFittingScale((int Width, int Height)? display) =>
@@ -69,13 +69,18 @@ public sealed class GraphicsSettings(GraphicsSchema schema, string tomlPath, str
         return largest;
     }
 
-    // The upscaler that will run, as its row names it; it takes over MSAA and post AA. Null for none.
-    public string? TemporalUpscaler((int Width, int Height)? display)
+    // The upscaler that will run, as its row names it. Null for none.
+    public string? RunningUpscaler((int Width, int Height)? display)
     {
         if (!UpscalerChosen) return null;
         if (LargestFittingScale(display) is { } largest && int.Parse(Value(Scale)) > largest) return null;
         return Row(Upscaler).Choices!.Single(c => c.Value == Value(Upscaler)).Label;
     }
+
+    // The running upscaler that takes over MSAA and post AA; FSR 1 works on the finished
+    // picture and leaves them on. Null for none.
+    public string? TemporalUpscaler((int Width, int Height)? display) =>
+        RunningUpscaler(display) is { } upscaler && Value(Upscaler) != "fsr" ? upscaler : null;
 
     // The game may have written the file since it was read: only this session's changes are
     // applied on top of what is there now.
