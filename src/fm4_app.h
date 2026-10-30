@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <span>
@@ -57,6 +58,16 @@ class Fm4App final : public rex::ReXApp {
   using rex::ReXApp::ReXApp;
 
   static std::unique_ptr<rex::ui::WindowedApp> Create(rex::ui::WindowedAppContext& context) {
+#if defined(_WIN32)
+    // On laptops with an AMD integrated and an NVIDIA GPU, AMD's switchable graphics Vulkan
+    // layer (older drivers) hides both GPUs from the loader, and the game finds none (issue
+    // #28). Without it our device selection picks the discrete GPU; Godot does the same.
+    constexpr const char* kAmdLayerOff = "DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1";
+    size_t set_length = 0;
+    if (getenv_s(&set_length, nullptr, 0, kAmdLayerOff) == 0 && !set_length) {
+      _putenv_s(kAmdLayerOff, "1");
+    }
+#endif
     return std::unique_ptr<Fm4App>(new Fm4App(context, "fm4_static_recomp", PPCImageConfig));
   }
 
