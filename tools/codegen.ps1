@@ -28,13 +28,12 @@ $game = [IO.Path]::GetFullPath($GameRoot).Replace('\', '/')
 if (-not (Test-Path -LiteralPath (Join-Path $game 'default.xex') -PathType Leaf)) {
     throw "default.xex is missing in $GameRoot"
 }
-$tracked = Join-Path $root 'config/rexglue/fm4_manifest.toml'
-$manifest = Join-Path $root 'config/rexglue/fm4_manifest.local.toml'
-# The launcher runs setup under Windows PowerShell 5.1 when PowerShell 7 is absent, whose
-# Set-Content has no BOM-less UTF-8.
-[IO.File]::WriteAllText($manifest,
-    (Get-Content -LiteralPath $tracked -Raw).Replace('../../../extracted/fm4', $game),
-    [Text.UTF8Encoding]::new($false))
+# The release of the game folder picks the code image, its manifest and analysis.
+Invoke-Fm4BuildCommand (Get-Fm4Python) @('-I', (Join-Path $PSScriptRoot 'release_analysis.py'),
+    '--game-root', $game) (Join-Path $logs 'release-analysis.log') 'Resolving the release and analysis of the game folder failed.'
+$image = [regex]::Match((Get-Content -LiteralPath (Join-Path $root '.local/generated/code-image.cmake') -Raw),
+    'set\(FM4_CODE_IMAGE "([^"]+)"\)').Groups[1].Value
+$manifest = Join-Path $root ".local/generated/$image/fm4_manifest.toml"
 
 if (-not $SkipSdkBuild -and -not $bundle) {
     Push-Location -LiteralPath $sdkRoot

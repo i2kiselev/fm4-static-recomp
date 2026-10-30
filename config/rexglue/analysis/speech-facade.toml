@@ -1,5 +1,7 @@
 # Manual analysis facts for SpeechFacade_default.xex
-# (SHA-256 1F6057B549C3860BD2196E32949227E4246157D39E9E4FC0ECA4AA7CA1CD401F).
+# (SHA-256 1F6057B549C3860BD2196E32949227E4246157D39E9E4FC0ECA4AA7CA1CD401F on 1.0 PAL).
+# The facades of every Disc 1 release differ only in timestamps, a debug GUID and one
+# import word: these facts serve all of them.
 
 [functions]
 # Code pointers in .rdata/.data to fragments without PDATA, found by

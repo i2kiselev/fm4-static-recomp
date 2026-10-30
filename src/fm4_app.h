@@ -14,6 +14,7 @@
 #include <rex/kernel/xboxkrnl/io.h>
 #include <rex/logging.h>
 #include <rex/rex_app.h>
+#include <rex/system.h>
 #include <rex/system/gpu_plugin.h>
 #include <rex/system/xmemory.h>
 #include <rex/ui/flags.h>
@@ -24,11 +25,13 @@
 #include <rex/ui/windowed_app_context.h>
 
 #include "built_in_defaults.h"
+#include "code_image_check.h"
 #include "config/host_config.h"
 #include "disc2_install.h"
 #include "file_open_log.h"
 #include "game_hooks.h"
 #include "game_language.h"
+#include "guest_addresses.h"
 #include "input/controls.h"
 #include "input/input_context.h"
 #include "input/keyboard_ramp.h"
@@ -141,6 +144,10 @@ class Fm4App final : public rex::ReXApp {
     if (!rex::ReXApp::ConstructRuntime(paths)) {
       return false;
     }
+    if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kNone &&
+        !GameFolderMatchesBuild(paths.game_data_root)) {
+      return false;
+    }
     if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kShaderCache) {
       return RunShaderCacheTool();
     }
@@ -212,6 +219,20 @@ class Fm4App final : public rex::ReXApp {
   }
 
  private:
+  // The game code is recompiled from one code image's default.xex; the other image's would
+  // run against it, so a game folder of another release is refused before the game starts.
+  static bool GameFolderMatchesBuild(const std::filesystem::path& game_root) {
+    const auto mismatch = fm4_static_recomp::CodeImageMismatch(
+        fm4_static_recomp::FileSha256(game_root / "default.xex"), fm4_guest::kCodeImage,
+        fm4_guest::kReleases);
+    if (!mismatch) {
+      return true;
+    }
+    REXLOG_ERROR("{}", *mismatch);
+    rex::ShowSimpleMessageBox(rex::SimpleMessageBoxType::Error, *mismatch);
+    return false;
+  }
+
   // The keyboard's bindings follow the input context each tick, and its
   // steering, pedals and look are smoothed while driving.
   void InstallKeyboard() {

@@ -107,17 +107,18 @@ More than twice Xenia's frame rate at every scale on the same PC
 | Game | Forza Motorsport 4, Xbox 360, retail, title ID `4D530910` |
 | Disc 1, 1.0 PAL | Europe, Australia, media ID `61D62D9F` |
 | Disc 1, 1.0 USA | USA, media ID `26FF1101` |
+| Disc 1, Rev 1 Europe | The 1.1 re-release, Europe, media ID `42C67824` |
+| Disc 1, Rev 1 USA | The 1.1 re-release, USA, media ID `33E7B39F` |
 | Disc 2 | Optional: the install disc's four content packages (more cars and tracks) |
 | DLC | Optional: Marketplace packages for title `4D530910` |
 
-Both Disc 1 releases carry the same code; only their executables' headers differ. Any other
-version of `default.xex` will not work, because the translation is made for this exact code.
-Other releases are untested. `config/supported-discs.json` lists every Disc 1 file with its
-size and hash.
-
-> [!WARNING]
-> **The 1.1 re-release (Rev 1) of Disc 1 is not supported** (media ID `42C67824`); its Disc 2
-> works.
+The two 1.0 releases carry the same code, and so do the two Rev 1 releases; only their
+executables' headers differ. Setup recognises the release from `default.xex` and translates
+that release's code, so the game folder must keep code of the disc it was set up from: the game
+refuses to start on a folder of the other code (1.0 or Rev 1) and asks to run setup again. Any other version of
+`default.xex` will not work, because the translation is made for exact code; title updates are
+not applied. Other releases are untested. `config/supported-discs.json` lists every Disc 1
+file with its size and hash.
 
 ## What you need
 
@@ -160,7 +161,8 @@ Known problems are tracked as
 | `src/` | The host app: game hooks, built-in defaults, Disc 2 and DLC install, the GRAPHICS page |
 | `src/input/` | Keyboard play: bindings, driving smoothing, keycap prompts |
 | `tests/` | Unit tests of the host app |
-| `config/rexglue/` | The recompiler's input: function analysis, hooks, the manifest |
+| `config/rexglue/` | The recompiler's input: function analysis and hooks at their 1.0 addresses, each release's fragment list, the manifest |
+| `config/rexglue/releases/` | Where each 1.0 address is in Rev 1's code, with a fingerprint of the code there (`tools/port_release.py`, checked by `tools/release_parity.py`) |
 | `config/*.json` | The pinned toolchain and SDK, the supported discs' file lists |
 | `tools/setup.ps1`, `build.ps1`, `codegen.ps1`, `run.ps1` | Setup, build and launch |
 | `launcher/` | The launcher (Avalonia, .NET 8): its core library with tests, and the app |

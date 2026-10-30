@@ -1,0 +1,21 @@
+# Guest addresses src/game_hooks.cpp calls or reads, at their place in the 1.0 code image
+# (canonical, like the analysis TOMLs). tools/release_analysis.py emits them for the code image
+# being built into guest_addresses.h; the port tables in releases/ map them to other images.
+
+# Guest functions the hooks call.
+[code]
+# Makes a string id from a string table key (out, owner, key).
+kMakeLocString = 0x822B1AE8
+# Makes a menu label from a string id (out, string id).
+kMakeMenuLabel = 0x82971220
+# Adds an item to a menu (menu, label, action, 1, 0).
+kMenuAddItem = 0x8266FF00
+# The string lookup Fm4GraphicsOptionText hooks (its entry), called for the original text.
+kStringLookup = 0x823A4780
+
+# Guest data the hooks read.
+[data]
+# Holds the render scenario manager.
+kScenarioManagerPointer = 0x82DC3750
+# Each scenario control's offset, indexed by control id.
+kControlOffsetTable = 0x82D59FF0

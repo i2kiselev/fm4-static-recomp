@@ -7,8 +7,8 @@ from pathlib import Path
 
 from render_tests import images, seed
 from render_tests.checks import (References, band_check, chroma_check, defaults_check,
-                                 differ_check, log_checks, max_check, min_check,
-                                 pipeline_list_check)
+                                 differ_check, hook_census_check, hooks_hit, log_checks,
+                                 max_check, min_check, pipeline_list_check)
 from render_tests.images import Image, ImageLimits, Rect
 from render_tests.logtail import parse
 
@@ -261,3 +261,38 @@ class PipelineListTest(unittest.TestCase):
         result = pipeline_list_check(missing, self.xpso(TOOL_VERSION))
         self.assertFalse(result.passed)
         self.assertIn(str(missing), result.detail)
+
+
+class HookCensusTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.path = Path(self.temp.name) / "hook-census.json"
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_reads_the_census_lines(self):
+        lines = [line("10:00:00.000", "Hook census: Fm4MainLoopStep"),
+                 line("10:00:00.001", "Hook census: Fm4LoadingScreen"),
+                 line("10:00:00.002", "String: Hook census: Fm4Fake")]
+        self.assertEqual(hooks_hit(lines), {"Fm4MainLoopStep", "Fm4LoadingScreen"})
+
+    def test_records_then_compares(self):
+        recorded = hook_census_check(self.path, "full", {"A", "B"}, record=True)
+        self.assertTrue(recorded.passed)
+        self.assertTrue(hook_census_check(self.path, "full", {"A", "B"}).passed)
+        extra = hook_census_check(self.path, "full", {"A", "B", "C"})
+        self.assertTrue(extra.passed)
+        self.assertIn("new C", extra.detail)
+
+    def test_a_missing_hook_fails(self):
+        hook_census_check(self.path, "full", {"A", "B"}, record=True)
+        result = hook_census_check(self.path, "full", {"A"})
+        self.assertFalse(result.passed)
+        self.assertIn("missing B", result.detail)
+
+    def test_another_tier_has_no_reference(self):
+        hook_census_check(self.path, "full", {"A"}, record=True)
+        self.assertFalse(hook_census_check(self.path, "short", {"A"}).passed)
+        hook_census_check(self.path, "short", {"A", "B"}, record=True)
+        self.assertTrue(hook_census_check(self.path, "full", {"A"}).passed)

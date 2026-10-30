@@ -59,6 +59,7 @@ $include = @(
     'config/supported-discs.json', 'config/shaders', 'config/warm-up',
     'tools/release-common.ps1', 'tools/provision-toolchain.ps1', 'tools/install-build-tools.ps1',
     'tools/prepare-sdk.ps1', 'tools/codegen.ps1', 'tools/build.ps1', 'tools/setup.ps1',
+    'tools/release_analysis.py', 'tools/code_images.py',
     'tools/run.ps1', 'tools/warm-up.ps1', 'tools/warm-up-common.ps1',
     'tools/toolchain.py', 'tools/toolchain', 'tools/microsoft-licences.ps1', 'tools/create-crash-report.ps1'
 )

@@ -20,6 +20,7 @@ add_executable(fm4_static_recomp WIN32
     src/disc2_install.cpp
     src/game_hooks.cpp
     src/car_dirt.cpp
+    src/code_image_check.cpp
     src/shadow_map.cpp
     src/file_open_log.cpp
     src/game_language.cpp
@@ -48,7 +49,7 @@ add_executable(fm4_static_recomp WIN32
 )
 
 fm4_static_recomp_attach_rexglue(fm4_static_recomp)
-target_link_libraries(fm4_static_recomp PRIVATE d3d12 dxgi rex::gpu-fh1 renderdoc)
+target_link_libraries(fm4_static_recomp PRIVATE bcrypt d3d12 dxgi rex::gpu-fh1 renderdoc)
 
 option(FM4_BUILD_TESTS "Add the fm4_unit_tests target (built only when asked for)" OFF)
 if(FM4_BUILD_TESTS)
@@ -63,13 +64,16 @@ if(FM4_BUILD_TESTS)
         tests/prompt_swap_test.cpp
         tests/prompt_strings_test.cpp
         tests/car_dirt_test.cpp
+        tests/code_image_check_test.cpp
         tests/shadow_map_test.cpp
         tests/file_open_log_test.cpp
         tests/game_language_test.cpp
         tests/string_log_test.cpp
+        tests/string_tables_test.cpp
         tests/ui_fonts_test.cpp
         tests/graphics_page_test.cpp
         src/car_dirt.cpp
+        src/code_image_check.cpp
         src/shadow_map.cpp
         src/file_open_log.cpp
         src/game_language.cpp
@@ -95,7 +99,7 @@ if(FM4_BUILD_TESTS)
     target_compile_definitions(fm4_unit_tests PRIVATE
         FM4_TEST_GAME_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../extracted/fm4"
         FM4_TEST_STRINGS="${CMAKE_CURRENT_SOURCE_DIR}/../frontend-settings/data/raw/strings/EN.tsv")
-    target_link_libraries(fm4_unit_tests PRIVATE Catch2::Catch2WithMain rexruntime)
+    target_link_libraries(fm4_unit_tests PRIVATE Catch2::Catch2WithMain rexruntime bcrypt)
 endif()
 
 fm4_static_recomp_add_generated_module(

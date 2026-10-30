@@ -15,6 +15,7 @@ _PIPELINE = re.compile(r"^Creating graphics pipeline state with VS ([0-9A-F]{16}
 NOT_ON_THE_DISC = frozenset({"1E6883FCCDE1F688", "B6C9863F710683EC", "A4A965C189287B99"})
 _VALIDATION_ERROR = re.compile(r"^Vulkan Error \(")
 _REFUSED_DEFAULT = re.compile(r"^Built-in default: (\S+) refused")
+_HOOK_HIT = re.compile(r"^Hook census: (\w+)$")
 SHADER_LIST = Path(__file__).resolve().parents[1] / "shader_list.py"
 
 
@@ -105,6 +106,31 @@ class Figures:
     def ceiling(self, name, value, margin):
         return self._check(name, value, lambda expected: f"<= {expected * (1 + margin):.0f}",
                            lambda expected: value <= expected * (1 + margin))
+
+
+def hooks_hit(lines):
+    """The game code hooks a session reached (--fm4_hook_census)."""
+    return {match.group(1) for line in lines if (match := _HOOK_HIT.match(line.text))}
+
+
+def hook_census_check(path, key, hooks, record=False, force=False):
+    """The hooks a run reached against those recorded for its tier on a 1.0 build: a code image
+    whose port misses a hook's place never reaches it. Missing ones fail; new ones are listed."""
+    path = Path(path)
+    recorded = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    if record and (force or key not in recorded):
+        recorded[key] = sorted(hooks)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(recorded, indent=2, sort_keys=True), encoding="utf-8")
+        return CheckResult("hook census", True, f"recorded {len(hooks)} hooks", "-", str(path))
+    if key not in recorded:
+        return CheckResult("hook census", False, f"{len(hooks)} hooks", "no reference", str(path))
+    missing = sorted(set(recorded[key]) - hooks)
+    extra = sorted(hooks - set(recorded[key]))
+    detail = "; ".join(part for part in (missing and f"missing {', '.join(missing)}",
+                                         extra and f"new {', '.join(extra)}") if part)
+    return CheckResult("hook census", not missing, f"{len(hooks)} hooks",
+                       f"the {len(recorded[key])} recorded", detail)
 
 
 def chroma_check(name, image, rect, max_mean, max_p95):

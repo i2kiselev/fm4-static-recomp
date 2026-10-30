@@ -14,7 +14,7 @@ import time
 from ctypes import wintypes
 from pathlib import Path
 
-from . import images
+from . import images, seed
 from .logtail import LogTail, draws_per_frame, stats_lines
 
 TOOLS = Path(__file__).resolve().parent.parent
@@ -201,7 +201,8 @@ class WindowsHost:
         env = dict(os.environ, **self.extra_env,
                    FM4_STATIC_RECOMP_INPUT_SCRIPT=str(self.input_path),
                    SDL_WINDOW_ACTIVATE_WHEN_SHOWN="0")
-        command = (f"& {_quote(TOOLS / 'run.ps1')} -StateRoot {_quote(state)} -GameArguments @("
+        command = (f"& {_quote(TOOLS / 'run.ps1')} -StateRoot {_quote(state)} "
+                   f"-GameRoot {_quote(seed.GAME_ROOT)} -GameArguments @("
                    + ",".join(_quote(argument) for argument in game_args) + ")")
         subprocess.run(["pwsh", "-NoProfile", "-Command", command], env=env, check=True,
                        capture_output=True, text=True)

@@ -30,6 +30,12 @@ It must be one of:
 |---|---|
 | 1.0 PAL | `6A7E9AE561CCCA134916F27870A73299408F4AD14F1499063C0F6F6414C2A7E1` |
 | 1.0 USA | `3618E85AF83E972DDCC1B0D0DD808E78E29AB4AB3890A15B31C210A6A3E93E09` |
+| Rev 1 Europe | `B34DFB88978819CCCDA6DAFD755E7139970A58FBF6707DFBCBA06846857F52BD` |
+| Rev 1 USA | `E0A93EE8A3E16DBB5C327B940EFB38E9D125809A4281AB75CBFA9CD987285D4C` |
+
+The build is made for the release in that folder. If you later replace the folder with a disc
+of the other code (1.0 or Rev 1), the game refuses to start ("This build of FM4 Static
+Recomp was made from the ... disc"): run setup again with the new folder.
 
 ## 2. Get the source
 
@@ -70,7 +76,8 @@ stay on your PC; `tools\microsoft-licences.ps1` prints the current links.
 2. Downloads Microsoft's C++ runtime (the MSVC 14.44 headers and libraries, from Microsoft's
    Visual Studio channel) and the Windows SDK (from Microsoft's NuGet packages) into
    `.local\toolchain`, each checked against Microsoft's published hash.
-3. Translates `default.xex` into C++ and compiles
+3. Recognises the release from `default.xex`'s hash, translates that release's code into C++
+   and compiles
    `out\build\win-amd64-release\fm4_static_recomp.exe`.
 4. Builds the shader cache from your Disc 1 (about a second), so your first races do not
    stall while shaders compile. It adds the shaders and pipelines listed in

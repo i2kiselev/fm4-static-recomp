@@ -12,6 +12,7 @@
 #include "input/keycap.h"
 #include "ui/hostui/ui_archive.h"
 #include "ui/hostui/vector_font.h"
+#include "test_game_root.h"
 
 using fm4_static_recomp::hostui::UiArchive;
 using fm4_static_recomp::hostui::VectorFont;
@@ -22,8 +23,7 @@ namespace {
 // The help bar's font (fontmap.xml: B_Swiss_721_Medium).
 const VectorFont* Font() {
   static const std::optional<VectorFont> font = []() -> std::optional<VectorFont> {
-    const auto archive =
-        UiArchive::Open(std::filesystem::path(FM4_TEST_GAME_ROOT) / "Media/UI/Fonts.zip");
+    const auto archive = UiArchive::Open(TestGameRoot() / "Media/UI/Fonts.zip");
     if (!archive)
       return std::nullopt;
     const auto data = archive->Read("b_vector_aa.dt");
@@ -32,9 +32,9 @@ const VectorFont* Font() {
   return font ? &*font : nullptr;
 }
 
-#define REQUIRE_FONT()                                     \
-  if (!Font()) {                                           \
-    SKIP("Fonts.zip not found under " FM4_TEST_GAME_ROOT); \
+#define REQUIRE_FONT()                                             \
+  if (!Font()) {                                                   \
+    SKIP("Fonts.zip not found under " << TestGameRoot().string()); \
   }
 
 struct Pixel {

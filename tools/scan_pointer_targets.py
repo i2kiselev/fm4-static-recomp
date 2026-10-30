@@ -6,6 +6,7 @@ aligned word in .rdata/.data, and every address built by a lis/addi or lis/ori
 pair in code, that points at unregistered code which starts a fragment, sizes
 the fragment and appends it to the module's analysis TOML.
 Run codegen first: the registered set is read from the generated init file.
+Takes resolve_unresolved.py's --game-root.
 """
 import argparse
 import re
@@ -13,7 +14,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from resolve_unresolved import ANALYSIS, ENTRY, GAME, ROOT, fragment_size, is_terminator, word_at  # noqa: E402
+import release_analysis  # noqa: E402
+from resolve_unresolved import ENTRY, add_arguments, fragment_size, is_terminator, resolve, word_at  # noqa: E402
 from xex_tool import Xex  # noqa: E402
 
 GENERATED = {
@@ -26,9 +28,9 @@ HEADER = "# Code pointers in .rdata/.data to fragments without PDATA, found by\n
          "# tools/scan_pointer_targets.py.\n"
 
 
-def scan(module):
-    xex = Xex(GAME / module)
-    init = (ROOT / ".local/generated" / GENERATED[module] / "fm4_static_recomp_init.cpp").read_text(
+def scan(game, image, module):
+    xex = Xex(game / module)
+    init = (release_analysis.image_dir(image) / GENERATED[module] / "fm4_static_recomp_init.cpp").read_text(
         encoding="utf-8", errors="replace")
     registered = {int(a, 16) for a in re.findall(r"\{\s*0x([0-9A-F]{8}),\s*\w+\s*\}", init)}
     code = [(va, va + size) for _, va, size, flags in xex.sections if flags & 0x20]
@@ -80,10 +82,12 @@ def scan(module):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("modules", nargs="*", default=list(GENERATED))
+    add_arguments(ap)
     args = ap.parse_args()
+    game, image, analysis = resolve(args)
     for module in args.modules:
-        sized, unsized, switch_bases = scan(module)
-        toml = ANALYSIS[module]
+        sized, unsized, switch_bases = scan(game, image, module)
+        toml = analysis[module]
         text = toml.read_text(encoding="utf-8")
         stale = [a for a in switch_bases if f"0x{a:08X} = " in text]
         for address in stale:

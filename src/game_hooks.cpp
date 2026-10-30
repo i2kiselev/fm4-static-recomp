@@ -34,6 +34,7 @@
 
 #include "car_dirt.h"
 #include "game_hooks.h"
+#include "guest_addresses.h"
 #include "input/input_context.h"
 #include "input/prompt_strings.h"
 #include "scripted_input.h"
@@ -94,6 +95,10 @@ REXCVAR_DEFINE_BOOL(fm4_skip_intro, false, "Forza Motorsport 4",
 REXCVAR_DEFINE_DOUBLE(fm4_ui_speed, 1.0, "Forza Motorsport 4",
                       "Speed of the menus' animations against real time (1 = the console's)");
 
+REXCVAR_DEFINE_BOOL(fm4_hook_census, false, "Forza Motorsport 4",
+                    "Diagnostics: log each midasm hook's first hit (Hook census: <name>), for "
+                    "the render tests' check that a code image reaches the hooks 1.0 does");
+
 REXCVAR_DEFINE_STRING(fm4_physics_log, "", "Forza Motorsport 4",
                       "Diagnostics: a CSV file that receives every main loop time step, every "
                       "car's physics substep count and, ten times a simulated second, the "
@@ -144,6 +149,24 @@ REXCVAR_DEFINE_STRING(fm4_graphics_lod_thresholds, "", "Forza Motorsport 4",
                       "drop by one once six cars are visible)");
 
 namespace {
+
+// One log line per hook function on its first hit, under fm4_hook_census; after it, a
+// relaxed load (hot hooks run per string lookup or per car substep).
+#define FM4_HOOK_CENSUS()                                        \
+  do {                                                           \
+    static std::atomic_flag fm4_hook_hit;                        \
+    if (!fm4_hook_hit.test(std::memory_order_relaxed) &&         \
+        !fm4_hook_hit.test_and_set(std::memory_order_relaxed)) { \
+      NoteHookHit(__func__);                                     \
+    }                                                            \
+  } while (false)
+
+void NoteHookHit(const char* hook) {
+  if (REXCVAR_GET(fm4_hook_census)) {
+    REXLOG_INFO("Hook census: {}", hook);
+  }
+}
+
 std::atomic<bool> g_race_session{false};
 // Set when the switches below own gpu_pixel_shader_constant_override (none was given at launch).
 std::atomic<bool> g_switches_own_override{false};
@@ -191,9 +214,9 @@ void EndFastLoad(const char* reason, bool after_start_only = false) {
 // is LiveStrings' IDS_MatchmakingBlockedTitle).
 constexpr uint32_t kGraphicsAction = 23;
 constexpr uint32_t kGraphicsStringKey = 0x7158;
-constexpr uint32_t kMakeLocString = 0x822B1AE8;
-constexpr uint32_t kMakeMenuLabel = 0x82971220;
-constexpr uint32_t kMenuAddItem = 0x8266FF00;
+using fm4_guest::kMakeLocString;
+using fm4_guest::kMakeMenuLabel;
+using fm4_guest::kMenuAddItem;
 
 std::mutex g_graphics_page_mutex;
 std::function<void()> g_graphics_page_opener;
@@ -209,7 +232,7 @@ std::unordered_map<std::u16string, uint32_t> g_prompt_texts;
 std::mutex g_string_log_mutex;
 fm4_static_recomp::StringShownLog g_string_log;
 
-constexpr uint32_t kStringLookup = 0x823A4780;
+using fm4_guest::kStringLookup;
 
 // A NUL-terminated big-endian UTF-16 copy of the text on the system heap.
 uint32_t GuestText(std::u16string_view text) {
@@ -408,8 +431,8 @@ constexpr uint64_t kSettingsOwnedMask =
     ValueMask(kFullRateBloom) | ValueMask(kSoftParticlesOn) | ValueMask(kSceneryShadowsOn) |
     ValueMask(kReflectionsEveryRace) | ValueMask(kCrowdsEveryRace);
 
-constexpr uint32_t kScenarioManagerPointer = 0x82DC3750;
-constexpr uint32_t kControlOffsetTable = 0x82D59FF0;
+using fm4_guest::kControlOffsetTable;
+using fm4_guest::kScenarioManagerPointer;
 constexpr uint32_t kOverrideValueOffset = 0x40;
 constexpr uint32_t kOverrideMaskOffset = 0x60;
 
@@ -667,6 +690,7 @@ void ApplyPixelShaderConstantOverride() {
 }  // namespace
 
 void Fm4MainLoopStep(PPCRegister& r30, PPCRegister& f31) {
+  FM4_HOOK_CENSUS();
   g_showroom_pending_ms.fetch_add(r30.u32, std::memory_order_relaxed);
   g_ui_pending_ms.fetch_add(r30.u32, std::memory_order_relaxed);
   if (!g_car_stepped.exchange(false, std::memory_order_relaxed) &&
@@ -684,14 +708,17 @@ void Fm4MainLoopStep(PPCRegister& r30, PPCRegister& f31) {
 }
 
 void Fm4PhysicsLogCar(PPCRegister& r30, PPCRegister& r31, PPCRegister& r28, PPCRegister& f31) {
+  FM4_HOOK_CENSUS();
   LogCarStep(r30.u32, r31.u32, r28.u32 & 0xFF, f31.f64);
 }
 
 void Fm4PhysicsLogOtherCar(PPCRegister& r30, PPCRegister& r11, PPCRegister& f31) {
+  FM4_HOOK_CENSUS();
   LogCarStep(r30.u32, r11.u32, 2, f31.f64);
 }
 
 void Fm4LoadingScreen() {
+  FM4_HOOK_CENSUS();
   const std::lock_guard lock(g_fast_load_mutex);
   if (g_fast_load.load(std::memory_order_relaxed)) {
     return;
@@ -703,6 +730,7 @@ void Fm4LoadingScreen() {
 }
 
 void Fm4UiSceneStep(PPCRegister& f31) {
+  FM4_HOOK_CENSUS();
   // A load that ends in a menu instead of a race.
   EndFastLoad("menu", true);
   const uint32_t ms = g_ui_pending_ms.exchange(0, std::memory_order_relaxed);
@@ -710,6 +738,7 @@ void Fm4UiSceneStep(PPCRegister& f31) {
 }
 
 void Fm4ShowroomCameraStep(PPCRegister& f1) {
+  FM4_HOOK_CENSUS();
   EndFastLoad("showroom", true);
   // At most the 1/60 s it replaces times six, so the first update after the
   // showroom opens does not jump the camera by the time spent elsewhere.
@@ -718,6 +747,7 @@ void Fm4ShowroomCameraStep(PPCRegister& f1) {
 }
 
 void Fm4AutovistaCameraUpdate() {
+  FM4_HOOK_CENSUS();
   // Runs every tick while Autovista is open, and nowhere else.
   static auto last = std::chrono::steady_clock::time_point{};
   const auto now = std::chrono::steady_clock::now();
@@ -728,6 +758,7 @@ void Fm4AutovistaCameraUpdate() {
 }
 
 void Fm4SplashIntroOption(PPCRegister& r23) {
+  FM4_HOOK_CENSUS();
   constexpr uint32_t kDisableSplashIntro = 0xB5C;
   if (REXCVAR_GET(fm4_skip_intro)) {
     rex::system::kernel_state()->memory()->virtual_membase()[r23.u32 + kDisableSplashIntro] = 1;
@@ -735,12 +766,14 @@ void Fm4SplashIntroOption(PPCRegister& r23) {
 }
 
 void Fm4DepthOfFieldOption(PPCRegister& r4) {
+  FM4_HOOK_CENSUS();
   if (!REXCVAR_GET(fm4_depth_of_field)) {
     r4.u64 = 0;
   }
 }
 
 void Fm4PresentInterval(PPCRegister& r4) {
+  FM4_HOOK_CENSUS();
   // Set every frame in races and on the pre-race screen.
   static uint32_t last = 0;
   if (r4.u32 != last) {
@@ -753,6 +786,7 @@ void Fm4PresentInterval(PPCRegister& r4) {
 }
 
 void Fm4ShadowMapSetup(PPCRegister& r4, PPCRegister& r5) {
+  FM4_HOOK_CENSUS();
   const uint32_t size = ShadowMapSize();
   const auto* graphics = rex::system::kernel_state()->emulator()->graphics_system();
   const uint32_t ground = fm4_static_recomp::GroundShadowSize(
@@ -770,6 +804,7 @@ void Fm4ShadowMapSetup(PPCRegister& r4, PPCRegister& r5) {
 }
 
 bool Fm4ShadowMapKeepHeader(PPCRegister& r30, PPCRegister& r8) {
+  FM4_HOOK_CENSUS();
   if (r30.u32 <= 512) {
     return false;
   }
@@ -778,6 +813,7 @@ bool Fm4ShadowMapKeepHeader(PPCRegister& r30, PPCRegister& r8) {
 }
 
 void Fm4ShadowMapMemory(PPCRegister& r4, PPCRegister& r26) {
+  FM4_HOOK_CENSUS();
   constexpr uint32_t kConsoleBytes = 512 * 512 * 4;
   if (r26.u32 <= kConsoleBytes) {
     return;
@@ -790,6 +826,7 @@ void Fm4ShadowMapMemory(PPCRegister& r4, PPCRegister& r26) {
 }
 
 void Fm4ShadowPassSetup(PPCRegister& r3, PPCRegister& r4, PPCRegister& r6) {
+  FM4_HOOK_CENSUS();
   REXLOG_INFO("Shadow pass setup: {} (memory {:08X}, {:08X})", r3.u32, r4.u32, r6.u32);
   if (r3.u32 != 512 || ShadowMapSize() == 512) {
     return;
@@ -806,6 +843,7 @@ void Fm4ShadowPassSetup(PPCRegister& r3, PPCRegister& r4, PPCRegister& r6) {
 }
 
 void Fm4ShadowPassMsaa(PPCRegister& r30, PPCRegister& r31) {
+  FM4_HOOK_CENSUS();
   constexpr uint64_t kEdramBytes = 0xA00000;
   if (r30.u32 != 0) {
     return;
@@ -820,6 +858,7 @@ void Fm4ShadowPassMsaa(PPCRegister& r30, PPCRegister& r31) {
 }
 
 void Fm4ReflectionCubeSetup(PPCRegister& r4) {
+  FM4_HOOK_CENSUS();
   const uint32_t size = ReflectionCubeSize();
   REXLOG_INFO("Reflection cube setup: {}, setting {}", r4.u32, size);
   if (r4.u32 == 256 && size != 256) {
@@ -829,6 +868,7 @@ void Fm4ReflectionCubeSetup(PPCRegister& r4) {
 
 void Fm4ReflectionCubeMemory(PPCRegister& r3, PPCRegister& r26, PPCRegister& r30,
                              PPCRegister& r31) {
+  FM4_HOOK_CENSUS();
   if (r26.u32 <= 256) {
     return;
   }
@@ -848,6 +888,7 @@ void Fm4ReflectionCubeMemory(PPCRegister& r3, PPCRegister& r26, PPCRegister& r30
 }
 
 void Fm4ScenarioFileLoaded(PPCRegister& r1, PPCRegister& r31) {
+  FM4_HOOK_CENSUS();
   uint8_t* const membase = rex::system::kernel_state()->memory()->virtual_membase();
   // The loader's std::string: 16 bytes inline or a pointer, then size and capacity.
   const uint8_t* const string = membase + r1.u32 + 96;
@@ -876,6 +917,7 @@ void Fm4ScenarioFileLoaded(PPCRegister& r1, PPCRegister& r31) {
 }
 
 void Fm4ScenarioPush(PPCRegister& r4) {
+  FM4_HOOK_CENSUS();
   uint8_t* const membase = rex::system::kernel_state()->memory()->virtual_membase();
   const uint32_t address = LoadGuestWord(membase + r4.u32);
   const std::lock_guard lock(g_scenario_files_mutex);
@@ -943,20 +985,24 @@ void SetThumbnailRender(bool render) {
 }  // namespace
 
 void Fm4ThumbnailRenderStart() {
+  FM4_HOOK_CENSUS();
   SetThumbnailRender(true);
 }
 
 void Fm4ThumbnailSettle(PPCRegister& r3) {
+  FM4_HOOK_CENSUS();
   if (g_thumbnail_ready_ticks.fetch_add(1, std::memory_order_relaxed) < kThumbnailSettleTicks) {
     r3.u64 = 0;
   }
 }
 
 void Fm4ThumbnailRenderDone() {
+  FM4_HOOK_CENSUS();
   SetThumbnailRender(false);
 }
 
 void Fm4MainLoopSession(PPCRegister& r11) {
+  FM4_HOOK_CENSUS();
   const bool race = r11.u32 != 0;
   g_race_session.store(race, std::memory_order_relaxed);
   fm4_static_recomp::input::GameInputContext().SetRaceSession(race);
@@ -989,16 +1035,19 @@ void Fm4MainLoopSession(PPCRegister& r11) {
 }
 
 void Fm4RaceMenuSceneCreated(PPCRegister& r3) {
+  FM4_HOOK_CENSUS();
   fm4_static_recomp::input::GameInputContext().RaceMenuSceneCreated(r3.u32);
   REXLOG_INFO("Race menu scene created {:08X}", r3.u32);
 }
 
 void Fm4RaceMenuSceneDestroyed(PPCRegister& r3) {
+  FM4_HOOK_CENSUS();
   fm4_static_recomp::input::GameInputContext().RaceMenuSceneDestroyed(r3.u32);
   REXLOG_INFO("Race menu scene destroyed {:08X}", r3.u32);
 }
 
 bool Fm4SkipVblankCallback() {
+  FM4_HOOK_CENSUS();
   // Runs on every vblank, so a new rate applies from the next one. A race waking
   // on every second vblank of one at twice its rate is no substitute: a frame then
   // flips on whichever vblank follows its swap, and frames whose swap falls near
@@ -1086,6 +1135,7 @@ void NoteGuestFileOpen(std::string_view guest_path) {
 // last item has just released.
 void Fm4AddGraphicsOption(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r30,
                           PPCRegister& r31) {
+  FM4_HOOK_CENSUS();
   const uint32_t string_id = r1.u32 + 0xA0;
   const uint32_t label = r1.u32 + 0xA4;
   CallGuest(ctx, base, r1.u32, kMakeLocString, {string_id, r31.u32, kGraphicsStringKey});
@@ -1102,6 +1152,7 @@ void Fm4AddGraphicsOption(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRe
 // strings that name pad buttons as the prompt text source rewrites them.
 bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r3,
                            PPCRegister& r4) {
+  FM4_HOOK_CENSUS();
   const uint16_t key = uint16_t(r4.u32 & 0xFFFF);
   if (key == kGraphicsStringKey) {
     static const uint32_t text = GuestText(u"GRAPHICS");
@@ -1157,6 +1208,7 @@ bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCR
 // The Options dispatcher (this, action): GRAPHICS opens the host page; the
 // game's own actions go on as before.
 bool Fm4OpenGraphicsOption(PPCRegister& r4) {
+  FM4_HOOK_CENSUS();
   if (r4.u32 != kGraphicsAction) {
     return false;
   }

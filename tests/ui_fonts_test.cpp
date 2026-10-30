@@ -11,6 +11,7 @@
 
 #include "ui/hostui/ui_archive.h"
 #include "ui/hostui/ui_fonts.h"
+#include "test_game_root.h"
 
 using fm4_static_recomp::hostui::Crc32;
 using fm4_static_recomp::hostui::ExportUiFonts;
@@ -107,8 +108,7 @@ std::filesystem::path WriteZip(const TempDir& dir,
 
 // The disc's own fonts, decompressed: the only valid fonts the test can use without shipping one.
 std::optional<std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> DiscFonts() {
-  const auto archive =
-      UiArchive::Open(std::filesystem::path(FM4_TEST_GAME_ROOT) / "Media/UI/Fonts.zip");
+  const auto archive = UiArchive::Open(TestGameRoot() / "Media/UI/Fonts.zip");
   if (!archive) {
     return std::nullopt;
   }
@@ -120,10 +120,10 @@ std::optional<std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> DiscFonts()
   return std::pair{std::move(*a), std::move(*b)};
 }
 
-#define REQUIRE_DISC_FONTS(fonts)                              \
-  const auto fonts = DiscFonts();                              \
-  if (!fonts) {                                                \
-    SKIP("Fonts.zip not found under " FM4_TEST_GAME_ROOT);     \
+#define REQUIRE_DISC_FONTS(fonts)                                  \
+  const auto fonts = DiscFonts();                                  \
+  if (!fonts) {                                                    \
+    SKIP("Fonts.zip not found under " << TestGameRoot().string()); \
   }
 
 }  // namespace

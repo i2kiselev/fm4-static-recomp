@@ -23,13 +23,14 @@ from pathlib import Path
 
 from . import counters, images, routes, seed, thumbnails
 from .checks import (CheckResult, Figures, References, chroma_check, defaults_check, differ_check,
-                     log_checks, max_check, min_check, ratio_check, reference_size, tint_check)
+                     hooks_hit, log_checks, max_check, min_check, ratio_check, reference_size,
+                     tint_check)
 from .game import Session
 from .images import ImageLimits, Rect
 
 BASE_ARGS = ["--fm4_skip_intro=true", "--audio_mute=true", "--fullscreen=false",
              "--window_width=1280", "--window_height=720", "--fm4_log_file_opens=true",
-             "--fm4_log_strings=true"]
+             "--fm4_log_strings=true", "--fm4_hook_census=true"]
 
 # The white Abarth's paint in each fixed view, measured on the reference captures.
 THUMBNAIL_CAR = Rect(0.12, 0.25, 0.65, 0.80)
@@ -77,6 +78,7 @@ class Run:
     force: bool = False
     results: list = field(default_factory=list)
     launches: int = 0
+    hooks: set = field(default_factory=set)
 
     def refs(self, scale):
         return References(self.references, scale, self.record, self.force, self.dir / "captures")
@@ -89,6 +91,8 @@ class Run:
         return Session(self.dir, BASE_ARGS + [f"--resolution_scale={scale}", *extra], env=env)
 
     def keep_log(self, session):
+        session.poll()
+        self.hooks |= hooks_hit(session.lines)
         log = session.state / "logs" / "runtime.log"
         if log.exists():
             shutil.copy2(log, self.dir / f"runtime-{self.launches}.log")

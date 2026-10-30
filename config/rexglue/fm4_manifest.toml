@@ -1,5 +1,7 @@
-# Forza Motorsport 4 (title 4D530910, media 61D62D9F PAL or 26FF1101 USA, 2011 retail disc 1) on ShiftGlue.
-# Game inputs and translated output resolve outside the tracked tree.
+# Forza Motorsport 4 (title 4D530910, retail Disc 1: 1.0 media 61D62D9F PAL or 26FF1101 USA,
+# Rev 1 media 42C67824 Europe or 33E7B39F USA) on ShiftGlue.
+# The template of the manifest tools/release_analysis.py writes for the game folder's code image
+# into .local/generated/<image>/: game inputs and translated output resolve outside the tracked tree.
 
 [project]
 name = "fm4_static_recomp"

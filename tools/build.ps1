@@ -68,6 +68,16 @@ Write-Fm4Event build 70 'Compiling FM4 Static Recomp.' -JsonEvents:$JsonEvents
 
 Push-Location -LiteralPath $root
 try {
+    # The analysis or a port table may have changed since codegen.ps1 resolved them.
+    Invoke-Fm4BuildCommand (Get-Fm4Python) @('-I', (Join-Path $PSScriptRoot 'release_analysis.py'),
+        '--refresh') (Join-Path $logs 'release-analysis.log') 'Resolving the game analysis failed.'
+    # A development checkout (its analysis venv reads the discs) also checks that every code image
+    # has each guest address, so a new hook without a port fails here rather than on that disc.
+    $venvPython = Join-Path $root '.local/venv/Scripts/python.exe'
+    if (Test-Path -LiteralPath $venvPython -PathType Leaf) {
+        Invoke-Fm4BuildCommand $venvPython @((Join-Path $PSScriptRoot 'release_parity.py'), '--if-changed') `
+            (Join-Path $logs 'release-parity.log') 'A code image lacks a guest address; run tools/port_release.py.'
+    }
     # The Vulkan backend's glslang reads its version through Python.
     Invoke-Fm4BuildCommand $environment.CMake (@('--preset', $preset,
         "-DPYTHON_EXECUTABLE=$(Get-Fm4Python)", $sdkArgument,

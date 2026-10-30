@@ -1,5 +1,7 @@
 # Manual analysis facts for XMediaFacade_default.xex
-# (SHA-256 7D962C58063EEA64D61795E8A64E9DA51A7CFF241E576795858CDC81ADE23D81).
+# (SHA-256 7D962C58063EEA64D61795E8A64E9DA51A7CFF241E576795858CDC81ADE23D81 on 1.0 PAL).
+# The facades of every Disc 1 release differ only in timestamps, a debug GUID and one
+# import word: these facts serve all of them.
 
 [functions]
 # Code pointers in .rdata/.data to fragments without PDATA, found by

@@ -3,7 +3,8 @@ branch target the scanner reports as "not in any function".
 
 A target that starts a fragment (preceded by a terminator, padding or a PDATA
 function) gets its extent from a linear scan. Anything else is printed for
-manual review and stops the loop.
+manual review and stops the loop. Runs on the code image of --game-root (default:
+the last one resolved); default.xex's fragments go to that image's fragment list.
 """
 import argparse
 import re
@@ -12,14 +13,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import release_analysis  # noqa: E402
 from xex_tool import Xex  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-GAME = ROOT.parent / "extracted" / "fm4"
 REXGLUE = ROOT.parent / "pinyon-shift/thirdparty/shiftglue-sdk/out/win-amd64/Release/rexglue.exe"
-MANIFEST = ROOT / "config/rexglue/fm4_manifest.toml"
-ANALYSIS = {
-    "default.xex": ROOT / "config/rexglue/analysis/main-xex.toml",
+FACADES = {
     "SpeechFacade_default.xex": ROOT / "config/rexglue/analysis/speech-facade.toml",
     "XMediaFacade_default.xex": ROOT / "config/rexglue/analysis/xmedia-facade.toml",
 }
@@ -79,21 +78,36 @@ def fragment_size(xex, start, known):
     return None
 
 
-def run_codegen(log):
+def add_arguments(ap):
+    ap.add_argument("--game-root", type=Path, help="extracted Disc 1 (default: the last resolved)")
+
+
+def resolve(args):
+    """(game root, code image, analysis TOML per module) for the parsed arguments."""
+    game = (args.game_root or release_analysis.current_game_root()).resolve()
+    image = release_analysis.resolve(game)
+    analysis = {"default.xex": release_analysis.fragments_path(image), **FACADES}
+    return game, image, analysis
+
+
+def run_codegen(manifest, log):
     result = subprocess.run([str(REXGLUE), "--log-level", "info", "--log-file", str(log),
-                             "codegen", str(MANIFEST)], capture_output=True, text=True)
+                             "codegen", str(manifest)], capture_output=True, text=True)
     return result.returncode, result.stdout + result.stderr
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--max-rounds", type=int, default=60)
+    add_arguments(ap)
     args = ap.parse_args()
+    game, image, analysis = resolve(args)
+    manifest = release_analysis.manifest_path(image)
     log = ROOT / ".local/logs/codegen.log"
     images = {}
     for round_number in range(1, args.max_rounds + 1):
         log.unlink(missing_ok=True)
-        code, output = run_codegen(log)
+        code, output = run_codegen(manifest, log)
         if code == 0:
             print(f"round {round_number}: codegen succeeded")
             print("\n".join(output.splitlines()[-25:]))
@@ -104,8 +118,8 @@ def main():
             print(f"round {round_number}: codegen failed without unresolved calls ({module})")
             print("\n".join(output.splitlines()[-40:]))
             return 1
-        xex = images.setdefault(module, Xex(GAME / module))
-        toml = ANALYSIS[module]
+        xex = images.setdefault(module, Xex(game / module))
+        toml = analysis[module]
         text = toml.read_text(encoding="utf-8")
         known = {int(a, 16): int(s, 16) for a, s in ENTRY.findall(text)}
         added, review = [], []

@@ -51,6 +51,7 @@ Views and measurements:
 | `--fm4_console_rate` | `false` | The console's pacing: races at 60 fps, the showroom and other half-rate scenes at 30 |
 | `--fm4_menu_vblank_hz` | `0` | Vblanks per second the game's main loop sees outside races (`0`: every vblank) |
 | `--fm4_physics_log` | empty | A CSV file receiving every main loop time step and each car's physics substeps |
+| `--fm4_hook_census` | `false` | Log each of the game code hooks once, on its first hit (`Hook census: <name>`): the render tests check that a Rev 1 build reaches the hooks a 1.0 build does |
 | `--fm4_render_scenario_omit` | empty | Render settings left to the game, comma-separated: `tiling`, `lod_thresholds`, `focus_lod`, `other_lod`, `lod_distances`, ... |
 | `--fm4_graphics_lod_thresholds` | empty | Car level-of-detail rank thresholds of the high and ultra settings, as `lod1,lod2,count` |
 | `--fm4_runtime_replacement_probe` | empty | Replace the texture with this 16-digit hash by a magenta test image |

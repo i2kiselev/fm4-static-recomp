@@ -7,18 +7,26 @@ import subprocess
 import sys
 import traceback
 from datetime import datetime
+from pathlib import Path
 
 from . import report, scenarios, seed
-from .checks import pipeline_list_check
+from .checks import hook_census_check, pipeline_list_check
 from .game import RunBroken
 
 RENDER_TESTS = seed.LOCAL / "render-tests"
 EXECUTABLE = seed.BUILD / "fm4_static_recomp.exe"
 
 
-def build():
+def build(game_root):
     """The normal build: a run after an SDK merge must test the merged game, not the last one
-    built. Returns None, or the RunBroken of a failed build."""
+    built. The game folder is resolved first: the last build may be another code image's, or
+    this one's never generated. Returns None, or the RunBroken of a failed build."""
+    result = subprocess.run(["pwsh", "-NoProfile", "-File", str(seed.PROJECT / "tools" / "codegen.ps1"),
+                             "-SkipSdkBuild", "-GameRoot", str(game_root)], capture_output=True,
+                            text=True, encoding="utf-8", errors="replace")
+    if result.returncode:
+        print(result.stdout[-3000:] + result.stderr[-2000:])
+        return RunBroken("codegen", f"tools/codegen.ps1 exited {result.returncode}")
     result = subprocess.run(["pwsh", "-NoProfile", "-File", str(seed.PROJECT / "tools" / "build.ps1"),
                              "-Parallel", "10"], capture_output=True, text=True, encoding="utf-8",
                             errors="replace")
@@ -48,10 +56,15 @@ def main(argv=None):
                         help="keep the run's state copy after a passing run")
     parser.add_argument("--no-build", action="store_true",
                         help="test the game as last built (the build is skipped)")
+    parser.add_argument("--game-root", type=Path,
+                        help="the extracted Disc 1 to play (default: ../extracted/fm4); the build "
+                             "is made for its code image, and its run checks the same references")
     args = parser.parse_args(argv)
     if args.force and not args.record:
         parser.error("--force needs --record")
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if args.game_root:
+        seed.GAME_ROOT = args.game_root.resolve()
 
     seed_dir = seed.SEEDS / args.seed
     if not (seed_dir / "seed.json").exists():
@@ -61,7 +74,7 @@ def main(argv=None):
     run_dir = RENDER_TESTS / "runs" / name
     if not args.no_build:
         print("== build", flush=True)
-        broken = build()
+        broken = build(seed.GAME_ROOT)
         if broken:
             return report.write(run_dir, [], broken)
     seed.prepare_run(seed_dir, run_dir)
@@ -81,6 +94,9 @@ def main(argv=None):
             traceback.print_exc()
             broken = RunBroken(scenario, f"{type(error).__name__}: {error}")
             break
+    if not broken:
+        run.add(hook_census_check(RENDER_TESTS / "references" / "hook-census.json",
+                                  args.only or args.tier, run.hooks, args.record, args.force))
     print(f"== {run_dir} ({(datetime.now() - started).total_seconds() / 60:.1f} min)")
     code = report.write(run_dir, run.results, broken, executable_info())
     if code == report.EXIT_PASS and not args.keep_run:

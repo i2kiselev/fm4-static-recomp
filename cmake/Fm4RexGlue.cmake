@@ -49,12 +49,20 @@ if(TARGET rexruntime AND FM4_STATIC_RECOMP_TRACE_IMPORTS)
     target_compile_definitions(rexruntime PRIVATE REXGLUE_TRACE_IMPORTS=1)
 endif()
 
-set(FM4_STATIC_RECOMP_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/config/rexglue/fm4_manifest.toml")
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config/rexglue/fm4_manifest.local.toml")
-    set(FM4_STATIC_RECOMP_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/config/rexglue/fm4_manifest.local.toml")
-endif()
+# tools/release_analysis.py names the code image of the game folder and writes its manifest,
+# analysis and guest_addresses.h under .local/generated/<image>: each image keeps its own
+# generated sources (and so its own objects) when the game folder changes.
 set(FM4_STATIC_RECOMP_GENERATED_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.local/generated")
-set(FM4_STATIC_RECOMP_GENERATED_DIR "${FM4_STATIC_RECOMP_GENERATED_ROOT}/default")
+set(_fm4_code_image_selector "${FM4_STATIC_RECOMP_GENERATED_ROOT}/code-image.cmake")
+if(NOT EXISTS "${_fm4_code_image_selector}")
+    message(FATAL_ERROR
+        "No code image is resolved yet. Run tools/codegen.ps1 before configuring.")
+endif()
+include("${_fm4_code_image_selector}")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_fm4_code_image_selector}")
+set(FM4_STATIC_RECOMP_IMAGE_DIR "${FM4_STATIC_RECOMP_GENERATED_ROOT}/${FM4_CODE_IMAGE}")
+set(FM4_STATIC_RECOMP_MANIFEST "${FM4_STATIC_RECOMP_IMAGE_DIR}/fm4_manifest.toml")
+set(FM4_STATIC_RECOMP_GENERATED_DIR "${FM4_STATIC_RECOMP_IMAGE_DIR}/default")
 set(FM4_STATIC_RECOMP_CODEGEN_LOG "${CMAKE_CURRENT_SOURCE_DIR}/.local/logs/codegen.log")
 set(REXGLUE_HOST_TARGET fm4_static_recomp)
 
@@ -69,7 +77,7 @@ set(FM4_STATIC_RECOMP_GENERATED_SOURCES ${GENERATED_SOURCES})
 list(FILTER FM4_STATIC_RECOMP_GENERATED_SOURCES EXCLUDE REGEX "/fm4_static_recomp_register\\.cpp$")
 
 foreach(_module IN ITEMS speech xmedia)
-    set(_module_dir "${FM4_STATIC_RECOMP_GENERATED_ROOT}/${_module}")
+    set(_module_dir "${FM4_STATIC_RECOMP_IMAGE_DIR}/${_module}")
     if(NOT EXISTS "${_module_dir}/sources.cmake")
         message(FATAL_ERROR "Local generated ${_module} source is missing.")
     endif()
@@ -140,7 +148,8 @@ function(fm4_static_recomp_attach_rexglue target_name)
     target_include_directories(${target_name} PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        "${FM4_STATIC_RECOMP_GENERATED_DIR}")
+        "${FM4_STATIC_RECOMP_GENERATED_DIR}"
+        "${FM4_STATIC_RECOMP_IMAGE_DIR}")
     target_link_libraries(${target_name} PRIVATE rex::runtime)
     add_dependencies(${target_name} fm4_static_recomp_codegen)
     rexglue_configure_target(${target_name} GPU_PLUGINS fh1)
@@ -172,7 +181,7 @@ function(fm4_static_recomp_attach_rexglue target_name)
 endfunction()
 
 function(fm4_static_recomp_add_generated_module target_name generated_directory generated_sources)
-    set(_generated_dir "${FM4_STATIC_RECOMP_GENERATED_ROOT}/${generated_directory}")
+    set(_generated_dir "${FM4_STATIC_RECOMP_IMAGE_DIR}/${generated_directory}")
     add_library(${target_name} SHARED ${generated_sources})
     target_include_directories(${target_name} PRIVATE "${_generated_dir}")
     target_link_libraries(${target_name} PRIVATE rex::runtime)

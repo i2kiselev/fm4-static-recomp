@@ -14,6 +14,7 @@
 #include "input/prompt_swap.h"
 #include "ui/hostui/ui_archive.h"
 #include "ui/hostui/vector_font.h"
+#include "test_game_root.h"
 
 using fm4_static_recomp::hostui::UiArchive;
 using fm4_static_recomp::hostui::VectorFont;
@@ -23,7 +24,7 @@ using namespace fm4_static_recomp::input;
 namespace {
 
 std::optional<UiArchive> Archive(const char* name) {
-  return UiArchive::Open(std::filesystem::path(FM4_TEST_GAME_ROOT) / "Media/UI" / name);
+  return UiArchive::Open(TestGameRoot() / "Media/UI" / name);
 }
 
 const VectorFont* Font() {
@@ -35,9 +36,9 @@ const VectorFont* Font() {
   return font ? &*font : nullptr;
 }
 
-#define REQUIRE_GAME_FILES()                                               \
-  if (!Font() || !Archive("Textures.zip")) {                               \
-    SKIP("Fonts.zip or Textures.zip not found under " FM4_TEST_GAME_ROOT); \
+#define REQUIRE_GAME_FILES()                                                       \
+  if (!Font() || !Archive("Textures.zip")) {                                       \
+    SKIP("Fonts.zip or Textures.zip not found under " << TestGameRoot().string()); \
   }
 
 struct FakeRegistry {

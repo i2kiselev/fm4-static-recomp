@@ -1,0 +1,125 @@
+# Code image rev1: where each canonical (1.0) guest address of the build is in it.
+# Written by tools/port_release.py; `fingerprint` hashes the normalised code at `at`,
+# `references` counts the code building a data address. `changed` marks an address in a
+# function that differs from 1.0: replace its text with what a review found (kept on rerun).
+image = "rev1"
+
+[addresses]
+# hook Fm4UiSceneStep: identical function
+0x822A46D0 = { at = 0x822A48E0, fingerprint = "e9974b79bace224f" }
+# kMakeLocString: identical function
+0x822B1AE8 = { at = 0x822B1A18, fingerprint = "9d447230fd4d8cc0" }
+# hook Fm4MainLoopSession: changed function, aligned
+0x822F7C30 = { at = 0x822F76D0, fingerprint = "a10a38dfed0f4a75", changed = "reviewed: only a vtable slot far after the hooks moved (+0x114 became +0x118 at 0x822F8128); the hooks' code and registers are unchanged" }
+# hook Fm4MainLoopStep: changed function, aligned
+0x822F7D48 = { at = 0x822F77E8, fingerprint = "b595d62fce737a00", changed = "reviewed: only a vtable slot far after the hooks moved (+0x114 became +0x118 at 0x822F8128); the hooks' code and registers are unchanged" }
+# kStringLookup: identical function
+0x823A4780 = { at = 0x823A4410, fingerprint = "b3d0e2f9f8d8d69d" }
+# hook Fm4LoadingScreen: identical function
+0x823B68B8 = { at = 0x823B6F08, fingerprint = "538a1c78ae9c1bb1" }
+# hook Fm4ThumbnailRenderStart: identical function
+0x823C6A18 = { at = 0x823C7078, fingerprint = "d70523d4d893b5f4" }
+# hook Fm4ThumbnailSettle: identical function
+0x823C6AF4 = { at = 0x823C7154, fingerprint = "1a3fff1bd3c8a727" }
+# hook Fm4ThumbnailRenderDone: identical function
+0x823C6BA0 = { at = 0x823C7200, fingerprint = "fdcee8e5a396a703" }
+# hook Fm4PresentInterval: fragment, neighbours' shift
+0x82436078 = { at = 0x82439980, fingerprint = "dc1c0e2efabd2763" }
+# hook Fm4DepthOfFieldOption: fragment, neighbours' shift
+0x824360D8 = { at = 0x824399E0, fingerprint = "797c0ed40b91b069" }
+# hook Fm4ScenarioPush: changed function, aligned
+0x82450DE0 = { at = 0x82454260, fingerprint = "80213be67f0bf474", changed = "reviewed: a vtable call +0x124 became +0x128 further in; the hook is the entry and reads only r4" }
+# hook Fm4ShowroomCameraStep: identical function
+0x824B9D84 = { at = 0x824BDCE4, fingerprint = "66a87f7000537c3f" }
+# hook Fm4AutovistaCameraUpdate: identical function
+0x824C7308 = { at = 0x824CB4E8, fingerprint = "09c697f081670e17" }
+# hook Fm4AddGraphicsOption: identical function
+0x8256CCF4 = { at = 0x82572C0C, fingerprint = "9b13a0c5611cb98b" }
+# hook Fm4OpenGraphicsOption: identical function
+0x82589460 = { at = 0x8258F868, fingerprint = "2e446f0b5b9f93e5" }
+# hook Fm4RaceMenuSceneCreated: identical function
+0x8259A1A8 = { at = 0x825A05A0, fingerprint = "1acdb4bc6de2dff7" }
+# hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
+0x8259BE00 = { at = 0x825A2210, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
+0x825BF700 = { at = 0x825C6278, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4RaceMenuSceneCreated: identical function
+0x825BF750 = { at = 0x825C62C8, fingerprint = "5d3a03bfaca4b0a2" }
+# hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
+0x825BF7E0 = { at = 0x825C6358, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4RaceMenuSceneCreated: identical function
+0x825BFA28 = { at = 0x825C65A0, fingerprint = "1acdb4bc6de2dff7" }
+# hook Fm4RaceMenuSceneDestroyed: identical function
+0x825BFAC0 = { at = 0x825C6638, fingerprint = "9a139160c2a88151" }
+# hook Fm4RaceMenuSceneCreated: identical function
+0x825C10B0 = { at = 0x825C7AB8, fingerprint = "6b4589107dcc75a4" }
+# switch 0x825CAB50: most similar function, aligned
+0x825CAB50 = { at = 0x825D1350, fingerprint = "e505a6b675c3b370", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CAB54 = { at = 0x825D1354, fingerprint = "1fcf4225d1d344f5", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CAB60 = { at = 0x825D1360, fingerprint = "445d8f0f41c5d47e", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CAB6C = { at = 0x825D136C, fingerprint = "dc66d730dcab7c01", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CAB78 = { at = 0x825D1378, fingerprint = "23c808a2a2c5591a", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CABA0 = { at = 0x825D13A0, fingerprint = "6c68dc487e9270ce", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CABAC = { at = 0x825D13AC, fingerprint = "397c28d7759e5e77", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CABB8 = { at = 0x825D13B8, fingerprint = "7e8a3f5ad7c6908b", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CABC4 = { at = 0x825D13C4, fingerprint = "d632a408329764f9", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CABD0 = { at = 0x825D13D0, fingerprint = "f28f874512aba5ad", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# switch 0x825CAB50 label: most similar function, aligned
+0x825CAC20 = { at = 0x825D1420, fingerprint = "66e6cf096313d72d", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
+# kMenuAddItem: identical function
+0x8266FF00 = { at = 0x82675768, fingerprint = "45ef72de459a5a8c" }
+# hook Fm4SkipVblankCallback: identical function
+0x826CB760 = { at = 0x826D1938, fingerprint = "1e84f7b7b0bc725c" }
+# hook Fm4SplashIntroOption: most similar function, aligned
+0x826D1438 = { at = 0x826D6F90, fingerprint = "3d66644545ca13f4", changed = "reviewed: 99.5 % unchanged, globals and sizes moved; r23 is still the options object, +0xB5C still disablesplashintro" }
+# longjmp_address: identical function
+0x82762A90 = { at = 0x82768700, fingerprint = "e4013a08f0d388f1" }
+# setjmp_address: fragment, neighbours' shift
+0x82762EC0 = { at = 0x82768B30, fingerprint = "57188eb69bace9cb" }
+# hook Fm4PhysicsLogOtherCar: identical function
+0x828223C4 = { at = 0x828289A4, fingerprint = "3b141171cf1a9caf" }
+# hook Fm4PhysicsLogCar: identical function
+0x82822D28 = { at = 0x828292F0, fingerprint = "a7fb129dbb9c7ea2" }
+# hook Fm4ReflectionCubeSetup: identical function
+0x828D15B0 = { at = 0x828DC988, fingerprint = "4892515488a5bb94" }
+# hook Fm4ReflectionCubeMemory: identical function
+0x828D1718 = { at = 0x828DCAF0, fingerprint = "cd38a12411467e95" }
+# hook Fm4ShadowMapSetup: identical function
+0x828D4398 = { at = 0x828DF728, fingerprint = "02156d4b451b3c5a" }
+# hook Fm4ShadowMapKeepHeader: identical function
+0x828D4510 = { at = 0x828DF8A0, fingerprint = "a322341c025d6a19" }
+# hook Fm4ShadowMapKeepHeader jump_address_on_true: identical function
+0x828D4544 = { at = 0x828DF8D4, fingerprint = "179db76952f054dc" }
+# hook Fm4ShadowMapMemory: identical function
+0x828D45B0 = { at = 0x828DF940, fingerprint = "d283e05c11d92e38" }
+# hook Fm4ScenarioFileLoaded: identical function
+0x828E8194 = { at = 0x828F3A14, fingerprint = "1ea2ddf9fcddf7e0" }
+# hook Fm4ShadowPassSetup: identical function
+0x82945230 = { at = 0x82950C38, fingerprint = "f9c521992e860b0e" }
+# hook Fm4ShadowPassMsaa: identical function
+0x82955764 = { at = 0x8296101C, fingerprint = "237aa38c939ed291" }
+# kMakeMenuLabel: identical function
+0x82971220 = { at = 0x82479318, fingerprint = "5a66f80459b96770" }
+# rexcrt ConvertThreadToFiber: identical function
+0x82C77AD8 = { at = 0x82C829F0, fingerprint = "08138de1402809fd" }
+# rexcrt ConvertFiberToThread: identical function
+0x82C77B68 = { at = 0x82C82A80, fingerprint = "9d1e15bc67b6b7b3" }
+# rexcrt CreateFiber: identical function
+0x82C77BB8 = { at = 0x82C82AD0, fingerprint = "0ceee7cef8a79f42" }
+# rexcrt DeleteFiber: identical function
+0x82C77C98 = { at = 0x82C82BB0, fingerprint = "1d5499af1f5bc655" }
+# rexcrt SwitchToFiber: fragment, neighbours' shift
+0x82C77CF8 = { at = 0x82C82C10, fingerprint = "97f3f29734d22b76" }
+# kControlOffsetTable: data, 103 references in identical functions
+0x82D59FF0 = { at = 0x82D59FE0, references = 103 }
+# kScenarioManagerPointer: data, 79 references in identical functions
+0x82DC3750 = { at = 0x82DC3890, references = 112 }
