@@ -106,6 +106,49 @@ public class Disc1StepTests
     }
 
     [Fact]
+    public async Task Installs_rev_1_with_a_folder_renamed_by_case()
+    {
+        using var f = new Fixture();
+        var outcome = await Disc1Step.InstallAsync(f.Iso(TestDiscs.Rev1Europe()), f.Manifest, f.Game, Never, null,
+            CancellationToken.None);
+        Assert.Equal(new Disc1Outcome.Installed(TestDiscs.Rev1EuropeName, 0), outcome);
+        Assert.Equal([9], File.ReadAllBytes(Path.Combine(f.Game, "Media", "patch.bin")));
+    }
+
+    [Fact]
+    public async Task A_1_0_disc_does_not_need_rev_1_files()
+    {
+        using var f = new Fixture();
+        var outcome = await Disc1Step.InstallAsync(f.Iso(TestDiscs.Pal()), f.Manifest, f.Game, Never, null, CancellationToken.None);
+        Assert.Equal(new Disc1Outcome.Installed(TestDiscs.PalName, 0), outcome);
+        Assert.False(File.Exists(Path.Combine(f.Game, "Media", "patch.bin")));
+    }
+
+    [Fact]
+    public async Task Takes_rev_1_usa_from_the_god_header()
+    {
+        using var f = new Fixture();
+        var files = TestDiscs.Rev1Europe();
+        files["default.xex"] = TestDiscs.Xex(TestDiscs.Rev1UsaMediaId);
+        var god = Path.Combine(f.Temp.Path, "god");
+        GodBuilder.Write(god, GdfImageBuilder.Build(files), mediaId: TestDiscs.Rev1UsaMediaId);
+        var outcome = await Disc1Step.InstallAsync(DiscInput.Detect(god)!, f.Manifest, f.Game, Never, null, CancellationToken.None);
+        Assert.Equal(new Disc1Outcome.Installed(TestDiscs.Rev1UsaName, 0), outcome);
+    }
+
+    [Fact]
+    public async Task Refuses_a_rev_1_executable_on_a_1_0_media_id()
+    {
+        using var f = new Fixture();
+        var god = Path.Combine(f.Temp.Path, "god");
+        GodBuilder.Write(god, GdfImageBuilder.Build(TestDiscs.Rev1Europe()), mediaId: TestDiscs.PalMediaId);
+        var outcome = await Disc1Step.InstallAsync(DiscInput.Detect(god)!, f.Manifest, f.Game, Never, null, CancellationToken.None);
+        var check = Assert.IsType<Disc1Outcome.Refused>(outcome).Check;
+        Assert.Equal(TestDiscs.PalName, check.Release!.Name);
+        Assert.False(check.Matches);
+    }
+
+    [Fact]
     public async Task Installs_a_god_dump()
     {
         using var f = new Fixture();
