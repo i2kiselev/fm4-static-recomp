@@ -2,6 +2,9 @@
 
 [← Back to the README](../README.md)
 
+Frame generation is configured separately from reconstruction. See
+[Frame generation and Reflex](frame-generation.md) for DLSS/FSR 2x and latency controls.
+
 The game can render at a lower resolution and have DLSS, FSR 2 or FSR 3 rebuild a sharp picture
 at your screen's resolution, or render at the screen's resolution and use them as anti-aliasing
 alone. This page says which to pick, and how this port gives a 2011 console game what these

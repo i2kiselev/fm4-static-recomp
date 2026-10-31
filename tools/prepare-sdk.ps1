@@ -127,6 +127,9 @@ if (-not (Test-Path -LiteralPath $sdkRoot)) {
     & $git -C $sdkRoot init --quiet
     if ($LASTEXITCODE -ne 0) { throw "Unable to create the SDK checkout: $sdkRoot" }
     & $git -C $sdkRoot config core.symlinks false
+    # Generated FidelityFX shader names can exceed MAX_PATH under an install's
+    # Data/source/... path, even when the compiler supports those paths.
+    & $git -C $sdkRoot config core.longpaths true
     & $git -C $sdkRoot remote add origin $repository
     if ($LASTEXITCODE -ne 0) { throw "Unable to set the SDK repository: $repository" }
     Invoke-Fm4GitWithRetry -Activity 'Fetching the pinned SDK revision' -Arguments @(

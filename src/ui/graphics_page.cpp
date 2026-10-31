@@ -18,6 +18,7 @@
 #include <rex/cvar.h>
 #include <rex/logging.h>
 #include <rex/ui/upscaler.h>
+#include <rex/ui/vulkan/frame_generation_status.h>
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -50,6 +51,12 @@ struct Setting {
 
 const Setting kFrameRate = {"fm4_frame_rate", false, {}, 60, 240};
 const Setting kVsync = {"vulkan_present_mode", true, {{"OFF", "immediate"}, {"ON", "fifo"}}};
+const Setting kFrameGeneration = {"present_frame_generation", true,
+    {{"OFF", "off"}, {"DLSS", "dlss"}, {"FSR", "fsr"}}};
+const Setting kFrameGenerationMultiplier = {"present_frame_generation_multiplier", false,
+    {{"2X", "2"}}};
+const Setting kReflex = {"present_reflex", true,
+    {{"OFF", "off"}, {"ON", "on"}, {"ON + BOOST", "boost"}}};
 const Setting kDetail = {"fm4_level_of_detail",
                          true,
                          {{"CONSOLE", "console"},
@@ -108,7 +115,8 @@ const Setting* const kPresetSettings[] = {
 constexpr size_t kPresetSettingCount = std::size(kPresetSettings);
 
 const Setting* const kSettings[] = {
-    &kFrameRate, &kVsync, &kScale, &kUpscaler, &kDlssPreset, &kSharpness, &kPostAa,
+    &kFrameRate, &kVsync, &kScale, &kUpscaler, &kDlssPreset, &kSharpness,
+    &kFrameGeneration, &kFrameGenerationMultiplier, &kReflex, &kPostAa,
     &kShowroomMsaa, &kRaceMsaa, &kAnisotropy,
     &kSceneryShadows, &kReflectionUpdates, &kDetail, &kMirror, &kBloom, &kSoftParticles, &kCrowds,
     &kMotionBlur, &kDepthOfField, &kCarDirt};
@@ -171,6 +179,16 @@ const RowText kRows[] = {
     {"SHARPNESS", &kSharpness,
      "Sharpens the picture after DLSS, FSR 2 or FSR 3. Off leaves the upscaler's picture as it "
      "is."},
+    {"FRAME GENERATION", &kFrameGeneration,
+     "Creates intermediate frames with DLSS or FSR on supported GPUs. Requires a restart. "
+     "If the GPU or runtime cannot run the selected backend, the game shows the original frames "
+     "and logs the reason."},
+    {"FG MULTIPLIER", &kFrameGenerationMultiplier,
+     "Total displayed frames per rendered frame. This build supports one generated frame per "
+     "rendered frame (2x) with DLSS or FSR. Requires a restart."},
+    {"NVIDIA REFLEX", &kReflex,
+     "Reduces render queue latency on supported NVIDIA GPUs. Boost keeps GPU clocks high. "
+     "Requires a restart."},
     {"GRAPHICS PRESET", nullptr,
      "Sets every setting below. Console is the game as on the console; "
      "High raises most, adds FXAA and uses 2x MSAA everywhere; Ultra also raises the level of "
@@ -830,6 +848,13 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
     return !TemporalUpscalerName(*draft, services).empty();
   };
   rows.push_back(std::move(sharpness));
+  MenuRow generation = Row("FRAME GENERATION", kFrameGeneration, draft);
+  generation.note = [] { return rex::ui::vulkan::Fm4FrameGenerationStatus(); };
+  rows.push_back(std::move(generation));
+  rows.push_back(Row("FG MULTIPLIER", kFrameGenerationMultiplier, draft));
+  MenuRow reflex = Row("NVIDIA REFLEX", kReflex, draft);
+  reflex.note = [] { return rex::ui::vulkan::Fm4ReflexStatus(); };
+  rows.push_back(std::move(reflex));
 
   MenuRow preset;
   preset.label = "GRAPHICS PRESET";

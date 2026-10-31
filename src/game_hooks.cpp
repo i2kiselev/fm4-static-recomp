@@ -31,6 +31,7 @@
 #include <rex/system/kernel_state.h>
 #include <rex/system/xmemory.h>
 #include <rex/ui/upscaler.h>
+#include <rex/ui/vulkan/reflex.h>
 
 #include "car_dirt.h"
 #include "game_hooks.h"
@@ -681,6 +682,7 @@ void Fm4MainLoopStep(PPCRegister& r30, PPCRegister& f31) {
                      std::chrono::duration_cast<std::chrono::microseconds>(now).count()));
     std::fflush(log);
   }
+  rex::ui::vulkan::Fm4ReflexSimulationEnd();
 }
 
 void Fm4PhysicsLogCar(PPCRegister& r30, PPCRegister& r31, PPCRegister& r28, PPCRegister& f31) {

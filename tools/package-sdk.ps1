@@ -91,6 +91,12 @@ foreach ($library in Get-ChildItem -LiteralPath (Join-Path $sdkRoot 'thirdparty'
     [void](New-Item -ItemType Directory -Force -Path $destination)
     $texts | Copy-Item -Destination $destination
 }
+# The FSR frame-generation host carries a pinned AMD SDK subset whose top-level
+# text does not repeat AMD's licence.
+$fsrLicences = Join-Path $licences 'fm4-fsr-vulkan'
+[void](New-Item -ItemType Directory -Force -Path $fsrLicences)
+Copy-Item -LiteralPath (Join-Path $sdkRoot 'thirdparty/fm4-fsr-vulkan/upstream/ffx-1.1.4/sdk/LICENSE.txt') `
+    -Destination (Join-Path $fsrLicences 'AMD-FidelityFX-1.1.4-LICENSE.txt')
 # Licence texts the loop above misses: libmspack keeps its own a folder deeper, and disasm (GNU
 # binutils' PowerPC disassembler, GPL 2 or later, in rexglue.exe) carries none; FFmpeg's copy of
 # the GPL 2 is the same text.
@@ -111,7 +117,9 @@ $readme = @(
     ''
     'The licences of the SDK and of the libraries built into it are in licenses/. FFmpeg and libmspack'
     'are under the LGPL 2.1; bin/rexglue.exe and lib/disasm.lib hold GNU binutils'' PowerPC disassembler'
-    'under the GPL 2 or later. Their complete source is published beside this archive: the release''s'
+    'under the GPL 2 or later. The FSR 3.1.6 Vulkan frame-generation host and its MIT-licensed'
+    'FidelityFX source subset are under licenses/fm4-fsr-vulkan. Their complete source is published'
+    'beside this archive: the release''s'
     "Source code archive (the SDK at $($config.sdk.revision)) and $sources.tar.xz"
     '(every submodule at its pinned commit). cmake/ holds the SDK''s pins of the DLSS and FidelityFX'
     'runtimes, which the build fetches from NVIDIA''s and AMD''s repositories.'

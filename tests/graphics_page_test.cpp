@@ -165,6 +165,31 @@ TEST_CASE("The in-game page has UPSCALER and SHARPNESS and leaves the DLSS prese
   CHECK_FALSE(Find(*page, "DLSS PRESET"));
 }
 
+TEST_CASE("Frame generation exposes honest 2x backends and Reflex without a fake availability "
+          "claim",
+          "[graphics_page]") {
+  const auto path = TempFile("frame_generation_schema.json");
+  REQUIRE(ui::WriteGraphicsSchema(path));
+  std::stringstream text;
+  text << std::ifstream(path).rdbuf();
+  const std::string schema = text.str();
+  CHECK(schema.find("\"key\":\"present_frame_generation\"") != std::string::npos);
+  CHECK(schema.find("\"key\":\"present_frame_generation_multiplier\"") != std::string::npos);
+  CHECK(schema.find("\"key\":\"present_reflex\"") != std::string::npos);
+  CHECK(schema.find("{\"label\":\"DLSS\",\"value\":\"dlss\"}") != std::string::npos);
+  CHECK(schema.find("{\"label\":\"FSR\",\"value\":\"fsr\"}") != std::string::npos);
+  CHECK(schema.find("{\"label\":\"ON + BOOST\",\"value\":\"boost\"}") != std::string::npos);
+
+  config::HostConfig config(TempFile("frame_generation_rows.toml"));
+  const auto page = ui::CreateGraphicsPage(config, NvidiaServices());
+  CHECK(Find(*page, "FRAME GENERATION"));
+  CHECK(Find(*page, "FG MULTIPLIER"));
+  CHECK(Find(*page, "NVIDIA REFLEX"));
+  CHECK(Find(*page, "FRAME GENERATION")->note().find("Frame generation:") == 0);
+  CHECK(Find(*page, "NVIDIA REFLEX")->note().find("Reflex:") == 0);
+  std::filesystem::remove(path);
+}
+
 TEST_CASE("UPSCALER steps past an upscaler the GPU cannot run", "[graphics_page]") {
   const auto path = TempFile("step.toml");
   std::filesystem::remove(path);
@@ -435,12 +460,16 @@ TEST_CASE("Every live and drafted upscaler and scale greys exactly the anti-alia
     }
     // The focus steps over the greyed rows.
     CHECK(FocusAfter(*page, "UPSCALER", NavCommand::kDown) ==
-          (upscales ? "SHARPNESS" : "GRAPHICS PRESET"));
+          (upscales ? "SHARPNESS" : "FRAME GENERATION"));
+    CHECK(FocusAfter(*page, "FRAME GENERATION", NavCommand::kUp) ==
+          (upscales ? "SHARPNESS" : "UPSCALER"));
+    CHECK(FocusAfter(*page, "FRAME GENERATION", NavCommand::kDown) == "FG MULTIPLIER");
+    CHECK(FocusAfter(*page, "FG MULTIPLIER", NavCommand::kDown) == "NVIDIA REFLEX");
+    CHECK(FocusAfter(*page, "NVIDIA REFLEX", NavCommand::kDown) == "GRAPHICS PRESET");
     CHECK(FocusAfter(*page, "GRAPHICS PRESET", NavCommand::kDown) ==
           (upscales ? "ANISOTROPIC FILTERING" : "SHOWROOM MSAA"));
     CHECK(FocusAfter(*page, "CROWDS", NavCommand::kDown) == (upscales ? "BLOOM" : "POST AA"));
-    CHECK(FocusAfter(*page, "GRAPHICS PRESET", NavCommand::kUp) ==
-          (upscales ? "SHARPNESS" : "UPSCALER"));
+    CHECK(FocusAfter(*page, "GRAPHICS PRESET", NavCommand::kUp) == "NVIDIA REFLEX");
     const std::string note = Find(*page, "RESOLUTION SCALE")->note();
     CAPTURE(note);
     if (upscales) {

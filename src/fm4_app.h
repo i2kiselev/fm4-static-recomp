@@ -20,6 +20,7 @@
 #include <rex/ui/keybinds.h>
 #include <rex/ui/overlay/achievement_notification.h>
 #include <rex/ui/vulkan/provider.h>
+#include <rex/ui/vulkan/reflex.h>
 #include <rex/ui/window.h>
 #include <rex/ui/windowed_app_context.h>
 
@@ -199,6 +200,10 @@ class Fm4App final : public rex::ReXApp {
     fm4_static_recomp::SetInputTick(nullptr);
     fm4_static_recomp::SetPromptTextSource(nullptr);
     fm4_static_recomp::SetGraphicsPageOpener(nullptr);
+    if (auto* input_system =
+            static_cast<rex::input::InputSystem*>(runtime()->input_system())) {
+      input_system->SetGuestStateReadCallbacks({}, {});
+    }
     host_ui_.reset();
   }
 
@@ -245,6 +250,8 @@ class Fm4App final : public rex::ReXApp {
     if (!input_system) {
       return;
     }
+    input_system->SetGuestStateReadCallbacks(rex::ui::vulkan::Fm4ReflexBeforeInputSample,
+                                             rex::ui::vulkan::Fm4ReflexAfterInputSample);
     input_system->SetKeyboardStateFilter(
         [ramp = input::KeyboardRamp(controls_.ramp), last = std::chrono::steady_clock::now()](
             uint32_t user_index, rex::input::X_INPUT_GAMEPAD& pad) mutable {
