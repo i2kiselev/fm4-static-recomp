@@ -53,6 +53,38 @@ DLSS loader under NVIDIA's licence). Its code generator, `rexglue.exe`, also hol
 binutils' PowerPC disassembler under the GPL 2 or later. The same release publishes their
 complete source: the SDK's own source archive and one of every submodule at its pinned commit.
 
+## bbport Neural Rendering bridge
+
+The optional native DLSS Neural Rendering bridge is adapted from bbport's MIT-licensed
+`gpu/nr_bridge` at commit `562b8c4819e61417439c8adb116c2b7c4699e0dc`. The built bridge also
+links NVIDIA's separately licensed parameter allocator; its SDK package carries both licence
+texts. The bridge does not contain NVIDIA model files. `nvngx_dlssnr.dll` remains user-supplied.
+
+```text
+MIT License
+
+Copyright (c) 2026 bbport contributors
+Copyright (c) 2026 bbhost contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## LLVM
 
 Setup downloads the part of the official LLVM 20.1.8 release for 64-bit Windows that the build

@@ -18,6 +18,9 @@
 #include <rex/cvar.h>
 #include <rex/logging.h>
 #include <rex/ui/upscaler.h>
+#if FM4_HAVE_NEURAL_RENDERING
+#include <rex/ui/vulkan/vulkan_neural_rendering.h>
+#endif
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -50,6 +53,22 @@ struct Setting {
 
 const Setting kFrameRate = {"fm4_frame_rate", false, {}, 60, 240};
 const Setting kVsync = {"vulkan_present_mode", true, {{"OFF", "immediate"}, {"ON", "fifo"}}};
+#if FM4_HAVE_NEURAL_RENDERING
+const Setting kNeuralRendering = {"present_nr_enabled", false, {{"OFF", "false"}, {"ON", "true"}}};
+const Setting kNeuralPreset = {"present_nr_preset", false,
+    {{"AUTO", "0"}, {"ORIGINAL", "1"}, {"OPTIMIZED", "2"}}};
+const Setting kNeuralStyle = {"present_nr_style", false,
+    {{"STYLE 1", "0"}, {"STYLE 2", "1"}, {"STYLE 3", "2"}}};
+const Setting kNeuralIntensity = {"present_nr_intensity", false,
+    {{"0 %", "0"}, {"25 %", "0.25"}, {"50 %", "0.5"}, {"75 %", "0.75"},
+     {"100 %", "1"}, {"150 %", "1.5"}, {"200 %", "2"}}};
+const Setting kNeuralStructure = {"present_nr_structure", false,
+    {{"0 %", "0"}, {"25 %", "0.25"}, {"50 %", "0.5"}, {"75 %", "0.75"},
+     {"100 %", "1"}, {"150 %", "1.5"}, {"200 %", "2"}}};
+const Setting kNeuralTone = {"present_nr_tone", false,
+    {{"0 %", "0"}, {"25 %", "0.25"}, {"50 %", "0.5"}, {"75 %", "0.75"},
+     {"100 %", "1"}, {"150 %", "1.5"}, {"200 %", "2"}}};
+#endif
 const Setting kDetail = {"fm4_level_of_detail",
                          true,
                          {{"CONSOLE", "console"},
@@ -109,6 +128,10 @@ constexpr size_t kPresetSettingCount = std::size(kPresetSettings);
 
 const Setting* const kSettings[] = {
     &kFrameRate, &kVsync, &kScale, &kUpscaler, &kDlssPreset, &kSharpness, &kPostAa,
+#if FM4_HAVE_NEURAL_RENDERING
+    &kNeuralRendering, &kNeuralPreset, &kNeuralStyle, &kNeuralIntensity, &kNeuralStructure,
+    &kNeuralTone,
+#endif
     &kShowroomMsaa, &kRaceMsaa, &kAnisotropy,
     &kSceneryShadows, &kReflectionUpdates, &kDetail, &kMirror, &kBloom, &kSoftParticles, &kCrowds,
     &kMotionBlur, &kDepthOfField, &kCarDirt};
@@ -171,6 +194,23 @@ const RowText kRows[] = {
     {"SHARPNESS", &kSharpness,
      "Sharpens the picture after DLSS, FSR 2 or FSR 3. Off leaves the upscaler's picture as it "
      "is."},
+#if FM4_HAVE_NEURAL_RENDERING
+    {"NEURAL RENDERING", &kNeuralRendering,
+     "Runs NVIDIA's neural-rendering model before temporal upscaling. Requires an RTX GPU and a "
+     "user-installed Neural Rendering runtime. Enable before starting the game; restart after "
+     "changing this setting. The model warms up in the background while normal frames continue."},
+    {"NR MODEL", &kNeuralPreset,
+     "Automatic uses the runtime's model. Original selects model 1; Optimized selects the FP8 "
+     "model on compatible runtimes.", false, &kNeuralRendering, "true"},
+    {"NR STYLE", &kNeuralStyle, "Selects the neural model's visual style.", false,
+     &kNeuralRendering, "true"},
+    {"NR INTENSITY", &kNeuralIntensity, "Strength of the neural rendering effect.", false,
+     &kNeuralRendering, "true"},
+    {"NR STRUCTURE", &kNeuralStructure, "Strength of local structure adjustment.", false,
+     &kNeuralRendering, "true"},
+    {"NR TONE", &kNeuralTone, "Strength of local tone adjustment.", false,
+     &kNeuralRendering, "true"},
+#endif
     {"GRAPHICS PRESET", nullptr,
      "Sets every setting below. Console is the game as on the console; "
      "High raises most, adds FXAA and uses 2x MSAA everywhere; Ultra also raises the level of "
@@ -263,6 +303,13 @@ std::string EffectiveDefault(const Setting& setting) {
     return "immediate";
   }
   const rex::cvar::FlagEntry* info = rex::cvar::GetFlagInfo(setting.name);
+  if (info && info->type == rex::cvar::FlagType::Double) {
+    for (const Choice& choice : setting.choices) {
+      if (std::strtod(choice.value, nullptr) == std::strtod(info->default_value.c_str(), nullptr)) {
+        return choice.value;
+      }
+    }
+  }
   return info ? info->default_value : std::string();
 }
 
@@ -322,8 +369,15 @@ int Find(const Setting& setting, std::string_view value) {
                ? 0
                : -1;
   }
+  const auto* info = rex::cvar::GetFlagInfo(setting.name);
+  const bool floating = info && info->type == rex::cvar::FlagType::Double;
+  const std::string number(value);
+  char* end = nullptr;
+  const double numeric_value = floating ? std::strtod(number.c_str(), &end) : 0.0;
+  const bool valid_number = floating && end != number.c_str() && *end == '\0';
   for (size_t i = 0; i < setting.choices.size(); ++i) {
-    if (value == setting.choices[i].value) {
+    if (value == setting.choices[i].value ||
+        (valid_number && numeric_value == std::strtod(setting.choices[i].value, nullptr))) {
       return int(i);
     }
   }
@@ -377,7 +431,9 @@ struct Draft {
   }
 
   void Change(const Setting& setting, std::string value) {
-    if (value == Live(setting.name)) {
+    const std::string live = Live(setting.name);
+    if (value == live || (!setting.choices.empty() && Find(setting, value) >= 0 &&
+                          Find(setting, value) == Find(setting, live))) {
       values.erase(&setting);
     } else {
       values[&setting] = std::move(value);
@@ -409,6 +465,27 @@ std::optional<std::string> UpscalerProblem(const GraphicsPageServices& services,
   }
   return std::string("its runtime is missing");
 }
+
+#if FM4_HAVE_NEURAL_RENDERING
+bool DlssAvailable(const GraphicsPageServices& services) {
+  if (!services.upscalers) {
+    return false;
+  }
+  for (const rex::ui::UpscalerInfo& info : services.upscalers()) {
+    if (info.id == "dlss" && info.available) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool NeuralRenderingAvailable(const GraphicsPageServices& services) {
+  const bool installed = services.neural_rendering_installed
+                             ? services.neural_rendering_installed()
+                             : rex::ui::vulkan::IsVulkanNeuralRenderingInstalled();
+  return DlssAvailable(services) && installed;
+}
+#endif
 
 uint32_t DraftedScale(const Draft& draft, const GraphicsPageServices& services) {
   return draft.values.contains(&kScale) ? uint32_t(std::atoi(draft.Value(kScale).c_str()))
@@ -830,6 +907,36 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
     return !TemporalUpscalerName(*draft, services).empty();
   };
   rows.push_back(std::move(sharpness));
+#if FM4_HAVE_NEURAL_RENDERING
+  MenuRow neural = Row("NEURAL RENDERING", kNeuralRendering, draft);
+  neural.enabled = [draft, services] {
+    return NeuralRenderingAvailable(services) || draft->Value(kNeuralRendering) == "true";
+  };
+  neural.note = [services] {
+    if (!DlssAvailable(services)) {
+      return std::string("Unavailable: the SDK DLSS provider is not running.");
+    }
+    const bool installed = services.neural_rendering_installed
+                               ? services.neural_rendering_installed()
+                               : rex::ui::vulkan::IsVulkanNeuralRenderingInstalled();
+    if (!installed) {
+      return std::string("Unavailable: place a user-supplied nvngx_dlssnr.dll in "
+                         "upscalers/dlss-nr.");
+    }
+    return rex::ui::vulkan::GetVulkanNeuralRenderingStatus();
+  };
+  rows.push_back(std::move(neural));
+  for (const auto& [label, setting] : std::array{
+           std::pair{"NR MODEL", &kNeuralPreset}, std::pair{"NR STYLE", &kNeuralStyle},
+           std::pair{"NR INTENSITY", &kNeuralIntensity},
+           std::pair{"NR STRUCTURE", &kNeuralStructure}, std::pair{"NR TONE", &kNeuralTone}}) {
+    MenuRow row = Row(label, *setting, draft);
+    row.enabled = [draft, services] {
+      return NeuralRenderingAvailable(services) && draft->Value(kNeuralRendering) == "true";
+    };
+    rows.push_back(std::move(row));
+  }
+#endif
 
   MenuRow preset;
   preset.label = "GRAPHICS PRESET";

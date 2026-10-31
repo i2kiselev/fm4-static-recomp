@@ -31,6 +31,12 @@ here for FM4.
 > [release notes](https://github.com/i2kiselev/fm4-static-recomp/releases/latest).
 
 > [!NOTE]
+> **Optional NVIDIA Neural Rendering.** Builds using an NR-capable ShiftGlue SDK can run a
+> user-supplied Neural Rendering runtime before DLSS, FSR 2, or FSR 3. It is off by default;
+> NVIDIA's model runtime is not included. See
+> **[Neural Rendering](guide/neural-rendering.md)** for requirements and failure behavior.
+
+> [!NOTE]
 > **Experimental release.** The offline game modes play without known blocking problems
 > (see [Tested](guide/performance.md#tested)). This repository contains **no** game code or
 > assets: you need your own legally obtained copy of the game (see [Legal](#legal)).
@@ -69,6 +75,7 @@ the command line? See the [manual install](guide/manual-install.md).
 | [Manual install](guide/manual-install.md) | Command-line setup, Disc 2 and DLC, updating |
 | [Graphics settings](guide/graphics.md) | The in-game GRAPHICS page, presets, what each setting does |
 | [Upscalers](guide/upscalers.md) | DLSS, FSR 2 and FSR 3: what to pick, how the port feeds them, known limits |
+| [Neural Rendering](guide/neural-rendering.md) | Optional NVIDIA NR before temporal upscaling, setup, settings and fallback |
 | [High frame rates](guide/high-frame-rate.md) | Picking a frame rate, how the game runs at up to 240 fps at real speed, limits |
 | [Keyboard](guide/controls.md) | Key layout for driving and menus, rebinding |
 | [Launch options](guide/launch-options.md) | Command-line options, languages, `-Compat`, frame generation, setting options, logs and crash reports |
@@ -89,7 +96,7 @@ ShiftGlue SDK (without this project's game hooks and renderer changes):
 | Race loading | Console speed | Console speed | Faster |
 | Sun and lights | Correct | Screen-filling glare | Correct |
 | Anti-aliasing | The game's 2x/4x MSAA | The game's MSAA | Showroom and race MSAA 4x, 2x or off each, FXAA, FXAA Extreme, DLAA |
-| Upscaling | - | DLSS, FSR 2 and FSR 3 with Forza Horizon's camera tracking, which does not fit FM4 | **DLSS, FSR 2 and FSR 3** with FM4's own depth, camera cuts and per-object motion ([how](guide/upscalers.md)) |
+| Upscaling | - | DLSS, FSR 2 and FSR 3 with Forza Horizon's camera tracking, which does not fit FM4 | **DLSS, FSR 2 and FSR 3** with FM4's own depth, camera cuts and per-object motion ([how](guide/upscalers.md)); optional user-supplied NVIDIA [Neural Rendering](guide/neural-rendering.md) before the upscaler |
 | Graphics settings | Fixed | Launch options only | In-game [GRAPHICS page](guide/graphics.md) (**BACK + START** or **F6**) with presets and per-setting switches, saved between sessions |
 | VRAM at 3x | - | About 8 GB | About 2 GB |
 | Input | Controller | XInput gamepad | XInput gamepad and **[keyboard](guide/controls.md)**, with keycap button prompts |

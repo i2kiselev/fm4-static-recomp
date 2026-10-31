@@ -50,9 +50,11 @@ class SdkDownloadsTest(unittest.TestCase):
             shutil.copy(sdk / "cmake" / name, copy / "cmake" / name)
         pins = sdk_downloads.read_pins(copy)
         self.assertEqual(pins.dlss_commit, "9981c6350dc58c0ce21f024fd65e31e851c31689")
-        self.assertEqual(len(pins.dlss_files), 8)
+        self.assertEqual(len(pins.dlss_files), 9)
         self.assertIn(("lib/Windows_x86_64/rel/nvngx_dlss.dll",
                        "D00B5B0AB29C3CA101B70C3A5ECB3A01B7EF33766A3383A28A18623083E6123E"), pins.dlss_files)
+        self.assertIn(("lib/Windows_x86_64/x64/nvsdk_ngx_s.lib",
+                       "7B9A5239C1145AF5F645AB472AA066F9EA79DB36AC819562312AAE69D65F3765"), pins.dlss_files)
         self.assertEqual(pins.ffx_commit, "eee08db1688ac3d1275a70b728f4a8ba22914213")
         self.assertEqual(len(pins.ffx_headers), 4)
         self.assertEqual(pins.ffx_runtime_sha256, "A1624CC4238FEF046F30C4D80CE3F47BE63FC5F5373F49E3EE9EDB9960F54C78")
