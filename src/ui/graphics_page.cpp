@@ -50,6 +50,7 @@ struct Setting {
 
 const Setting kFrameRate = {"fm4_frame_rate", false, {}, 60, 240};
 const Setting kVsync = {"vulkan_present_mode", true, {{"OFF", "immediate"}, {"ON", "fifo"}}};
+const Setting kFreeAspect = {"present_free_aspect", false, {{"ON", "true"}, {"OFF", "false"}}};
 const Setting kDetail = {"fm4_level_of_detail",
                          true,
                          {{"CONSOLE", "console"},
@@ -108,8 +109,8 @@ const Setting* const kPresetSettings[] = {
 constexpr size_t kPresetSettingCount = std::size(kPresetSettings);
 
 const Setting* const kSettings[] = {
-    &kFrameRate, &kVsync, &kScale, &kUpscaler, &kDlssPreset, &kSharpness, &kPostAa,
-    &kShowroomMsaa, &kRaceMsaa, &kAnisotropy,
+    &kFrameRate, &kVsync, &kFreeAspect, &kScale, &kUpscaler, &kDlssPreset, &kSharpness,
+    &kPostAa, &kShowroomMsaa, &kRaceMsaa, &kAnisotropy,
     &kSceneryShadows, &kReflectionUpdates, &kDetail, &kMirror, &kBloom, &kSoftParticles, &kCrowds,
     &kMotionBlur, &kDepthOfField, &kCarDirt};
 
@@ -157,6 +158,9 @@ const RowText kRows[] = {
      "On stops tearing on a display without G-Sync or FreeSync. With either, leave it off: "
      "on, an Nvidia GPU shows frames through the desktop, without variable refresh and at a "
      "lower frame rate."},
+    {"FREE ASPECT RATIO", &kFreeAspect,
+     "Fills the output at any aspect ratio and adjusts the 3D camera's horizontal field of "
+     "view. Off preserves the original 16:9 framing."},
     {"RESOLUTION SCALE", &kScale,
      "Renders the game at a multiple of 1280x720: sharper edges and textures, more GPU load."},
     {"UPSCALER", &kUpscaler,
@@ -776,6 +780,19 @@ void LimitFrameRateToDisplay(uint32_t refresh_hz) {
               refresh_hz);
 }
 
+std::pair<uint32_t, uint32_t> PresentedOutputSize(uint32_t surface_width,
+                                                  uint32_t surface_height, bool free_aspect,
+                                                  bool letterbox) {
+  if (!free_aspect && letterbox &&
+      uint64_t(surface_width) * 9 > uint64_t(surface_height) * 16) {
+    return {surface_height * 16 / 9, surface_height};
+  }
+  if (!free_aspect && letterbox) {
+    return {surface_width, surface_width * 9 / 16};
+  }
+  return {surface_width, surface_height};
+}
+
 std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
                                                GraphicsPageServices services) {
   auto draft = std::make_shared<Draft>();
@@ -805,6 +822,9 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
 
   MenuRow vsync = Row("VSYNC", kVsync, draft);
   rows.push_back(std::move(vsync));
+
+  MenuRow free_aspect = Row("FREE ASPECT RATIO", kFreeAspect, draft);
+  rows.push_back(std::move(free_aspect));
 
   MenuRow scale = Row("RESOLUTION SCALE", kScale, draft);
   // While an upscaler is chosen, only the scales it can upscale from.

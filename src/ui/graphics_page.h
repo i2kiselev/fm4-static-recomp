@@ -36,6 +36,12 @@ uint32_t DisplayRefreshHz(void* native_window);
 // it, for this session only.
 void LimitFrameRateToDisplay(uint32_t refresh_hz);
 
+// The part of a surface covered by the guest output. Free aspect and disabled
+// letterboxing use the whole surface; otherwise this is the largest 16:9 area.
+std::pair<uint32_t, uint32_t> PresentedOutputSize(uint32_t surface_width,
+                                                  uint32_t surface_height, bool free_aspect,
+                                                  bool letterbox);
+
 struct GraphicsPageServices {
   // The refresh rate of the display showing the window when the page opened
   // (0 when unknown).

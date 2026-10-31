@@ -10,6 +10,7 @@ or in the launcher's SETTINGS.
 | `--resolution_scale=1..4` | Internal resolution, a multiple of 1280x720 |
 | `--fm4_frame_rate=60..240` | Frame rate of races, menus and the showroom |
 | `--vulkan_present_mode=immediate\|fifo` | VSYNC off or on |
+| `--present_free_aspect=true\|false` | FREE ASPECT RATIO: fill the output at its current shape or restore 16:9 |
 | `--swap_post_effect=none\|fxaa\|fxaa_extreme` | Post-process anti-aliasing |
 | `--present_effect=bilinear\|fsr2\|fsr3\|dlss` | UPSCALER: off, FSR 2, FSR 3 or DLSS |
 | `--present_upscaler_sharpness=0..100` | SHARPNESS after the upscaler, in percent |

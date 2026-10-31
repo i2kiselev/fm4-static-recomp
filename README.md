@@ -84,6 +84,7 @@ ShiftGlue SDK (without this project's game hooks and renderer changes):
 | | Xbox 360 | Stock ShiftGlue SDK | FM4 Static Recomp |
 |---|---|---|---|
 | Resolution | 1280x720 | 1x to 4x of 720p, but the road and car shadows render wrong | 1x to 4x of 720p (up to 5120x2880), switchable live |
+| Aspect ratio | 16:9 | 16:9 in the window | **FREE ASPECT RATIO** fills wider and taller outputs with a corrected 3D view ([how](guide/graphics.md#display)) |
 | Race frame rate | 60 fps | The console's pacing | 60 fps up to the display's refresh rate (at most 240) ([how](guide/high-frame-rate.md)) |
 | Menus and showroom | 60 / 30 fps | The console's pacing | The race frame rate; animations and the showroom camera run at real time |
 | Race loading | Console speed | Console speed | Faster |
