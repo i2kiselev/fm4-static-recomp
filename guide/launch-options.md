@@ -40,6 +40,10 @@ looks the same there, it is most likely the game's own look.
 
 ## Frame generation
 
+The built-in 2x backends are selected with `--present_frame_generation=off|dlss|fsr`,
+`--present_frame_generation_multiplier=2` and `--present_reflex=off|on|boost`. They require the
+Vulkan renderer and a restart. See [Frame generation and Reflex](frame-generation.md).
+
 Lossless Scaling and NVIDIA Smooth Motion do not see frames presented through the Vulkan
 swapchain. `--vulkan_present_via_dxgi=true` presents through DXGI instead, and both tools then
 work. It is off by default because Smooth Motion's frame pacing does not look right with it

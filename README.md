@@ -69,6 +69,7 @@ the command line? See the [manual install](guide/manual-install.md).
 | [Manual install](guide/manual-install.md) | Command-line setup, Disc 2 and DLC, updating |
 | [Graphics settings](guide/graphics.md) | The in-game GRAPHICS page, presets, what each setting does |
 | [Upscalers](guide/upscalers.md) | DLSS, FSR 2 and FSR 3: what to pick, how the port feeds them, known limits |
+| [Frame generation and Reflex](guide/frame-generation.md) | DLSS/FSR 2x generation, NVIDIA Reflex and cadence diagnostics |
 | [High frame rates](guide/high-frame-rate.md) | Picking a frame rate, how the game runs at up to 240 fps at real speed, limits |
 | [Keyboard](guide/controls.md) | Key layout for driving and menus, rebinding |
 | [Launch options](guide/launch-options.md) | Command-line options, languages, `-Compat`, frame generation, setting options, logs and crash reports |
@@ -90,11 +91,12 @@ ShiftGlue SDK (without this project's game hooks and renderer changes):
 | Sun and lights | Correct | Screen-filling glare | Correct |
 | Anti-aliasing | The game's 2x/4x MSAA | The game's MSAA | Showroom and race MSAA 4x, 2x or off each, FXAA, FXAA Extreme, DLAA |
 | Upscaling | - | DLSS, FSR 2 and FSR 3 with Forza Horizon's camera tracking, which does not fit FM4 | **DLSS, FSR 2 and FSR 3** with FM4's own depth, camera cuts and per-object motion ([how](guide/upscalers.md)) |
+| Frame generation and latency | - | Not available | **DLSS or FSR 2x** with NVIDIA Reflex input pacing ([how](guide/frame-generation.md)) |
 | Graphics settings | Fixed | Launch options only | In-game [GRAPHICS page](guide/graphics.md) (**BACK + START** or **F6**) with presets and per-setting switches, saved between sessions |
 | VRAM at 3x | - | About 8 GB | About 2 GB |
 | Input | Controller | XInput gamepad | XInput gamepad and **[keyboard](guide/controls.md)**, with keycap button prompts |
 | Disc 2 and DLC | From the disc and Marketplace | Not wired up | Installed at launch from folders you name |
-| Frame generation tools | - | Not visible to them | [Opt-in](guide/launch-options.md#frame-generation) for Lossless Scaling and NVIDIA Smooth Motion |
+| Frame generation tools | - | Not visible to them | Built-in DLSS/FSR generation; [opt-in](guide/launch-options.md#frame-generation) presentation remains available for external tools |
 | Xbox LIVE, Kinect | Yes (LIVE servers closed) | No | No |
 
 More than twice Xenia's frame rate at every scale on the same PC

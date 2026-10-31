@@ -53,6 +53,25 @@ DLSS loader under NVIDIA's licence). Its code generator, `rexglue.exe`, also hol
 binutils' PowerPC disassembler under the GPL 2 or later. The same release publishes their
 complete source: the SDK's own source archive and one of every submodule at its pinned commit.
 
+## NVIDIA DLSS Frame Generation
+
+The Windows Vulkan renderer consumes NVIDIA's DLSS 310.9.16 headers, static NGX loader and
+`nvngx_dlss.dll`/`nvngx_dlssg.dll` runtime files from the pinned
+https://github.com/NVIDIA/DLSS commit `9981c6350dc58c0ce21f024fd65e31e851c31689`.
+The SDK does not commit those proprietary runtime binaries. NVIDIA's `LICENSE.txt` is staged
+beside them, including in the prebuilt SDK bundle.
+
+## FSR 3.1.6 Vulkan frame generation
+
+`thirdparty/fm4-fsr-vulkan` contains a source-matched FidelityFX Vulkan host and backend subset
+for Frame Interpolation 3.1.6, including the generated SPIR-V modules required to build it.
+The original MIT notices are retained in `thirdparty/fm4-fsr-vulkan/LICENSE.txt`; AMD's pinned
+SDK notices, source revisions and local portability changes are recorded in `NOTICE.md`,
+`UPSTREAM.md`, and `upstream/ffx-1.1.4/sdk/LICENSE.txt`.
+
+The frame-generation orchestration and Reflex integration under `src/ui/vulkan` are adapted from
+bbhost/bbport and are distributed under GPL-2.0-or-later. Their source files carry SPDX notices.
+
 ## LLVM
 
 Setup downloads the part of the official LLVM 20.1.8 release for 64-bit Windows that the build
