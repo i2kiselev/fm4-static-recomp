@@ -57,6 +57,13 @@ FRAME RATE, RESOLUTION SCALE, UPSCALER and SHARPNESS are not part of a preset.
 | POST AA | FXAA or FXAA Extreme over the finished picture; Extreme smooths and softens more. Off while an upscaler runs. |
 | ANISOTROPIC FILTERING | Keeps textures sharp at grazing angles. Game keeps what the game asks for; 2x to 16x force it. |
 
+### Neural Rendering
+
+NEURAL RENDERING is available when the build uses an NR-capable ShiftGlue SDK, DLSS is available,
+and a user-supplied `nvngx_dlssnr.dll` is installed. It runs before DLSS, FSR 2, or FSR 3 and
+requires a restart when enabled. NR MODEL, NR STYLE, NR INTENSITY, NR STRUCTURE, and NR TONE tune
+the model. See [Neural Rendering](neural-rendering.md) for setup and fallback behavior.
+
 ### Scene detail
 
 | Setting | Effect |

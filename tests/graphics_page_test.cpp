@@ -148,13 +148,85 @@ TEST_CASE("The launcher's schema offers the upscaler, its sharpness and the DLSS
   CHECK(schema.find("\"key\":\"present_effect\"") != std::string::npos);
   CHECK(schema.find("{\"label\":\"OFF\",\"value\":\"bilinear\"}") != std::string::npos);
   CHECK(schema.find("{\"label\":\"30 %\",\"value\":\"30\"}") != std::string::npos);
+#if FM4_HAVE_NEURAL_RENDERING
+  REQUIRE(at("NEURAL RENDERING") != std::string::npos);
+  REQUIRE(at("NR MODEL") != std::string::npos);
+  REQUIRE(at("NR STYLE") != std::string::npos);
+  REQUIRE(at("NR INTENSITY") != std::string::npos);
+  REQUIRE(at("NR STRUCTURE") != std::string::npos);
+  REQUIRE(at("NR TONE") != std::string::npos);
+  CHECK(at("SHARPNESS") < at("NEURAL RENDERING"));
+  CHECK(at("NEURAL RENDERING") < at("NR MODEL"));
+  CHECK(at("NR MODEL") < at("NR STYLE"));
+  CHECK(at("NR STYLE") < at("NR INTENSITY"));
+  CHECK(at("NR INTENSITY") < at("NR STRUCTURE"));
+  CHECK(at("NR STRUCTURE") < at("NR TONE"));
+  CHECK(at("NR TONE") < at("GRAPHICS PRESET"));
+  CHECK(schema.find("\"key\":\"present_nr_enabled\"") != std::string::npos);
+  CHECK(schema.find("\"default\":\"false\"") != std::string::npos);
+#else
+  CHECK(at("NEURAL RENDERING") == std::string::npos);
+#endif
   const std::string preset = schema.substr(at("DLSS PRESET"), at("SHARPNESS") - at("DLSS PRESET"));
   CHECK(preset.find("\"key\":\"present_dlss_preset\"") != std::string::npos);
   CHECK(preset.find("\"default\":\"auto\"") != std::string::npos);
   CHECK(preset.find("\"shown_when\":{\"present_effect\":\"dlss\"}") != std::string::npos);
+#if FM4_HAVE_NEURAL_RENDERING
+  constexpr const char* kNrLabels[] = {"NR MODEL", "NR STYLE", "NR INTENSITY", "NR STRUCTURE",
+                                       "NR TONE"};
+  for (size_t i = 0; i < std::size(kNrLabels); ++i) {
+    const size_t begin = at(kNrLabels[i]);
+    const size_t end = i + 1 < std::size(kNrLabels) ? at(kNrLabels[i + 1]) : at("GRAPHICS PRESET");
+    const std::string row = schema.substr(begin, end - begin);
+    CHECK(row.find("\"shown_when\":{\"present_nr_enabled\":\"true\"}") != std::string::npos);
+  }
+  size_t shown_when_count = 0;
+  for (size_t pos = schema.find("shown_when"); pos != std::string::npos;
+       pos = schema.find("shown_when", pos + 1)) {
+    ++shown_when_count;
+  }
+  CHECK(shown_when_count == 6);
+#else
   CHECK(schema.find("shown_when") == schema.rfind("shown_when"));
+#endif
   std::filesystem::remove(path);
 }
+
+#if FM4_HAVE_NEURAL_RENDERING
+TEST_CASE("Neural Rendering is off by default and gated by DLSS and its user runtime",
+          "[graphics_page]") {
+  config::HostConfig config(TempFile("neural.toml"));
+  const CvarsRestored restored({"present_nr_enabled", "present_nr_preset", "present_nr_style",
+                                "present_nr_intensity", "present_nr_structure", "present_nr_tone"});
+  rex::cvar::SetFlagByName("present_nr_enabled", "false");
+  auto available = NvidiaServices();
+  available.neural_rendering_installed = [] { return true; };
+  const auto page = ui::CreateGraphicsPage(config, available);
+  const MenuRow& enable = *Find(*page, "NEURAL RENDERING");
+  CHECK(enable.is_enabled());
+  CHECK(enable.value() == "OFF");
+  CHECK_FALSE(Find(*page, "NR MODEL")->is_enabled());
+  Choose(enable, "ON");
+  CHECK(Find(*page, "NR MODEL")->is_enabled());
+  Choose(*Find(*page, "NR INTENSITY"), "150 %");
+  page->Handle(NavCommand::kApply);
+  Settle(*page);
+  CHECK(config.Get("present_nr_enabled").value_or("") == "true");
+  CHECK(config.Get("present_nr_intensity").value_or("") == "1.5");
+
+  rex::cvar::SetFlagByName("present_nr_enabled", "false");
+  auto no_dlss = Services();
+  no_dlss.neural_rendering_installed = [] { return true; };
+  const auto amd = ui::CreateGraphicsPage(config, no_dlss);
+  CHECK_FALSE(Find(*amd, "NEURAL RENDERING")->is_enabled());
+
+  auto no_runtime = NvidiaServices();
+  no_runtime.neural_rendering_installed = [] { return false; };
+  const auto missing = ui::CreateGraphicsPage(config, no_runtime);
+  CHECK_FALSE(Find(*missing, "NEURAL RENDERING")->is_enabled());
+  CHECK(Find(*missing, "NEURAL RENDERING")->note().find("user-supplied") != std::string::npos);
+}
+#endif
 
 TEST_CASE("The in-game page has UPSCALER and SHARPNESS and leaves the DLSS preset to the launcher",
           "[graphics_page]") {

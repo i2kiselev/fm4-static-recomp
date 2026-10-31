@@ -13,6 +13,18 @@
 #include "config/host_config.h"
 #include "ui/hostui/menu.h"
 
+#ifndef FM4_HAVE_NEURAL_RENDERING
+#if defined(__has_include)
+#if __has_include(<rex/ui/vulkan/vulkan_neural_rendering.h>)
+#define FM4_HAVE_NEURAL_RENDERING 1
+#else
+#define FM4_HAVE_NEURAL_RENDERING 0
+#endif
+#else
+#define FM4_HAVE_NEURAL_RENDERING 0
+#endif
+#endif
+
 namespace fm4_static_recomp::ui {
 
 // The GRAPHICS page of My Profile -> Options: the race frame rate (a slider),
@@ -46,6 +58,9 @@ struct GraphicsPageServices {
   std::function<std::optional<std::pair<uint32_t, uint32_t>>()> output_size;
   // The presenter's upscalers, each with whether it runs on this GPU.
   std::function<std::vector<rex::ui::UpscalerInfo>()> upscalers;
+  // Whether the SDK Neural Rendering bridge and user-provided runtime are
+  // installed. Empty uses the SDK's filesystem check.
+  std::function<bool()> neural_rendering_installed;
 };
 
 std::unique_ptr<hostui::MenuScreen> CreateGraphicsPage(config::HostConfig& config,

@@ -35,6 +35,10 @@ AA apply again.
 upscales by more than 1.8x on an RTX 40 or later GPU, and K otherwise. K, M, J and L force one;
 Default leaves the choice to the DLSS runtime and the NVIDIA app.
 
+An NR-capable SDK and a user-supplied Neural Rendering runtime can optionally process the scene
+before any of these upscalers. It is off by default. See
+[Neural Rendering](neural-rendering.md).
+
 ## What an upscaler needs
 
 A temporal upscaler builds each frame from many earlier ones. The game draws the scene a

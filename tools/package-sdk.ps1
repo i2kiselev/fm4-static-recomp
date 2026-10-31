@@ -115,6 +115,11 @@ $readme = @(
     "Source code archive (the SDK at $($config.sdk.revision)) and $sources.tar.xz"
     '(every submodule at its pinned commit). cmake/ holds the SDK''s pins of the DLSS and FidelityFX'
     'runtimes, which the build fetches from NVIDIA''s and AMD''s repositories.'
+    ''
+    'The SDK also contains the bbport_nr_nvngx.dll bridge, adapted from MIT source and linked with'
+    'NVIDIA''s separately licensed parameter allocator; both licence texts are in licenses/.'
+    'NVIDIA''s Neural Rendering model, nvngx_dlssnr.dll, is not included and must be supplied by'
+    'the user. Neural Rendering is off by default; see docs/NEURAL_RENDERING.md in the SDK source.'
 )
 [IO.File]::WriteAllText((Join-Path $stage 'README-FM4.txt'), ($readme -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
 
