@@ -362,17 +362,14 @@ class Fm4App final : public rex::ReXApp {
       auto* graphics = runtime() ? runtime()->graphics_system() : nullptr;
       return graphics ? graphics->draw_resolution_scale() : 0;
     };
-    services.output_size = [this]() -> std::optional<std::pair<uint32_t, uint32_t>> {
-      const uint32_t width = window() ? window()->GetActualPhysicalWidth() : 0;
-      const uint32_t height = window() ? window()->GetActualPhysicalHeight() : 0;
-      if (!width || !height) {
+    services.output_size = [presenter]() -> std::optional<std::pair<uint32_t, uint32_t>> {
+      uint32_t width = 0;
+      uint32_t height = 0;
+      if (!presenter->GetSurfaceSize(width, height)) {
         return std::nullopt;
       }
-      if (!REXCVAR_GET(present_letterbox)) {
-        return std::pair{width, height};
-      }
-      return uint64_t(width) * 9 > uint64_t(height) * 16 ? std::pair{height * 16 / 9, height}
-                                                         : std::pair{width, width * 9 / 16};
+      return fm4_static_recomp::ui::PresentedOutputSize(
+          width, height, REXCVAR_GET(present_free_aspect), REXCVAR_GET(present_letterbox));
     };
     services.upscalers = [presenter] { return presenter->GetUpscalers(); };
     host_ui_->Open(

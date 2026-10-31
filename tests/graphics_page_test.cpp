@@ -138,14 +138,18 @@ TEST_CASE("The launcher's schema offers the upscaler, its sharpness and the DLSS
   const auto at = [&schema](const char* label) {
     return schema.find(std::string("{\"label\":\"") + label + "\"");
   };
+  REQUIRE(at("FREE ASPECT RATIO") != std::string::npos);
   REQUIRE(at("UPSCALER") != std::string::npos);
   REQUIRE(at("DLSS PRESET") != std::string::npos);
   REQUIRE(at("SHARPNESS") != std::string::npos);
+  CHECK(at("VSYNC") < at("FREE ASPECT RATIO"));
+  CHECK(at("FREE ASPECT RATIO") < at("RESOLUTION SCALE"));
   CHECK(at("RESOLUTION SCALE") < at("UPSCALER"));
   CHECK(at("UPSCALER") < at("DLSS PRESET"));
   CHECK(at("DLSS PRESET") < at("SHARPNESS"));
   CHECK(at("SHARPNESS") < at("GRAPHICS PRESET"));
   CHECK(schema.find("\"key\":\"present_effect\"") != std::string::npos);
+  CHECK(schema.find("\"key\":\"present_free_aspect\"") != std::string::npos);
   CHECK(schema.find("{\"label\":\"OFF\",\"value\":\"bilinear\"}") != std::string::npos);
   CHECK(schema.find("{\"label\":\"30 %\",\"value\":\"30\"}") != std::string::npos);
   const std::string preset = schema.substr(at("DLSS PRESET"), at("SHARPNESS") - at("DLSS PRESET"));
@@ -162,7 +166,36 @@ TEST_CASE("The in-game page has UPSCALER and SHARPNESS and leaves the DLSS prese
   const auto page = ui::CreateGraphicsPage(config, Services());
   CHECK(Find(*page, "UPSCALER"));
   CHECK(Find(*page, "SHARPNESS"));
+  CHECK(Find(*page, "FREE ASPECT RATIO"));
   CHECK_FALSE(Find(*page, "DLSS PRESET"));
+}
+
+TEST_CASE("FREE ASPECT RATIO is saved and applied", "[graphics_page]") {
+  const auto path = TempFile("free_aspect.toml");
+  std::filesystem::remove(path);
+  config::HostConfig config(path);
+  const CvarsRestored restored({"present_free_aspect"});
+  REQUIRE(rex::cvar::SetFlagByName("present_free_aspect", "true"));
+  const auto page = ui::CreateGraphicsPage(config, Services());
+  const MenuRow& row = *Find(*page, "FREE ASPECT RATIO");
+  CHECK(row.value() == "ON");
+  row.adjust(+1);
+  CHECK(row.value() == "OFF");
+  CHECK(row.unapplied());
+  page->Handle(NavCommand::kApply);
+  page->Update(false);
+  CHECK(rex::cvar::GetFlagByName("present_free_aspect") == "false");
+  CHECK(config.Get("present_free_aspect").value_or("") == "false");
+  std::filesystem::remove(path);
+}
+
+TEST_CASE("FREE ASPECT RATIO reports the whole surface and OFF reports the 16:9 area",
+          "[graphics_page]") {
+  CHECK(ui::PresentedOutputSize(2560, 1080, true, true) == std::pair{2560u, 1080u});
+  CHECK(ui::PresentedOutputSize(2560, 1080, false, true) == std::pair{1920u, 1080u});
+  CHECK(ui::PresentedOutputSize(1080, 1920, true, true) == std::pair{1080u, 1920u});
+  CHECK(ui::PresentedOutputSize(1080, 1920, false, true) == std::pair{1080u, 607u});
+  CHECK(ui::PresentedOutputSize(2560, 1080, false, false) == std::pair{2560u, 1080u});
 }
 
 TEST_CASE("UPSCALER steps past an upscaler the GPU cannot run", "[graphics_page]") {

@@ -16,7 +16,8 @@ session only.
 ## Presets
 
 GRAPHICS PRESET sets every row below it; changing one of them makes the preset CUSTOM.
-FRAME RATE, RESOLUTION SCALE, UPSCALER and SHARPNESS are not part of a preset.
+FRAME RATE, VSYNC, FREE ASPECT RATIO, RESOLUTION SCALE, UPSCALER and SHARPNESS are not
+part of a preset.
 
 | Setting | Console | High | Ultra | Experimental |
 |---|:---:|:---:|:---:|:---:|
@@ -43,6 +44,7 @@ FRAME RATE, RESOLUTION SCALE, UPSCALER and SHARPNESS are not part of a preset.
 |---|---|
 | FRAME RATE | Frame rate of races, menus and the showroom, 60 fps up to your display's refresh rate (at most 240). Pick a rate your PC holds (see [Benchmarks](performance.md#benchmarks)). Without G-Sync or FreeSync, pick the refresh rate or a whole fraction of it. How it works: [High frame rates](high-frame-rate.md). |
 | VSYNC | Off by default, which suits G-Sync and FreeSync displays. Turn it on if you see tearing. |
+| FREE ASPECT RATIO | On by default. Fills a window of any shape and changes the 3D camera's horizontal field of view, so a wider display shows more of the world instead of black bars. It also follows the window while you resize it. Off restores the original 16:9 framing. |
 | RESOLUTION SCALE | 1x to 4x of 1280x720 on each axis, up to 5120x2880. |
 
 ### Anti-aliasing and textures
