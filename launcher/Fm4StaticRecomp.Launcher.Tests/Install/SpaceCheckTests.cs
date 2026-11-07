@@ -25,7 +25,7 @@ public class SpaceCheckTests
     [Fact]
     public void A_pfp4_install_needs_its_content_space()
     {
-        var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\..\config\pfp4-1.3.json"));
+        var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../config/pfp4-1.3.json"));
         Assert.True(SpaceCheck.Pfp4Content >= Pfp4Installer.ContentBytes(Pfp4Manifest.Load(real)));
         Assert.Equal(SpaceCheck.Pfp4Content, SpaceCheck.Needed(true, false, true, true, true) - SpaceCheck.Needed(true, false, true, true, false));
     }

@@ -183,7 +183,13 @@ public sealed class LauncherHost
     // Shows a file selected in its folder.
     public static void Reveal(string file)
     {
-        try { Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{file}\"") { UseShellExecute = true }); }
+        try
+        {
+            var start = OperatingSystem.IsMacOS()
+                ? new ProcessStartInfo("/usr/bin/open") { ArgumentList = { "-R", file } }
+                : new ProcessStartInfo("explorer.exe", $"/select,\"{file}\"") { UseShellExecute = true };
+            Process.Start(start);
+        }
         catch (Exception) { }
     }
 }

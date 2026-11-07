@@ -28,7 +28,7 @@ public static class Pfp4Modes
                 : (Path.Combine(layout.Pfp4, "GameTunableSettings.ini"), manifest.MainTunables, Under(layout.Game, Pfp4Manifest.Tunables)),
         };
         copies.AddRange(chosen.DlcDbs.Select(db =>
-            (Under(Path.Combine(cache, "dlc"), db.Target), db, Under(Path.Combine(layout.Content, Packages), db.Target))));
+            (Under(Path.Combine(cache, "dlc"), db.Target), db, Under(Under(layout.Content, Packages), db.Target))));
 
         // Every file is checked before the first one is copied: a damaged cache leaves the
         // current mode whole.

@@ -20,6 +20,7 @@ public class RootCheckTests
         @" Move the launcher's folder to a short path such as D:\FM4 and start it again.")]
     public void Refuses_with_the_reason_and_one_way_out(string root, string reason, string advice)
     {
+        if (!OperatingSystem.IsWindows()) return;
         var problem = RootCheck.Problem(root, Env)!;
         Assert.Contains(reason, problem);
         Assert.StartsWith($"The launcher cannot install into {root}: ", problem);

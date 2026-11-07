@@ -274,6 +274,43 @@ public class LaunchArgumentsTests
     }
 
     [Fact]
+    public void Show_fps_passes_the_flag_when_enabled()
+    {
+        var (layout, profile, settings, temp) = Setup();
+        using var _ = temp;
+        settings.ShowFps = true;
+        var args = LaunchArguments.ForPlay(layout, "0.1.0", profile, settings, new WindowsPlatform());
+        Assert.Contains("--fm4_show_fps=true", args);
+    }
+
+    [Fact]
+    public void Controller_vibration_off_disables_rumble_and_pad_strength()
+    {
+        var (layout, profile, settings, temp) = Setup();
+        using var _ = temp;
+        settings.ControllerVibration = false;
+        var args = LaunchArguments.ForPlay(layout, "0.1.0", profile, settings, new WindowsPlatform());
+        Assert.Contains("--controller_vibration=false", args);
+        Assert.Contains("--pad_rumble_strength=0", args);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(55)]
+    [InlineData(100)]
+    [InlineData(200)]
+    public void Controller_vibration_off_overrides_every_strength(int strength)
+    {
+        var (layout, profile, settings, temp) = Setup();
+        using var _ = temp;
+        settings.ControllerVibration = false;
+        settings.VibrationStrength = strength;
+        var args = LaunchArguments.ForPlay(layout, "0.3.2", profile, settings, new WindowsPlatform());
+        Assert.Contains("--controller_vibration=false", args);
+        Assert.Equal(["--pad_rumble_strength=0"], args.Where(a => a.StartsWith("--pad_rumble_strength=")));
+    }
+
+    [Fact]
     public void Never_repeats_an_option()
     {
         var (layout, profile, settings, temp) = Setup();

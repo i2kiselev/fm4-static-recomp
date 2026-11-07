@@ -18,6 +18,8 @@ public sealed record PayloadInfo(string ZipPath, string Version, string Reposito
     public static PayloadInfo Read(string launcherDirectory, string launcherVersion)
     {
         var zip = Path.Combine(launcherDirectory, FileName);
+        if (OperatingSystem.IsMacOS() && !File.Exists(zip))
+            zip = Path.GetFullPath(Path.Combine(launcherDirectory, "..", "Resources", FileName));
         if (!File.Exists(zip))
             throw new FileNotFoundException($"Keep {FileName} beside the launcher; it is part of the release zip.", zip);
         using var archive = ZipFile.OpenRead(zip);

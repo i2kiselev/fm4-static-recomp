@@ -248,10 +248,10 @@ public class ProfileStoreTests
         var (temp, store, _) = Make();
         using var _t = temp;
         OldXeniaImport(temp, withRuntimeCareer: true);
-        var header = Path.Combine(temp.Path, @"profiles\old\user\E030000047B76145\4D530910\Headers\00000001\ForzaProfile.header");
+        var header = TestPath.Combine(temp.Path, @"profiles\old\user\E030000047B76145\4D530910\Headers\00000001\ForzaProfile.header");
         store.RepairXeniaImports();
         Assert.Equal(CanaryHeader("Wesx1"), File.ReadAllBytes(header));
-        Assert.Equal([2], File.ReadAllBytes(Path.Combine(temp.Path, @"profiles\old\user\B13EBABEBABEBABE\4D530910\00000001\ForzaProfile\ForzaProfile")));
+        Assert.Equal([2], File.ReadAllBytes(TestPath.Combine(temp.Path, @"profiles\old\user\B13EBABEBABEBABE\4D530910\00000001\ForzaProfile\ForzaProfile")));
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public class ProfileStoreTests
         temp.File(@"profiles\done\profile.toml", "name = \"Done\"\nxenia_copy_of = \"old/E030000047B76145\"\nxuid = \"E030000047B76145\"\n"u8.ToArray());
         temp.File(@"profiles\cut\profile.toml", "name = \"Cut\"\nxenia_copy_of = \"old/E0300000AAAAAAAA\"\n"u8.ToArray());
         temp.File(@"profiles\cut\user\E0300000AAAAAAAA\4D530910\00000001\ForzaProfile\Forza", [3]);
-        Directory.CreateDirectory(Path.Combine(temp.Path, @"profiles\cut\user", ProfileStore.ContentFolderName));
+        Directory.CreateDirectory(TestPath.Combine(temp.Path, @"profiles\cut\user", ProfileStore.ContentFolderName));
         Assert.Single(store.RepairXeniaImports());
         Assert.Equal(["Done", "Old", "Old (Xenia E0300000AAAAAAAA)"], store.List().Select(p => p.Name).Order(StringComparer.Ordinal));
         Assert.Equal("E0300000AAAAAAAA", store.List().Single(p => p.Name.EndsWith("AAAA)")).Xuid);
@@ -293,7 +293,7 @@ public class ProfileStoreTests
         temp.File(@"profiles\broken\profile.toml", "name = \"Broken\"\n"u8.ToArray());
         var gone = Path.Combine(temp.Path, "gone");
         Directory.CreateDirectory(gone);
-        Platforms.Current.CreateDirectoryLink(Path.Combine(temp.Path, @"profiles\broken\user"), gone);
+        Platforms.Current.CreateDirectoryLink(TestPath.Combine(temp.Path, @"profiles\broken\user"), gone);
         Directory.Delete(gone);
         var lines = store.RepairXeniaImports();
         Assert.Equal(2, lines.Count);

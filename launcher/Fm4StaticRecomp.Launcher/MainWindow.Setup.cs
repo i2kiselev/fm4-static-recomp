@@ -26,6 +26,7 @@ public partial class MainWindow
     private DiscInput? _disc2Input;
     private bool _disc2Later;
     private string? _modPath;
+    private string? _setupSaveSource;
     private int _profileCount;
     private readonly Dictionary<Step, (StepState State, string Detail)> _stepOverrides = [];
 
@@ -107,6 +108,7 @@ public partial class MainWindow
         SetStep(Step.Disc2, disc2State, disc2Text);
         Disc2Buttons.IsVisible = !setup.Disc2Installed;
 
+        LicenceRow.IsVisible = !OperatingSystem.IsMacOS();
         var settings = host.Settings;
         SetStep(Step.Licence, settings.UseVisualStudioInstaller || settings.AcceptedMicrosoftLicence is not null ? StepState.Done : StepState.Waiting,
             settings.UseVisualStudioInstaller ? "Microsoft's installer: it asks for administrator permission once."
@@ -120,9 +122,13 @@ public partial class MainWindow
 
         var profiles = host.Profiles.List();
         SetStep(Step.Profile, profiles.Count > 0 ? StepState.Done : StepState.Waiting,
-            profiles.Count > 0 ? string.Join(", ", profiles.Select(p => p.Name)) : "The gamertag starts as this name.");
+            profiles.Count > 0 ? string.Join(", ", profiles.Select(p => p.Name))
+            : _setupSaveSource is { } saveSource ? $"Import after the build: {saveSource}. The original stays in place."
+            : "Name a new profile, or choose an existing save folder or alias.");
         ProfileNameBox.IsVisible = profiles.Count == 0;
-        StartCombo.IsVisible = pfp4 && profiles.Count == 0;
+        StartCombo.IsVisible = pfp4 && profiles.Count == 0 && _setupSaveSource is null;
+        ChooseSetupSaveButton.IsVisible = profiles.Count == 0;
+        ClearSetupSaveButton.IsVisible = profiles.Count == 0 && _setupSaveSource is not null;
 
         foreach (var (step, (state, detail)) in _stepOverrides) SetStep(step, state, detail);
 
@@ -195,6 +201,7 @@ public partial class MainWindow
         VanillaChoice.IsEnabled = Pfp4Choice.IsEnabled = open;
         BrowseModButton.IsEnabled = BrowseModFolderButton.IsEnabled = ModeCombo.IsEnabled = HarderAiCheck.IsEnabled = open;
         ProfileNameBox.IsEnabled = StartCombo.IsEnabled = OwnershipCheck.IsEnabled = open;
+        ChooseSetupSaveButton.IsEnabled = ClearSetupSaveButton.IsEnabled = open;
     }
 
     private void Ownership_Changed(object? sender, RoutedEventArgs e) => UpdateActions();
@@ -281,13 +288,13 @@ public partial class MainWindow
                 FilePickerFileTypes.All,
             ],
         });
-        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+        return files.Count > 0 && files[0].TryGetLocalPath() is { } path ? Core.Platform.SourcePath.Resolve(path) : null;
     }
 
     private async Task<string?> PickFolderAsync(string title)
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = title, AllowMultiple = false });
-        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+        return folders.Count > 0 && folders[0].TryGetLocalPath() is { } path ? Core.Platform.SourcePath.Resolve(path) : null;
     }
 
     private async Task ChooseDisc1Async(string path)
@@ -532,6 +539,7 @@ public partial class MainWindow
     // Visual Studio installer route).
     private async Task<bool?> AskLicenceAsync(LauncherHost host, CancellationToken cancellation)
     {
+        if (OperatingSystem.IsMacOS()) return true;
         var settings = host.Settings;
         if (settings.UseVisualStudioInstaller) return false;
         MarkStep(Step.Licence, StepState.Active, "Reading Microsoft's licences.");
@@ -738,6 +746,23 @@ public partial class MainWindow
         _ => "",
     };
 
+    private async void ChooseSetupSave_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        if (await PickSaveFolderAsync() is not { } folder) return;
+        _setupSaveSource = folder;
+        if (string.IsNullOrWhiteSpace(ProfileNameBox.Text)) ProfileNameBox.Text = Path.GetFileName(folder);
+        UpdateSetupRows();
+        UpdateActions();
+    }
+
+    private void ClearSetupSave_Click(object? sender, RoutedEventArgs e)
+    {
+        _setupSaveSource = null;
+        UpdateSetupRows();
+        UpdateActions();
+    }
+
     private async Task<bool> CreateProfileAsync(LauncherHost host)
     {
         if (host.Profiles.List().Count > 0) return true;
@@ -745,7 +770,7 @@ public partial class MainWindow
         {
             var name = ProfileNameBox.Text!.Trim();
             string? save = null;
-            if (host.Setup.Game == ProfileStore.Pfp4 && StartCombo.SelectedIndex == 1)
+            if (_setupSaveSource is null && host.Setup.Game == ProfileStore.Pfp4 && StartCombo.SelectedIndex == 1)
             {
                 var (chosen, folder) = await AskStartAsync(host, host.Payload.Version, offerNewCareer: false);
                 if (!chosen)
@@ -756,7 +781,14 @@ public partial class MainWindow
                 }
                 save = folder;
             }
-            var profile = save is null ? host.Profiles.Create(name) : host.Profiles.CreateFromSkipIntro(name, save);
+            Profile profile;
+            if (_setupSaveSource is { } source)
+            {
+                if (await AskSaveGameAsync(source) is not var (game, _, warning)) return false;
+                if (host.Profiles.Refusal(game) is { } refusal) throw new IOException(refusal);
+                profile = await Task.Run(() => host.Profiles.Import(source, name, game, warning));
+            }
+            else profile = save is null ? host.Profiles.Create(name) : host.Profiles.CreateFromSkipIntro(name, save);
             host.Settings.ActiveProfile = profile.Id;
             host.Settings.Save();
             AppendLog($"Profile {profile.Name} created ({profile.Id}).");

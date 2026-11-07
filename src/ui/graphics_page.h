@@ -39,6 +39,10 @@ uint32_t DisplayRefreshHz(void* native_window);
 void LimitFrameRateToDisplay(uint32_t refresh_hz);
 
 struct GraphicsPageServices {
+  // Whether the window is currently in fullscreen mode.
+  std::function<bool()> is_fullscreen;
+  // Request entering or leaving fullscreen mode.
+  std::function<void(bool)> set_fullscreen;
   // The refresh rate of the display showing the window when the page opened
   // (0 when unknown).
   std::function<uint32_t()> display_refresh_hz;

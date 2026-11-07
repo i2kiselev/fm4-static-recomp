@@ -26,7 +26,7 @@ public class VersionBuilderTests
     {
         var folder = Path.Combine(temp.Path, name);
         Directory.CreateDirectory(Path.Combine(folder, "tools"));
-        if (withSetup) File.WriteAllText(Path.Combine(folder, "tools", "setup.ps1"), name);
+        if (withSetup) File.WriteAllText(Path.Combine(folder, "tools", OperatingSystem.IsMacOS() ? "setup-macos.py" : "setup.ps1"), name);
         else File.WriteAllText(Path.Combine(folder, "tools", "other.ps1"), name);
         ZipFile.CreateFromDirectory(folder, folder + ".zip");
         return folder + ".zip";
@@ -79,7 +79,7 @@ public class VersionBuilderTests
         var runner = new FakeRunner((_, _) => null);
         var failure = await new VersionBuilder(layout, versions, state, runner).BuildVersionAsync(Request("0.1.0"),
             Zip(temp, "a", withSetup: false), new SyncProgress<SetupEvent>(_ => { }), _ => { }, CancellationToken.None);
-        Assert.Contains("setup.ps1", failure!.Message);
+        Assert.Contains(OperatingSystem.IsMacOS() ? "setup-macos.py" : "setup.ps1", failure!.Message);
         Assert.Equal(0, runner.Calls);
         Assert.Null(settings.ActiveVersion);
     }
@@ -102,6 +102,6 @@ public class VersionBuilderTests
                 lines.Add, CancellationToken.None);
         Assert.Null(failure);
         Assert.Equal("0.3.0", settings.ActiveVersion);
-        Assert.Contains(lines, l => l.Contains("0.1.0") && l.Contains("could not be deleted"));
+        if (OperatingSystem.IsWindows()) Assert.Contains(lines, l => l.Contains("0.1.0") && l.Contains("could not be deleted"));
     }
 }

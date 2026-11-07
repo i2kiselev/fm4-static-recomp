@@ -298,6 +298,8 @@ public class SavesFolderTests
     [Fact]
     public void A_failed_remove_leaves_no_profiles_behind()
     {
+        // Unix permits unlinking a file held open by another process.
+        if (!OperatingSystem.IsWindows()) return;
         var (temp, layout, store) = Make();
         using var _t = temp;
         var main = store.Create("Main");

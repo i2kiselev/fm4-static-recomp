@@ -17,6 +17,8 @@ or in the launcher's SETTINGS.
 | `--fm4_disc2_packages=<folder>` | Install the Disc 2 packages from this folder |
 | `--fm4_dlc_packages=<folder>` | Install every DLC package under this folder |
 | `--fm4_skip_intro=true` | Skip the startup disclaimer and studio videos |
+| `--fm4_show_fps=true` | Show the [average guest-output FPS overlay](../DEBUG_OPTIONS.md#reading-the-fps-overlay) on start (also toggled with F3) |
+| `--controller_vibration=false` | Turn off controller vibration rumble motors (`--pad_rumble_strength=0`) |
 | `--fm4_audio_pop_fix=false` | AUDIO POP FIX off: the engine sounds pop where their loops start over and click when revving and shifting, as on a console. In the launcher: SETTINGS → AUDIO POP FIX (from 0.3.2) |
 | `--fm4_language=<code>` | The game's language (see [Languages](#languages)) |
 | `--fm4_config_root=<folder>` | Where `graphics.toml` and `controls.toml` live (default: the state folder's `config`) |

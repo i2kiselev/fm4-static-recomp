@@ -37,15 +37,23 @@ public static class LaunchArguments
             ["user_name"] = profile.Gamertag,
             ["fm4_language"] = settings.Language,
         };
+        if (OperatingSystem.IsMacOS()) options["gpu_backend"] = "vulkan";
         if (profile.Xuid is { } xuid) options["user_xuid"] = xuid;
         // The mod's AI is tuned on Xenia, about six physics substeps a tick at its 62 fps.
         if (installGame == ProfileStore.Pfp4) options["fm4_car_min_substeps"] = "6";
         if (settings.SkipIntro) options["fm4_skip_intro"] = "true";
+        if (settings.ShowFps) options["fm4_show_fps"] = "true";
+        if (!settings.ControllerVibration)
+        {
+            options["controller_vibration"] = "false";
+            options["pad_rumble_strength"] = "0";
+        }
         if (settings.Compat) foreach (var (name, value) in CompatOptions) options[name] = value;
         if (!settings.AsyncReadbacks) options["fh1_async_readbacks"] = "false";
         if (settings.PresentViaDxgi && platform.SupportsDxgiPresentation) options["vulkan_present_via_dxgi"] = "true";
         if (settings.Diagnostic30Fps) options["fm4_frame_rate"] = "30";
-        if (settings.VibrationStrength != LauncherSettings.GameVibrationStrength && !Predates(version, new Version(0, 3, 2)))
+        if (settings.ControllerVibration && settings.VibrationStrength != LauncherSettings.GameVibrationStrength
+            && !Predates(version, new Version(0, 3, 2)))
             options["pad_rumble_strength"] = settings.VibrationStrength.ToString(CultureInfo.InvariantCulture);
         if (!settings.AudioPopFix && !Predates(version, new Version(0, 3, 2))) options["fm4_audio_pop_fix"] = "false";
         // In fullscreen too: Alt+Enter leaves to this size. An older version (GO BACK TO, or while an update

@@ -10,17 +10,17 @@ public class Pfp4ModesTests
 {
     private sealed record Install(FakeMod Mod, InstallLayout Layout, SetupState State)
     {
-        public string GameDb => File.ReadAllText(Path.Combine(Layout.Game, @"Media\db\gamedb.slt"));
-        public string Tunables => File.ReadAllText(Path.Combine(Layout.Game, FakeMod.Tunables));
-        public string Merge => File.ReadAllText(Path.Combine(Layout.Content, "4D530910", "00000002", FakeMod.PackageA, FakeMod.Merge));
+        public string GameDb => File.ReadAllText(TestPath.Combine(Layout.Game, @"Media\db\gamedb.slt"));
+        public string Tunables => File.ReadAllText(TestPath.Combine(Layout.Game, FakeMod.Tunables));
+        public string Merge => File.ReadAllText(TestPath.Combine(Layout.Content, "4D530910", "00000002", FakeMod.PackageA, FakeMod.Merge));
         public void Switch(string mode, bool harderAi) => Pfp4Modes.Switch(Layout, Mod.Manifest, State, mode, harderAi);
     }
 
     private static async Task<Install> Installed(TempDir temp, string mode, bool harderAi)
     {
         var fake = new FakeMod(temp);
-        var layout = new InstallLayout(Path.Combine(temp.Path, "data"));
-        temp.File(Path.Combine(layout.Game, "default.xex"), "retail xex"u8.ToArray());
+        var layout = new InstallLayout(TestPath.Combine(temp.Path, "data"));
+        temp.File(TestPath.Combine(layout.Game, "default.xex"), "retail xex"u8.ToArray());
         using (var mod = ModSource.Open(fake.Root))
             Assert.Empty(await Pfp4Installer.InstallAsync(mod, fake.Manifest, layout, mode, harderAi, null, CancellationToken.None));
         var state = SetupState.Load(layout.SetupState);
@@ -71,7 +71,7 @@ public class Pfp4ModesTests
     {
         using var temp = new TempDir();
         var install = await Installed(temp, "normal", false);
-        File.WriteAllText(Path.Combine(install.Layout.Pfp4Modes, "hard", "dlc", FakeMod.PackageA, FakeMod.Merge), "merge HARD");
+        File.WriteAllText(TestPath.Combine(install.Layout.Pfp4Modes, "hard", "dlc", FakeMod.PackageA, FakeMod.Merge), "merge HARD");
         var error = Assert.Throws<InvalidDataException>(() => install.Switch("hard", false));
         Assert.Contains("mod", error.Message);
         Assert.Equal(("db normal", "merge normal"), (install.GameDb, install.Merge));
@@ -83,10 +83,10 @@ public class Pfp4ModesTests
     {
         using var temp = new TempDir();
         var install = await Installed(temp, "normal", false);
-        Directory.CreateDirectory(Path.Combine(install.Layout.Content, "4D530910", "00000002", FakeMod.PackageA, FakeMod.Merge + ".new"));
-        Assert.ThrowsAny<IOException>(() => install.Switch("hard", false));
+        Directory.CreateDirectory(TestPath.Combine(install.Layout.Content, "4D530910", "00000002", FakeMod.PackageA, FakeMod.Merge + ".new"));
+        Assert.True(Record.Exception(() => install.Switch("hard", false)) is IOException or UnauthorizedAccessException);
         Assert.Equal(("db normal", "merge normal", "main tunables"), (install.GameDb, install.Merge, install.Tunables));
-        Assert.False(File.Exists(Path.Combine(install.Layout.Game, @"Media\db\gamedb.slt.new")));
+        Assert.False(File.Exists(TestPath.Combine(install.Layout.Game, @"Media\db\gamedb.slt.new")));
         Assert.Equal("normal", SetupState.Load(install.Layout.SetupState).Pfp4Mode);
     }
 
@@ -95,15 +95,13 @@ public class Pfp4ModesTests
     {
         using var temp = new TempDir();
         var install = await Installed(temp, "normal", false);
-        var db = Path.Combine(install.Layout.Game, @"Media\db\gamedb.slt");
-        var other = Path.Combine(temp.Path, "other-install-gamedb.slt");
+        var db = TestPath.Combine(install.Layout.Game, @"Media\db\gamedb.slt");
+        var other = TestPath.Combine(temp.Path, "other-install-gamedb.slt");
         File.Move(db, other);
-        Assert.True(CreateHardLink(db, other, IntPtr.Zero));
+        TestPath.CreateHardLink(db, other);
         install.Switch("hard", false);
         Assert.Equal("db hard", install.GameDb);
         Assert.Equal("db normal", File.ReadAllText(other));
     }
 
-    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
-    private static extern bool CreateHardLink(string fileName, string existingFileName, IntPtr securityAttributes);
 }

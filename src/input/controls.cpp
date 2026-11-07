@@ -8,6 +8,12 @@
 #include <string_view>
 #include <vector>
 
+#if defined(__APPLE__)
+#include <cerrno>
+#include <cstdlib>
+#include <xlocale.h>
+#endif
+
 #include <rex/input/mnk/mnk_bind.h>
 #include <rex/logging.h>
 #include <rex/ui/keybinds.h>
@@ -204,16 +210,45 @@ void LoadSet(const ControlLookup& lookup, bool log, std::string_view prefix, Bin
 
 void LoadRate(const ControlLookup& lookup, std::string_view name, double& rate) {
   const auto value = lookup(name);
-  if (!value)
-    return;
-  double parsed = 0.0;
-  const auto [end, error] = std::from_chars(value->data(), value->data() + value->size(), parsed);
-  if (error == std::errc() && end == value->data() + value->size() && parsed >= 0.0) {
-    rate = parsed;
+  if (value) {
+    if (const auto parsed = ParseRampSeconds(*value)) {
+      rate = *parsed;
+    }
   }
 }
 
 }  // namespace
+
+std::optional<double> ParseRampSeconds(std::string_view value) {
+  double parsed = 0.0;
+#if defined(__APPLE__)
+  // libc++'s floating-point from_chars requires macOS 26 with current SDKs.
+  // Use the C numeric locale without changing the process-wide locale, keeping
+  // from_chars' decimal syntax, full-consumption and range checks on older Macs.
+  if (value.empty() || value.front() == '+' ||
+      std::string_view(" \t\r\n\f\v").find(value.front()) != std::string_view::npos) return std::nullopt;
+  std::string_view digits = value;
+  if (digits.starts_with('-')) digits.remove_prefix(1);
+  if (digits.starts_with("0x") || digits.starts_with("0X")) return std::nullopt;
+  locale_t numeric_locale = newlocale(LC_NUMERIC_MASK, "C", nullptr);
+  if (!numeric_locale) return std::nullopt;
+  const std::string terminated(value);
+  char* end = nullptr;
+  errno = 0;
+  parsed = strtod_l(terminated.c_str(), &end, numeric_locale);
+  const int parse_error = errno;
+  freelocale(numeric_locale);
+  const bool valid = parse_error != ERANGE && end != terminated.data() &&
+                     end == terminated.data() + terminated.size();
+#else
+  const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), parsed);
+  const bool valid = error == std::errc() && end == value.data() + value.size();
+#endif
+  if (valid && parsed >= 0.0) {
+    return parsed;
+  }
+  return std::nullopt;
+}
 
 // Keys after Forza Horizon 6 on FM4's default controller layout (gamedb.slt,
 // ControllerLayouts, LayoutId 0): A handbrake, B gear up, X gear down, Y rewind,

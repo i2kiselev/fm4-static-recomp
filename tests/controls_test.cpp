@@ -190,6 +190,17 @@ TEST_CASE("Ramp rates are read from the file", "[controls]") {
   CHECK(LoadFrom("ramp_look_seconds = 0.25\n").ramp.look_seconds == 0.25);
 }
 
+TEST_CASE("Ramp rates accept decimal notation and reject malformed or out-of-range values", "[controls]") {
+  CHECK(LoadFrom("ramp_steer_seconds = 3e-1\n").ramp.steer_seconds == 0.3);
+  CHECK(LoadFrom("ramp_steer_seconds = 0\n").ramp.steer_seconds == 0.0);
+  for (std::string_view token : {"+0.3", " 0.3", "0.3 ", "0x1p0", "-0.5", "0.3tail",
+                                 "1e9999", "1e-9999", "0,3", "nan"}) {
+    CAPTURE(token);
+    CHECK(LoadFrom("ramp_steer_seconds = \"" + std::string(token) + "\"\n").ramp.steer_seconds ==
+          DefaultControls().ramp.steer_seconds);
+  }
+}
+
 TEST_CASE("A missing file loads the defaults without writing one", "[controls]") {
   const auto path = std::filesystem::temp_directory_path() / "fm4_controls_missing.toml";
   std::filesystem::remove(path);

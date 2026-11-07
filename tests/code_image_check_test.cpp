@@ -71,6 +71,9 @@ TEST_CASE("The test disc's default.xex is a supported release") {
   };
   const char* root = std::getenv("FM4_TEST_GAME_ROOT");
   const std::filesystem::path game = root ? root : FM4_TEST_GAME_ROOT;
+  if (!std::filesystem::is_regular_file(game / "default.xex")) {
+    SKIP("No local Disc 1 fixture; set FM4_TEST_GAME_ROOT to run this check");
+  }
   const std::string found = FileSha256(game / "default.xex");
   INFO(game.string() << " " << found);
   const bool as_1_0 = !CodeImageMismatch(found, "1.0", kSupported);

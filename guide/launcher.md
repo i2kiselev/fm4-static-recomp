@@ -112,3 +112,72 @@ The launcher checks GitHub when it starts (and from CHECK FOR UPDATES).
 
 Saves, content and settings are kept; each profile's save is zipped to `backups\` in the saves
 folder (`data\backups\` by default) before a new version first runs it.
+
+## macOS preview (Apple Silicon)
+
+The Avalonia launcher can also be built as a Finder app. This preview uses the
+current ShiftGlue Vulkan/MoltenVK backend. Install Xcode Command Line Tools,
+.NET 8 SDK, Python 3.11 or newer, CMake 3.25 or newer, and Ninja. With Homebrew:
+
+```sh
+xcode-select --install
+brew install python cmake ninja
+python3 tools/package-launcher-macos.py
+open "out/launcher-macos/FM4 Static Recomp.app"
+```
+
+Keep the app in a writable folder. Its `data` folder lives beside the app, outside
+the signed bundle. Choose your Disc 1 ISO, GOD folder or extracted folder; choose
+Disc 2 or **LATER**, enter a profile name, then **VERIFY AND BUILD**. macOS setup
+uses Apple's compiler and downloads/builds the pinned ShiftGlue SDK. It does not
+need PowerShell or Microsoft's Windows build files. The first game start compiles
+shaders. The minimum build target is macOS 14; older OS runtime testing is pending.
+
+For development against an existing SDK checkout, set `FM4_SDK_ROOT` when
+running `tools/setup-macos.py`. Packaging takes its version/repository from
+`config/release.json` and creates no local SDK hint. See the [macOS guide](macos.md).
+
+Mac preview updates are manual: close the launcher and game, replace the app,
+and keep the adjacent `data` folder. The Windows self-updater and PowerShell
+crash-report generator are unavailable on macOS; runtime logs remain in
+`data/logs`. The app is locally signed, not notarized. Disc installation, content,
+profiles, graphics, imported saves and gameplay need manual validation before a
+macOS release. Official Mac release assets are built by the maintainer’s CI
+from the release tag; local packaging is for verification.
+
+FSR 2 and FSR 3 temporal upscaling are included in the Mac build. See
+[macOS upscaling and frame generation](macos-upscaling.md) for verified GPU support,
+test commands, and the separate status of MetalFX and frame generation.
+
+### Existing discs and saves on macOS
+
+The disc and save selectors accept Unix symbolic links and Finder aliases. Use
+**CHOOSE DISC IMAGE** for `game/disc1.iso` or `game/disc2.iso`, or **CHOOSE FOLDER**
+for an alias pointing to extracted disc files. Sources are verified and copied
+into the launcher install; the linked originals stay in place.
+
+During setup, **YOUR PROFILE → CHOOSE EXISTING SAVE…** lets you pick an existing
+save before building. You can also use **PROFILE → IMPORT SAVE** after setup.
+Choose the save's Xbox profile folder, the shared `user` folder, or its alias.
+If the folder contains several careers, the launcher lists their Xbox profile
+IDs so you can select one. The imported profile is selected for Play and keeps
+the save's original XUID. Import copies the career; it does not play directly
+against the original save. **NEW CAREER** clears a pending setup import.
+
+The macOS SDK and portability patches are pinned separately in
+`config/macos-toolchain.json`; the Windows release pin is unchanged. Both the
+launcher and `tools/build-mac.sh` use this same preparation/build path. SDK patches
+are verified by checksum and applied automatically. Managed builds use a private
+SDK checkout and dependency cache below their extracted source directory.
+
+After a successful build, `.local/logs/macos-build.json` inside that source
+records the SDK/patch identities, compiler and tool versions, code image, and
+binary hashes. `.local/logs/macos-sdk.json` records SDK preparation. These receipts
+describe the build inputs and outputs; they do not assert that gameplay has been
+validated or that different Xcode/tool versions produce byte-identical binaries.
+
+The clean-source macOS build has also been checked with the declared macOS 14
+compile target. Control-rate parsing uses a C-locale compatibility path on Apple
+platforms because current libc++ marks floating-point `from_chars` as macOS 26+.
+The native controls regressions and FSR GPU checks run on macOS 27; running on
+macOS 14 itself still needs validation.

@@ -121,11 +121,36 @@ public sealed class ProfileStore(InstallLayout layout, IPlatform platform, strin
 
     private static string? StampFile(string source)
     {
+        source = SourcePath.Resolve(source);
         var folder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(source));
         var own = Path.Combine(folder, FileName);
         if (File.Exists(own)) return own;
         var parent = Path.Combine(Path.GetDirectoryName(folder)!, FileName);
         return Path.GetFileName(folder).Equals("user", StringComparison.OrdinalIgnoreCase) && File.Exists(parent) ? parent : null;
+    }
+
+    // The picker may point at a shared user/content folder holding several careers.
+    // Return the individual save folders so the UI can let the player choose one.
+    public static IReadOnlyList<string> ImportCandidates(string source)
+    {
+        source = SourcePath.Resolve(source);
+        if (Directory.Exists(Path.Combine(source, "user"))) source = SourcePath.Resolve(Path.Combine(source, "user"));
+        if (IsSave(source)) return [source];
+        if (!Directory.Exists(source)) return [];
+        var candidates = new List<string>();
+        foreach (var entry in Directory.EnumerateFileSystemEntries(source))
+        {
+            try
+            {
+                var resolved = SourcePath.Resolve(entry);
+                if (IsSave(resolved)) candidates.Add(resolved);
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                // An unrelated broken shortcut must not hide the other saves.
+            }
+        }
+        return candidates.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
     }
 
     // Copies a state's (or a user folder's, or Xenia's content folder's) saves into a new profile.
@@ -136,6 +161,7 @@ public sealed class ProfileStore(InstallLayout layout, IPlatform platform, strin
     // for the game to sign in with, and Xenia Canary's headers are rewritten for the runtime.
     public Profile Import(string sourceStateOrUser, string name, string declaredGame, string? overriddenWarning = null)
     {
+        sourceStateOrUser = SourcePath.Resolve(sourceStateOrUser);
         var user = Path.TrimEndingDirectorySeparator(Directory.Exists(Path.Combine(sourceStateOrUser, "user"))
             ? Path.Combine(sourceStateOrUser, "user")
             : sourceStateOrUser);
@@ -278,8 +304,15 @@ public sealed class ProfileStore(InstallLayout layout, IPlatform platform, strin
 
     internal static bool HoldsSave(string user) => Saves(user).Count > 0;
 
-    private static List<string> Saves(string user) =>
-        Directory.Exists(user) ? Directory.GetDirectories(user).Where(IsSave).ToList() : [];
+    private static List<string> Saves(string user)
+    {
+        if (Directory.Exists(user)) return Directory.GetDirectories(user).Where(IsSave).ToList();
+        // Unix reports a dangling directory link as missing; surface it just as
+        // an unreadable Windows profile rather than silently skipping repairs.
+        if (new DirectoryInfo(user).LinkTarget is not null)
+            throw new DirectoryNotFoundException($"The profile save folder {user} points to an unavailable directory.");
+        return [];
+    }
 
     // A save is a 16-digit XUID folder with FM4's title folder in it.
     internal static bool IsSave(string folder) =>
@@ -331,7 +364,9 @@ public sealed class ProfileStore(InstallLayout layout, IPlatform platform, strin
         if (new DirectoryInfo(link).LinkTarget is { } target)
         {
             if (SamePath(target, content)) return;
-            Directory.Delete(link);
+            // Unix distinguishes a dangling symlink from an existing directory.
+            if (!OperatingSystem.IsWindows() && !Directory.Exists(link)) File.Delete(link);
+            else Directory.Delete(link);
         }
         else if (Directory.Exists(link))
         {

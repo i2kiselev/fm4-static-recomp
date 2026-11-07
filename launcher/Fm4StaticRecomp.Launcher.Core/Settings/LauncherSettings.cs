@@ -18,6 +18,8 @@ public sealed class LauncherSettings
         ActiveVersion = _file.Get("active_version");
         PreviousVersion = _file.Get("previous_version");
         SkipIntro = _file.Get("skip_intro") != "false";
+        ShowFps = _file.Get("show_fps") == "true";
+        ControllerVibration = _file.Get("controller_vibration") != "false";
         AudioPopFix = _file.Get("audio_pop_fix") != "false";
         AsyncReadbacks = _file.Get("async_readbacks") != "false";
         PresentViaDxgi = _file.Get("present_via_dxgi") == "true";
@@ -39,6 +41,8 @@ public sealed class LauncherSettings
     public string? ActiveVersion { get; set; }
     public string? PreviousVersion { get; set; }
     public bool SkipIntro { get; set; }
+    public bool ShowFps { get; set; }
+    public bool ControllerVibration { get; set; }
     public bool AudioPopFix { get; set; }
     public bool AsyncReadbacks { get; set; }
     public bool PresentViaDxgi { get; set; }
@@ -69,6 +73,8 @@ public sealed class LauncherSettings
         Text("active_version", ActiveVersion);
         Text("previous_version", PreviousVersion);
         Flag("skip_intro", SkipIntro);
+        Flag("show_fps", ShowFps);
+        Flag("controller_vibration", ControllerVibration);
         Flag("audio_pop_fix", AudioPopFix);
         Flag("async_readbacks", AsyncReadbacks);
         Flag("present_via_dxgi", PresentViaDxgi);

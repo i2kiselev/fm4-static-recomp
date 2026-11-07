@@ -16,8 +16,8 @@ public sealed class ModSource : IDisposable
 
     private readonly ZipArchive? _zip;
     private readonly Dictionary<string, ZipArchiveEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
-    private readonly string? _folder;
     private readonly List<string> _files = [];
+    private readonly Dictionary<string, string> _diskFiles = new(StringComparer.OrdinalIgnoreCase);
 
     private ModSource(ZipArchive zip, string prefix)
     {
@@ -34,10 +34,13 @@ public sealed class ModSource : IDisposable
 
     private ModSource(string folder)
     {
-        _folder = folder;
         var options = new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = 0 };
-        _files.AddRange(Directory.EnumerateFiles(folder, "*", options)
-            .Select(f => Path.GetRelativePath(folder, f).Replace(Path.DirectorySeparatorChar, '\\')));
+        foreach (var file in Directory.EnumerateFiles(folder, "*", options))
+        {
+            var relative = Path.GetRelativePath(folder, file).Replace(Path.DirectorySeparatorChar, '\\');
+            _files.Add(relative);
+            _diskFiles.Add(relative, file);
+        }
     }
 
     public IReadOnlyList<string> Files => _files;
@@ -63,9 +66,9 @@ public sealed class ModSource : IDisposable
         var level = new List<string> { zipOrFolder };
         for (var depth = 0; depth <= SearchDepth && level.Count > 0; depth++)
         {
-            var root = level.Order(StringComparer.Ordinal).FirstOrDefault(d => File.Exists(Path.Combine(d, Marker)));
+            var root = level.Order(StringComparer.Ordinal).FirstOrDefault(d => File.Exists(Path.Combine(d, Marker.Replace('\\', Path.DirectorySeparatorChar))));
             if (root is not null) return new ModSource(root);
-            level = level.SelectMany(Directory.EnumerateDirectories).ToList();
+            level = level.Where(Directory.Exists).SelectMany(Directory.EnumerateDirectories).ToList();
         }
         throw NotTheMod(zipOrFolder);
     }
@@ -82,7 +85,8 @@ public sealed class ModSource : IDisposable
         ? new FileInfo(OnDisk(relativePath)).Length
         : Entry(relativePath).Length;
 
-    private string OnDisk(string relativePath) => Path.Combine(_folder!, relativePath.Replace('\\', Path.DirectorySeparatorChar));
+    private string OnDisk(string relativePath) => _diskFiles.TryGetValue(relativePath, out var path)
+        ? path : throw new FileNotFoundException($"{relativePath} is not in the mod's folder.", relativePath);
 
     private ZipArchiveEntry Entry(string relativePath) =>
         _entries.TryGetValue(relativePath, out var entry)

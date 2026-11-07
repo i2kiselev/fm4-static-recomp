@@ -40,6 +40,7 @@ public class SetupRunnerTests
     [Fact]
     public void Passes_the_layout_and_the_player_s_choices()
     {
+        if (!OperatingSystem.IsWindows()) return;
         var layout = new InstallLayout(@"C:\G\data");
         var args = SetupRunner.Arguments(layout, new SetupRequest("0.2.0", 6, true, false));
         Assert.Equal(["-GameRoot", @"C:\G\data\game", "-CacheRoot", @"C:\G\data\cache\0.2.0", "-JsonEvents",

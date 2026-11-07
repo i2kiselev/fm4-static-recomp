@@ -9,8 +9,9 @@
     <Description>Builds FM4 Static Recomp locally from the player's own verified game discs.</Description>
     <Authors>FM4 Static Recomp contributors</Authors>
     <Copyright>Copyright © 2026 FM4 Static Recomp contributors</Copyright>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">osx-arm64</RuntimeIdentifier>
+    <ApplicationManifest Condition="$([MSBuild]::IsOSPlatform('Windows'))">app.manifest</ApplicationManifest>
     <!-- The game's icon with a play badge (tools/make-icon.ps1 -Launcher). -->
     <ApplicationIcon>Assets\launcher.ico</ApplicationIcon>
     <BuiltInComInteropSupport>false</BuiltInComInteropSupport>

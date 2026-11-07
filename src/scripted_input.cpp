@@ -18,9 +18,11 @@
 #include <unordered_set>
 #include <vector>
 
+#if defined(_WIN32)
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#endif
 #include <rex/cvar.h>
 #include <rex/input/device_assignment.h>
 #include <rex/input/input.h>
@@ -537,6 +539,7 @@ void Film(rex::ui::Presenter* source, double seconds, const std::string& output)
   std::filesystem::rename(output + ".tmp", output, error);
 }
 
+#if defined(_WIN32)
 // Windows' XINPUT_STATE; xinput.h itself clashes with the SDK's input names.
 struct PadState {
   DWORD packet;
@@ -643,6 +646,11 @@ void RecordInput(std::string path) {
     }
   }
 }
+#else
+void RecordInput(std::string path) {
+  REXLOG_WARN("Input recording is not supported on this platform: {}", path);
+}
+#endif
 
 // Autovista opens behind a loading screen that takes longer or shorter with the
 // save and the settings, so "autovista_shown" marks the first picture after it
@@ -746,6 +754,7 @@ void StartCaptureWatcher(std::function<rex::ui::Presenter*()> presenter) {
 }
 
 void ConfigureScriptedInput(rex::RuntimeConfig& config) {
+#if defined(_WIN32)
   char* path = nullptr;
   size_t length = 0;
   if (_dupenv_s(&path, &length, "FM4_STATIC_RECOMP_INPUT_RECORD") == 0 && path) {
@@ -761,6 +770,18 @@ void ConfigureScriptedInput(rex::RuntimeConfig& config) {
   }
   g_path = path;
   std::free(path);
+#else
+  const char* record_env = std::getenv("FM4_STATIC_RECOMP_INPUT_RECORD");
+  if (record_env && *record_env) {
+    g_recording = true;
+    std::thread(RecordInput, std::string(record_env)).detach();
+  }
+  const char* script_env = std::getenv("FM4_STATIC_RECOMP_INPUT_SCRIPT");
+  if (!script_env || !*script_env) {
+    return;
+  }
+  g_path = script_env;
+#endif
   if (!g_path.empty() && LoadScript(g_path)) {
     std::error_code error;
     g_loaded_time = std::filesystem::last_write_time(g_path, error);

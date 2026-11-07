@@ -12,13 +12,13 @@ public class UnicornCarsTests
     // pages, their flags among the spilled bytes.
     // Flags: 14 of the 17 cars at 1, Mugen Civic / Integra and Superleggera at 0; NUL_Car_00,
     // Warthog, Bentley 8 Litre, an F430 Scuderia name under another id and a mod's car at 1.
-    private static readonly string Fixture = Path.Combine(AppContext.BaseDirectory, "Content", "unicorns.slt");
+    private static readonly string Fixture = TestPath.Combine(AppContext.BaseDirectory, "Content", "unicorns.slt");
     private static readonly int[] Unlocked = [400, 401, 1004];
 
     private static string Game(TempDir temp)
     {
-        var game = Path.Combine(temp.Path, "game");
-        temp.File(Path.Combine("game", UnicornCars.Database), File.ReadAllBytes(Fixture));
+        var game = TestPath.Combine(temp.Path, "game");
+        temp.File(TestPath.Combine("game", UnicornCars.Database), File.ReadAllBytes(Fixture));
         return game;
     }
 
@@ -40,7 +40,7 @@ public class UnicornCarsTests
     {
         using var temp = new TempDir();
         var game = Game(temp);
-        var db = Path.Combine(game, UnicornCars.Database);
+        var db = TestPath.Combine(game, UnicornCars.Database);
         var before = File.ReadAllBytes(db);
 
         var done = UnicornCars.Unlock(game);
@@ -66,15 +66,15 @@ public class UnicornCarsTests
     {
         using var temp = new TempDir();
         var game = Game(temp);
-        var db = Path.Combine(game, UnicornCars.Database);
+        var db = TestPath.Combine(game, UnicornCars.Database);
         var original = File.ReadAllBytes(db);
         UnicornCars.Unlock(game);
-        Assert.Equal(original, File.ReadAllBytes(Path.Combine(game, UnicornCars.Backup)));
+        Assert.Equal(original, File.ReadAllBytes(TestPath.Combine(game, UnicornCars.Backup)));
 
         File.WriteAllBytes(db, File.ReadAllBytes(Fixture));
-        File.WriteAllBytes(Path.Combine(game, UnicornCars.Backup), "older"u8.ToArray());
+        File.WriteAllBytes(TestPath.Combine(game, UnicornCars.Backup), "older"u8.ToArray());
         UnicornCars.Unlock(game);
-        Assert.Equal("older", File.ReadAllText(Path.Combine(game, UnicornCars.Backup)));
+        Assert.Equal("older", File.ReadAllText(TestPath.Combine(game, UnicornCars.Backup)));
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class UnicornCarsTests
         using var temp = new TempDir();
         var game = Game(temp);
         UnicornCars.Unlock(game);
-        var db = Path.Combine(game, UnicornCars.Database);
+        var db = TestPath.Combine(game, UnicornCars.Database);
         var unlocked = File.ReadAllBytes(db);
         var written = File.GetLastWriteTimeUtc(db);
 
@@ -97,10 +97,10 @@ public class UnicornCarsTests
     {
         using var temp = new TempDir();
         var game = Game(temp);
-        var db = Path.Combine(game, UnicornCars.Database);
-        var other = Path.Combine(temp.Path, "other-install-gamedb.slt");
+        var db = TestPath.Combine(game, UnicornCars.Database);
+        var other = TestPath.Combine(temp.Path, "other-install-gamedb.slt");
         File.Move(db, other);
-        Assert.True(CreateHardLink(db, other, IntPtr.Zero));
+        TestPath.CreateHardLink(db, other);
         UnicornCars.Unlock(game);
         Assert.Empty(UnicornCars.Read(game).Locked);
         Assert.Equal(File.ReadAllBytes(Fixture), File.ReadAllBytes(other));
@@ -112,8 +112,8 @@ public class UnicornCarsTests
     public void Refuses_a_file_it_cannot_read(string content)
     {
         using var temp = new TempDir();
-        var game = Path.Combine(temp.Path, "game");
-        temp.File(Path.Combine("game", UnicornCars.Database), System.Text.Encoding.ASCII.GetBytes(content));
+        var game = TestPath.Combine(temp.Path, "game");
+        temp.File(TestPath.Combine("game", UnicornCars.Database), System.Text.Encoding.ASCII.GetBytes(content));
         Assert.Throws<InvalidDataException>(() => UnicornCars.Read(game));
     }
 
@@ -122,17 +122,15 @@ public class UnicornCarsTests
     public void Refuses_a_damaged_record()
     {
         using var temp = new TempDir();
-        var game = Path.Combine(temp.Path, "game");
+        var game = TestPath.Combine(temp.Path, "game");
         var bytes = File.ReadAllBytes(Fixture)[..1024];
         bytes[100] = 0x0D;
         BinaryPrimitives.WriteUInt16BigEndian(bytes.AsSpan(103), 1);
         BinaryPrimitives.WriteUInt16BigEndian(bytes.AsSpan(108), 1000);
         bytes[1000..1004].AsSpan().Clear();
         new byte[] { 0x02, 0x01, 0x7F, 0x00 }.CopyTo(bytes, 1000);
-        temp.File(Path.Combine("game", UnicornCars.Database), bytes);
+        temp.File(TestPath.Combine("game", UnicornCars.Database), bytes);
         Assert.Throws<InvalidDataException>(() => UnicornCars.Read(game));
     }
 
-    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
-    private static extern bool CreateHardLink(string fileName, string existingFileName, IntPtr securityAttributes);
 }

@@ -15,6 +15,10 @@ public sealed class SetupRunner(InstallLayout layout, IPlatform platform) : IBui
 
     public static IReadOnlyList<string> Arguments(InstallLayout layout, SetupRequest request)
     {
+        if (OperatingSystem.IsMacOS())
+            return [layout.SetupScript(request.Version), "--game-root", layout.Game,
+                "--cache-root", layout.Cache(request.Version), "--toolchain-root", layout.Toolchain,
+                "--jobs", request.BuildJobs.ToString(CultureInfo.InvariantCulture)];
         // A trailing backslash breaks the schema run's quoting inside setup.
         var arguments = new List<string>(PowerShell.FileArguments(layout.SetupScript(request.Version)))
         {
@@ -31,7 +35,14 @@ public sealed class SetupRunner(InstallLayout layout, IPlatform platform) : IBui
     public async Task<SetupFailure?> BuildAsync(SetupRequest request, IProgress<SetupEvent> progress, Action<string> logLine,
         CancellationToken cancellation)
     {
-        var start = PowerShell.StartInfo(Arguments(layout, request));
+        var start = OperatingSystem.IsMacOS() ? new ProcessStartInfo("/usr/bin/env") { UseShellExecute = false }
+            : PowerShell.StartInfo(Arguments(layout, request));
+        if (OperatingSystem.IsMacOS())
+        {
+            start.ArgumentList.Add("python3");
+            foreach (var argument in Arguments(layout, request)) start.ArgumentList.Add(argument);
+            start.Environment["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + Environment.GetEnvironmentVariable("PATH");
+        }
         start.WorkingDirectory = layout.Source(request.Version);
         start.RedirectStandardOutput = true;
         start.RedirectStandardError = true;

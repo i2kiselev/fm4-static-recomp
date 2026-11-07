@@ -40,6 +40,13 @@ public partial class MainWindow
     private async Task StartUpdateCheckAsync(bool clicked = false)
     {
         if (_host is not { } host) return;
+        // Windows releases contain an .exe and use Windows self replacement.
+        // Until Mac bundles are published, keep updates manual.
+        if (OperatingSystem.IsMacOS())
+        {
+            UpdateNote.Text = "macOS preview: download updates manually and keep the data folder.";
+            return;
+        }
         UpdateNote.Text = "";
         try
         {

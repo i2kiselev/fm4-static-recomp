@@ -239,9 +239,13 @@ TEST_CASE("A failed save keeps the keys drafted and the file's values as they we
   Page page("driving_right_trigger = \"Up\"\n");
   page.Bind("THROTTLE (RT)", 0, "W");
   {
-    // An open file without delete sharing cannot be replaced.
-    std::ifstream held(page.path);
+    // Block the atomic-write temporary path on Windows and Unix alike.
+    auto blocked = page.path;
+    blocked += ".tmp";
+    std::filesystem::create_directory(blocked);
+    std::ofstream(blocked / "occupied") << "blocked";
     page.screen->Handle(NavCommand::kApply);
+    std::filesystem::remove_all(blocked);
   }
   CHECK(page.applied == 0);
   CHECK(page.screen->status().text == "COULD NOT SAVE CONTROLS.TOML");

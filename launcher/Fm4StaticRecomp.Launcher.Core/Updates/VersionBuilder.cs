@@ -15,7 +15,7 @@ public sealed class VersionBuilder(InstallLayout layout, VersionStore versions, 
     {
         await versions.ExtractPayloadAsync(payloadZip, request.Version, cancellation);
         if (!File.Exists(layout.SetupScript(request.Version)))
-            return new SetupFailure($"The source of version {request.Version} has no tools\\setup.ps1.", "tools", 1, [],
+            return new SetupFailure($"The source of version {request.Version} has no {Path.GetFileName(layout.SetupScript(request.Version))}.", "tools", 1, [],
                 "Download the release zip again.", null, layout.SetupLogs(request.Version));
         var failure = await runner.BuildAsync(request, progress, logLine, cancellation);
         if (failure is not null) return failure;

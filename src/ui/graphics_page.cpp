@@ -840,6 +840,20 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
   frame_rate.unapplied = [draft] { return draft->values.contains(&kFrameRate); };
   rows.push_back(std::move(frame_rate));
 
+  MenuRow fullscreen;
+  fullscreen.label = "FULLSCREEN";
+  fullscreen.description =
+      "Run in borderless fullscreen (ON) or a window (OFF). Press F11 to toggle anytime.";
+  fullscreen.value = [services] {
+    return services.is_fullscreen && services.is_fullscreen() ? "ON" : "OFF";
+  };
+  fullscreen.adjust = [services](int) {
+    if (services.set_fullscreen && services.is_fullscreen) {
+      services.set_fullscreen(!services.is_fullscreen());
+    }
+  };
+  rows.push_back(std::move(fullscreen));
+
   MenuRow vsync = Row("VSYNC", kVsync, draft);
   rows.push_back(std::move(vsync));
 

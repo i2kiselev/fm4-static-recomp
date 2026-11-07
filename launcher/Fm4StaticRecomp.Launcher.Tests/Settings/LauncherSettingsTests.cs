@@ -12,6 +12,8 @@ public class LauncherSettingsTests
         using var temp = new TempDir();
         var settings = LauncherSettings.Load(Path.Combine(temp.Path, "launcher.toml"));
         Assert.True(settings.SkipIntro);
+        Assert.False(settings.ShowFps);
+        Assert.True(settings.ControllerVibration);
         Assert.True(settings.AsyncReadbacks);
         Assert.False(settings.PresentViaDxgi);
         Assert.False(settings.Windowed);
@@ -84,6 +86,8 @@ public class LauncherSettingsTests
         settings.ActiveVersion = "0.2.0";
         settings.PreviousVersion = "0.1.3";
         settings.SkipIntro = false;
+        settings.ShowFps = true;
+        settings.ControllerVibration = false;
         settings.AsyncReadbacks = false;
         settings.PresentViaDxgi = true;
         settings.Compat = true;
@@ -102,6 +106,8 @@ public class LauncherSettingsTests
         Assert.Equal(("main", "0.2.0", "0.1.3"), (read.ActiveProfile, read.ActiveVersion, read.PreviousVersion));
         Assert.Equal((false, false, true, true, true), (read.SkipIntro, read.AsyncReadbacks, read.PresentViaDxgi, read.Compat,
             read.UseVisualStudioInstaller));
+        Assert.True(read.ShowFps);
+        Assert.False(read.ControllerVibration);
         Assert.True(read.Diagnostic30Fps);
         Assert.Equal(6, read.BuildJobs);
         Assert.Equal(160, read.VibrationStrength);

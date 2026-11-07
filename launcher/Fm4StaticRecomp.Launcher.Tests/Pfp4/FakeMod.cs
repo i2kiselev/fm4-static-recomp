@@ -80,10 +80,10 @@ public sealed class FakeMod
 
     public Pfp4Manifest Manifest => Pfp4Manifest.Load(ManifestPath);
 
-    public string ModFile(string relative) => Path.Combine(Root, relative);
+    public string ModFile(string relative) => Path.Combine(Root, relative.Replace('\\', Path.DirectorySeparatorChar));
 
     private void File(string relative, string text) =>
-        System.IO.File.WriteAllText(CreateParent(Path.Combine(Root, relative)), text);
+        System.IO.File.WriteAllText(CreateParent(Path.Combine(Root, relative.Replace('\\', Path.DirectorySeparatorChar))), text);
 
     private static string CreateParent(string path)
     {

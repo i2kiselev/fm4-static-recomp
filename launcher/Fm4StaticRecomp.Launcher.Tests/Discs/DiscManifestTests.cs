@@ -32,7 +32,7 @@ public class DiscManifestTests
     [Fact]
     public void Loads_the_real_manifest()
     {
-        var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\..\config\supported-discs.json"));
+        var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../config/supported-discs.json"));
         var manifest = DiscManifest.Load(real);
         Assert.Equal(["61D62D9F", "26FF1101", "42C67824", "33E7B39F"], manifest.DiscReleases.Select(r => r.MediaId));
         Assert.Equal(4001, manifest.Disc1.Files.Count);
@@ -52,7 +52,7 @@ public class DiscManifestTests
     [Fact]
     public void The_mod_release_is_not_a_disc_release()
     {
-        var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\..\config\supported-discs.json"));
+        var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../config/supported-discs.json"));
         var manifest = DiscManifest.Load(real);
         Assert.Equal("Project Forza Plus 4 1.3", manifest.ModRelease.Name);
         Assert.Equal("FEA11E87FF8434E51ED8E683023EA17281DEC02A5ED8FA226B1C73726CF15128",
@@ -64,7 +64,7 @@ public class DiscManifestTests
     [Fact]
     public void A_disc_1_with_the_mod_over_it_is_refused_as_such()
     {
-        var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\..\config\supported-discs.json"));
+        var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../config/supported-discs.json"));
         var manifest = DiscManifest.Load(real);
         var modXex = manifest.ModRelease.Files.Single(f => f.Path == "default.xex").Sha256;
         var pal = manifest.Release("61D62D9F")!;

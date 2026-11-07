@@ -39,7 +39,7 @@ public partial class MainWindow
     private async Task OfferCrashReportAsync(GameSession session, int exitCode)
     {
         var host = _host!;
-        if (!_flags.CrashReports)
+        if (OperatingSystem.IsMacOS() || !_flags.CrashReports)
         {
             ShowFailure("THE GAME STOPPED", $"Exit code 0x{exitCode:X8}. The logs have the details.");
             return;

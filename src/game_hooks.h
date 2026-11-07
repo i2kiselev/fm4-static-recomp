@@ -37,4 +37,5 @@ void InstallAudioPopFix();
 // thumbnail ends the readback hold its render began.
 void NoteGuestFileOpen(std::string_view guest_path);
 
+
 }  // namespace fm4_static_recomp

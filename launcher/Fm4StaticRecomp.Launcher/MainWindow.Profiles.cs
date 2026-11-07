@@ -110,7 +110,7 @@ public partial class MainWindow
 
     private async void ImportSave_Click(object? sender, RoutedEventArgs e) => await ProfileActionAsync(async host =>
     {
-        if (await PickFolderAsync("Choose a profile's folder, a state folder or Xenia Canary's content folder to import") is not { } folder) return;
+        if (await PickSaveFolderAsync() is not { } folder) return;
         if (await AskSaveGameAsync(folder) is not var (game, how, warning)) return;
         if (host.Profiles.Refusal(game) is { } refusal) throw new IOException(refusal);
         var (answer, values) = await Dialog.PromptAsync(this, "IMPORT SAVE",
@@ -130,6 +130,26 @@ public partial class MainWindow
             SetBusy(false);
         }
     });
+
+    private async Task<string?> PickSaveFolderAsync()
+    {
+        if (await PickFolderAsync("Choose a save folder, user folder or its alias") is not { } folder) return null;
+        // Our stamped profile folders must stay whole when imported.
+        if (ProfileStore.StampedGame(folder) is not null) return folder;
+        var candidates = await Task.Run(() => ProfileStore.ImportCandidates(folder));
+        if (candidates.Count == 1) return candidates[0];
+        if (candidates.Count == 0)
+        {
+            await Dialog.AskAsync(this, "NO FM4 SAVE FOUND",
+                $"{folder} holds no FM4 save. Choose its Xbox profile folder, user folder or an alias pointing to one.", "OK");
+            return null;
+        }
+        var choices = candidates.Select((p, i) => $"{i + 1}. {Path.GetFileName(p)}").ToList();
+        var selected = await Dialog.ChooseAsync(this, "CHOOSE YOUR SAVE",
+            $"{folder} contains several FM4 saves. Choose the Xbox profile to copy; the original stays in place.",
+            choices, "CANCEL");
+        return selected is null or "CANCEL" ? null : candidates[choices.IndexOf(selected)];
+    }
 
     // Which game a save is from: our profile's stamp says it; for any other folder the player
     // does, with no answer preselected, and a DLC folder beside the saves that says otherwise warns.

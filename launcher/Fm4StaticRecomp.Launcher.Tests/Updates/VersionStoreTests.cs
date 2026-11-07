@@ -61,6 +61,29 @@ public class VersionStoreTests
     }
 
     [Fact]
+    public async Task Changed_payload_with_old_zip_timestamps_invalidates_existing_objects()
+    {
+        using var temp = new TempDir();
+        var layout = new InstallLayout(Path.Combine(temp.Path, "install"));
+        var store = new VersionStore(layout, LauncherSettings.Load(layout.LauncherToml));
+        await store.ExtractPayloadAsync(Zip(temp, "first", "old source"), "0.1.0", CancellationToken.None);
+        var built = temp.File(Path.Combine("install", "source", "0.1.0", "out", "keep.o"), [1]);
+        var builtAt = DateTime.UtcNow.AddDays(-1);
+        File.SetLastWriteTimeUtc(built, builtAt);
+        var replacement = Zip(temp, "replacement", "new source");
+        using (var archive = ZipFile.Open(replacement, ZipArchiveMode.Update))
+            foreach (var entry in archive.Entries)
+                entry.LastWriteTime = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        await store.ExtractPayloadAsync(replacement, "0.1.0", CancellationToken.None);
+
+        var source = Path.Combine(layout.Source("0.1.0"), "tools", "setup.ps1");
+        Assert.Equal("new source", File.ReadAllText(source));
+        Assert.True(File.GetLastWriteTimeUtc(source) > File.GetLastWriteTimeUtc(built));
+        Assert.Equal(builtAt, File.GetLastWriteTimeUtc(built));
+    }
+
+    [Fact]
     public async Task Re_extracts_only_a_changed_payload()
     {
         using var temp = new TempDir();

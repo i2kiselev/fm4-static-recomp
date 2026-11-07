@@ -2,7 +2,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/i2kiselev/fm4-static-recomp?label=release)](https://github.com/i2kiselev/fm4-static-recomp/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/i2kiselev/fm4-static-recomp/total)](https://github.com/i2kiselev/fm4-static-recomp/releases)
-[![Platform](https://img.shields.io/badge/platform-Windows%2010%2B%20x64-blue)](#what-you-need)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20ARM64-blue)](#what-you-need)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 
 [![NVIDIA DLSS](https://img.shields.io/badge/NVIDIA-DLSS-76B900?logo=nvidia&logoColor=white)](guide/upscalers.md)
@@ -10,10 +10,12 @@
 [![Mod: Project Forza Plus 4 1.3](https://img.shields.io/badge/mod-Project%20Forza%20Plus%204%201.3-orange)](guide/project-forza-plus.md)
 
 An unofficial static recompilation of the Xbox 360 release of *Forza Motorsport 4* for
-Windows, built on your own PC from your own disc.
+Windows, with an experimental Apple Silicon macOS preview, built locally from your own disc.
+
+**Mac users:** see the [macOS guide](guide/macos.md) for setup and testing status.
 
 The game's PowerPC code is translated ahead of time into C++ by the
-[ShiftGlue SDK](https://github.com/arcanite24/shiftglue-sdk) and compiled for x86-64. Its GPU
+[ShiftGlue SDK](https://github.com/arcanite24/shiftglue-sdk) and compiled for x86-64 on Windows or ARM64 on macOS. Its GPU
 commands run on ShiftGlue's native Vulkan renderer, written for
 [Pinyon Shift](https://github.com/arcanite24/pinyon-shift) (*Forza Horizon*) and extended
 here for FM4.
@@ -67,6 +69,7 @@ the command line? See the [manual install](guide/manual-install.md).
 
 | Guide | What's in it |
 |---|---|
+| [macOS](guide/macos.md) | Experimental Apple Silicon setup, requirements and testing status |
 | [Launcher](guide/launcher.md) | First setup, content, unicorn cars, starting from Steam or a frontend, the `data` folder, updates |
 | [Profiles and saves](guide/saves.md) | Profiles, importing saves and Xenia Canary careers, a saves folder of your own |
 | [Playing in a window](guide/windowed.md) | WINDOWED and WINDOW SIZE, Alt+Enter, resizing, upscalers in a window |
@@ -191,6 +194,8 @@ Known problems are tracked as
 
 ## Credits
 
+- [DarthMDev](https://github.com/DarthMDev): initial Apple Silicon macOS support,
+  launcher integration, and Mac runtime testing and fixes.
 - [Pinyon Shift](https://github.com/arcanite24/pinyon-shift) by arcanite24: the
   *Forza Horizon* recompilation whose native renderer, host UI and build scripts this
   project builds on (see `THIRD_PARTY_NOTICES.md`).

@@ -14,6 +14,12 @@ REXCVAR_DEFINE_STRING(fm4_config_root, "", "Forza Motorsport 4",
                       "Folder of graphics.toml and controls.toml; empty means the state root's "
                       "config folder");
 
+REXCVAR_DEFINE_BOOL(fm4_show_fps, false, "Forza Motorsport 4",
+                    "Show the average guest-output FPS debug overlay on start");
+
+REXCVAR_DEFINE_BOOL(controller_vibration, true, "Input",
+                    "Enable controller vibration rumble");
+
 namespace fm4_static_recomp {
 namespace {
 
@@ -30,6 +36,7 @@ constexpr std::array kBeforeGpuPlugin = {Default{"gpu_backend", "vulkan"}};
 constexpr std::array kAfterGpuPlugin = {
     Default{"async_shader_compilation", "false"},
     Default{"window_aspect_ratio", "16:9"},
+    // Keep CPU pages cached; write-watch invalidation handles changed data.
     Default{"clear_memory_page_state", "false"},
     Default{"host_present_fps_limit", "0"},
     Default{"gpu_record_thread", "true"},
@@ -38,11 +45,25 @@ constexpr std::array kAfterGpuPlugin = {
     // The SDK's changes since pinyon-shift-v0.3.0, held at the behaviour FM4 was verified
     // with until each is measured here. The SDK's own default otherwise.
     Default{"fh1_msaa_single_sample", "false"},
+#if defined(__APPLE__)
+    // Overlay repaint ticks must not submit the same guest image repeatedly.
+    // MoltenVK may block in nextDrawable inside vkQueueSubmit while holding
+    // the graphics queue, starving the game's submission worker.
+    Default{"pinyon_shift_fh1_source_presentation", "true"},
+    // Avoid materializing a clear as a separate render pass when the following
+    // draw can consume it as an attachment load action. MoltenVK pays for each
+    // Metal encoder; FM4's repeated clears otherwise dominate submission time.
+    Default{"fh1_fold_clears", "true"},
+    // Preserve query and memexport draws; the SDK only skips draws with no
+    // attachment writes, query samples or exported memory.
+    Default{"fh1_skip_draws_without_effect", "true"},
+#else
     Default{"fh1_fold_clears", "false"},
+    Default{"fh1_skip_draws_without_effect", "false"},
+#endif
     Default{"fh1_resolve_to_textures", "false"},
     Default{"fh1_direct_resolve_outdated", "false"},
     Default{"fh1_stable_alpha_to_coverage", "false"},
-    Default{"fh1_skip_draws_without_effect", "false"},
     Default{"fh1_native_stencil_export", "false"},
     Default{"fh1_async_specialized_passes", "false"},
     Default{"texture_band_reloads", "false"},
@@ -51,6 +72,18 @@ constexpr std::array kAfterGpuPlugin = {
     Default{"texture_cache_memory_budget_limits", "false"},
     Default{"vulkan_texture_load_compute_copy", "false"},
     Default{"vulkan_small_texture_copy_views", "false"},
+#if defined(__APPLE__)
+    // The SDK enables FH1's single-pass tiling optimization on macOS. FM4's
+    // 4x MSAA menus need the original tile passes or parts of the UI are
+    // clipped and replaced by stale EDRAM contents. Match the Windows path
+    // while preserving the console's showroom and race MSAA settings.
+    Default{"fh1_untile_predicated_tiling", "false"},
+    Default{"fh1_readback_small_float_resolves", "true"},
+    Default{"vulkan_present_mode", "fifo"},
+    Default{"swap_post_effect_scene_only", "false"},
+    Default{"execute_unclipped_draw_vs_on_cpu", "false"},
+    Default{"force_convert_quad_lists_to_triangle_lists", "true"},
+#else
     Default{"fh1_readback_small_float_resolves", "false"},
     // With vsync on the SDK presents mailbox or FIFO, which Nvidia composes through the
     // desktop: no independent flip, so no variable refresh rate, and mailbox dropped from
@@ -59,6 +92,7 @@ constexpr std::array kAfterGpuPlugin = {
     Default{"swap_post_effect_scene_only", "false"},
     Default{"execute_unclipped_draw_vs_on_cpu", "false"},
     Default{"force_convert_quad_lists_to_triangle_lists", "false"},
+#endif
     Default{"wait_reg_mem_yield_us", "2000"},
     Default{"gpu_d3d_shader_cache", "0"},
     Default{"guest_reservation_sections_unlocked", "false"},

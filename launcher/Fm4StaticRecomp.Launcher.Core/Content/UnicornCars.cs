@@ -75,7 +75,7 @@ public static class UnicornCars
         if (BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(92)) == counter)
             BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(92), counter + 1);
 
-        var backup = Path.Combine(gameFolder, Backup);
+        var backup = Path.Combine(gameFolder, Backup.Replace('\\', Path.DirectorySeparatorChar));
         if (!File.Exists(backup)) Replace(backup, File.ReadAllBytes(path));
         Replace(path, data);
         return report;
@@ -97,7 +97,7 @@ public static class UnicornCars
 
     private static (string Path, byte[] Data, List<Car> Cars) Load(string gameFolder)
     {
-        var path = Path.Combine(gameFolder, Database);
+        var path = Path.Combine(gameFolder, Database.Replace('\\', Path.DirectorySeparatorChar));
         var data = File.ReadAllBytes(path);
         try
         {

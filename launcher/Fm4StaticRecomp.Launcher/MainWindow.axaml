@@ -92,7 +92,7 @@
                                 </WrapPanel>
                             </StackPanel>
                         </Grid>
-                        <Grid ColumnDefinitions="34,*">
+                        <Grid x:Name="LicenceRow" ColumnDefinitions="34,*">
                             <TextBlock x:Name="LicenceMark" Classes="mark" Text="○"/>
                             <StackPanel Grid.Column="1" Spacing="6">
                                 <TextBlock x:Name="LicenceTitle" Classes="stepTitle" Text="MICROSOFT LICENCE"/>
@@ -111,8 +111,14 @@
                             <StackPanel Grid.Column="1" Spacing="6">
                                 <TextBlock x:Name="ProfileTitle" Classes="stepTitle" Text="YOUR PROFILE"/>
                                 <TextBlock x:Name="ProfileDetail" Classes="help" TextWrapping="Wrap"/>
-                                <TextBox x:Name="ProfileNameBox" MaxLength="32" Width="360" HorizontalAlignment="Left" AutomationProperties.Name="Profile name"
-                                         Watermark="Profile name" TextChanged="ProfileName_Changed"/>
+                                <WrapPanel>
+                                    <TextBox x:Name="ProfileNameBox" MaxLength="32" Width="360" HorizontalAlignment="Left" AutomationProperties.Name="Profile name"
+                                             Watermark="Profile name" TextChanged="ProfileName_Changed" Margin="0,0,10,0"/>
+                                    <Button x:Name="ChooseSetupSaveButton" Classes="quiet" Content="CHOOSE EXISTING SAVE…"
+                                            Click="ChooseSetupSave_Click" Margin="0,0,10,0"/>
+                                    <Button x:Name="ClearSetupSaveButton" Classes="quiet" Content="NEW CAREER"
+                                            Click="ClearSetupSave_Click" IsVisible="False"/>
+                                </WrapPanel>
                                 <ComboBox x:Name="StartCombo" Width="360" IsVisible="False" SelectedIndex="0"
                                           AutomationProperties.Name="How the career starts">
                                     <ComboBoxItem Content="NEW CAREER"/>

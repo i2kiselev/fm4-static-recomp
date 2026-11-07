@@ -2,9 +2,12 @@
 // BSD 3-Clause License: see LICENSE in the repository root.
 #include "code_image_check.h"
 
+#if defined(_WIN32)
 #include <windows.h>
-
 #include <bcrypt.h>
+#elif defined(__APPLE__)
+#include <CommonCrypto/CommonDigest.h>
+#endif
 
 #include <array>
 #include <cctype>
@@ -48,6 +51,7 @@ std::string FileSha256(const std::filesystem::path& path) {
   if (!file) {
     return {};
   }
+#if defined(_WIN32)
   BCRYPT_HASH_HANDLE hash = nullptr;
   if (!BCRYPT_SUCCESS(
           BCryptCreateHash(BCRYPT_SHA256_ALG_HANDLE, &hash, nullptr, 0, nullptr, 0, 0))) {
@@ -75,6 +79,32 @@ std::string FileSha256(const std::filesystem::path& path) {
     hex += kHex[byte & 15];
   }
   return hex;
+#elif defined(__APPLE__)
+  CC_SHA256_CTX ctx;
+  CC_SHA256_Init(&ctx);
+  std::vector<char> buffer(1 << 20);
+  while (file) {
+    file.read(buffer.data(), std::streamsize(buffer.size()));
+    const auto read = file.gcount();
+    if (read > 0) {
+      CC_SHA256_Update(&ctx, buffer.data(), static_cast<CC_LONG>(read));
+    }
+  }
+  if (!file.eof()) {
+    return {};
+  }
+  std::array<unsigned char, CC_SHA256_DIGEST_LENGTH> digest{};
+  CC_SHA256_Final(digest.data(), &ctx);
+  static constexpr char kHex[] = "0123456789ABCDEF";
+  std::string hex;
+  for (const unsigned char byte : digest) {
+    hex += kHex[byte >> 4];
+    hex += kHex[byte & 15];
+  }
+  return hex;
+#else
+  return {};
+#endif
 }
 
 std::optional<std::string> CodeImageMismatch(std::string_view executable_sha256,

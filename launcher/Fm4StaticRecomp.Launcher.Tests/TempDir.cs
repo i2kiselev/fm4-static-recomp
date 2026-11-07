@@ -11,7 +11,7 @@ public sealed class TempDir : IDisposable
 
     public string File(string relative, byte[]? content = null)
     {
-        var full = System.IO.Path.Combine(Path, relative);
+        var full = System.IO.Path.Combine(Path, relative.Replace('\\', System.IO.Path.DirectorySeparatorChar));
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(full)!);
         if (content is not null) System.IO.File.WriteAllBytes(full, content);
         return full;

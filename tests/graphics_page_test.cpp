@@ -164,16 +164,46 @@ TEST_CASE("The launcher's schema offers the upscaler, its sharpness and the DLSS
   CHECK(preset.find("\"default\":\"auto\"") != std::string::npos);
   CHECK(preset.find("\"shown_when\":{\"present_effect\":\"dlss\"}") != std::string::npos);
   CHECK(schema.find("shown_when") == schema.rfind("shown_when"));
+  CHECK(schema.find("FULLSCREEN") == std::string::npos);
+  CHECK(schema.find("\"fullscreen\"") == std::string::npos);
   std::filesystem::remove(path);
 }
 
-TEST_CASE("The in-game page has UPSCALER and SHARPNESS and leaves the DLSS preset to the launcher",
+TEST_CASE("The in-game page has FULLSCREEN, UPSCALER and SHARPNESS and leaves the DLSS preset to the launcher",
           "[graphics_page]") {
   config::HostConfig config(TempFile("rows.toml"));
   const auto page = ui::CreateGraphicsPage(config, Services());
+  CHECK(Find(*page, "FULLSCREEN"));
   CHECK(Find(*page, "UPSCALER"));
   CHECK(Find(*page, "SHARPNESS"));
   CHECK_FALSE(Find(*page, "DLSS PRESET"));
+}
+
+TEST_CASE("FULLSCREEN reflects actual window state and does not save to graphics config",
+          "[graphics_page]") {
+  const auto path = TempFile("fullscreen_test.toml");
+  std::filesystem::remove(path);
+  config::HostConfig config(path);
+
+  bool fullscreen_state = true;
+  ui::GraphicsPageServices services = Services();
+  services.is_fullscreen = [&] { return fullscreen_state; };
+  services.set_fullscreen = [&](bool fs) { fullscreen_state = fs; };
+
+  const auto page = ui::CreateGraphicsPage(config, services);
+  const MenuRow* row = Find(*page, "FULLSCREEN");
+  REQUIRE(row);
+  CHECK(row->value() == "ON");
+  row->adjust(+1);
+  CHECK(fullscreen_state == false);
+  CHECK(row->value() == "OFF");
+  row->adjust(-1);
+  CHECK(fullscreen_state == true);
+  CHECK(row->value() == "ON");
+
+  page->Handle(NavCommand::kApply);
+  CHECK_FALSE(config.Get("fullscreen").has_value());
+  std::filesystem::remove(path);
 }
 
 TEST_CASE("UPSCALER steps past an upscaler the GPU cannot run", "[graphics_page]") {

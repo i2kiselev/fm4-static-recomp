@@ -4,14 +4,12 @@
 
 #include <algorithm>
 #include <cctype>
-#include <charconv>
 #include <cmath>
 #include <cstdio>
 #include <map>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -215,12 +213,8 @@ struct Draft {
       return std::nullopt;
     }
     if (name.starts_with("ramp_")) {
-      double seconds = 0.0;
-      const auto [end, error] =
-          std::from_chars(value->data(), value->data() + value->size(), seconds);
-      return error == std::errc() && end == value->data() + value->size() && seconds >= 0.0
-                 ? std::optional(FormatRamp(seconds))
-                 : std::nullopt;
+      const auto seconds = input::ParseRampSeconds(*value);
+      return seconds ? std::optional(FormatRamp(*seconds)) : std::nullopt;
     }
     std::string keys = input::UsableKeys(*value);
     return keys.empty() ? std::nullopt : std::optional(std::move(keys));

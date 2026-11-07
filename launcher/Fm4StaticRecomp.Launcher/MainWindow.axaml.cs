@@ -22,7 +22,12 @@ public partial class MainWindow : Window
 {
     private enum Mode { Loading, Setup, Building, Ready, Playing, Crashed }
 
-    public static readonly string Version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+    // AssemblyVersion drops prerelease suffixes; the source payload uses the full
+    // package version (for example 0.3.0-macos.1). Exclude only build metadata.
+    public static readonly string Version = System.Reflection.CustomAttributeExtensions
+        .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(MainWindow).Assembly)
+        ?.InformationalVersion.Split('+')[0]
+        ?? typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 
     private readonly string[] _args;
     // Set while --skip-launcher keeps the window closed; cleared once it opens.
@@ -129,7 +134,7 @@ public partial class MainWindow : Window
         AppendLog($"Release source: {_host.Layout.Source(_host.Payload.Version)}");
         AppendLog($"Install root: {_host.Layout.Root}");
         var host = _host;
-        if (_args.Contains(SelfReplace.AfterUpdateSwitch))
+        if (!OperatingSystem.IsMacOS() && _args.Contains(SelfReplace.AfterUpdateSwitch))
             _ = Task.Run(() => UpdateCoordinator.CleanUp(host.LauncherExecutable, host.LauncherDirectory,
                 UpdateCoordinator.DownloadFolder(host.Layout, System.Version.Parse(Version))));
         try

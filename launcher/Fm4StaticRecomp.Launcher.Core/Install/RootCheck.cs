@@ -5,7 +5,7 @@ using Fm4StaticRecomp.Launcher.Core.Platform;
 namespace Fm4StaticRecomp.Launcher.Core.Install;
 
 // CreateLink makes a directory link (the profiles' content link); null skips that probe.
-public sealed record RootEnvironment(IReadOnlyList<string> Protected, string Temp, Action<string, string>? CreateLink = null)
+public sealed record RootEnvironment(IReadOnlyList<string> Protected, string Temp, Action<string, string>? CreateLink = null, bool WindowsPathLimits = true)
 {
     public static RootEnvironment Current => new(
         new[]
@@ -15,7 +15,7 @@ public sealed record RootEnvironment(IReadOnlyList<string> Protected, string Tem
             Environment.GetFolderPath(Environment.SpecialFolder.Windows),
         }.Where(p => p.Length > 0).ToList(),
         Path.GetTempPath(),
-        Platforms.Current.CreateDirectoryLink);
+        Platforms.Current.CreateDirectoryLink, OperatingSystem.IsWindows());
 }
 
 public static class RootCheck
@@ -52,8 +52,8 @@ public static class RootCheck
         if (IsUnder(root, environment.Temp))
             return "it is in the temporary folder, which Windows clears (extract the launcher's zip first).";
         if (root.IndexOfAny(['[', ']']) >= 0) return Brackets;
-        if (root.Any(c => c > 0x7F) && root.IndexOfAny(['(', ')']) >= 0) return NonEnglishParentheses;
-        if (root.Length > MaximumLength)
+        if (environment.WindowsPathLimits && root.Any(c => c > 0x7F) && root.IndexOfAny(['(', ')']) >= 0) return NonEnglishParentheses;
+        if (environment.WindowsPathLimits && root.Length > MaximumLength)
             return $"the path is {root.Length} characters long; the build needs one of at most {MaximumLength}.";
         try
         {

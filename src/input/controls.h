@@ -77,6 +77,9 @@ Controls LoadControls(const config::HostConfig& config);
 using ControlLookup = std::function<std::optional<std::string>(std::string_view name)>;
 Controls LoadControls(const ControlLookup& lookup, bool log);
 
+// Parse a nonnegative ramp duration with the same rules in the loader and editor.
+std::optional<double> ParseRampSeconds(std::string_view value);
+
 // The control's name in controls.toml after menu_ / driving_ ("a", "lstick_up").
 std::string_view ControlFileName(PadControl control);
 

@@ -10,6 +10,29 @@ environment variables, else in `fm4_static_recomp.toml` or on the command line, 
 Most come from the ShiftGlue SDK's Vulkan renderer. The ones marked "wrong image" break the
 picture on purpose, to bound what one part of the frame costs.
 
+## Reading the FPS overlay
+
+`--fm4_show_fps=true` opens the debug overlay. **Guest** counts new guest-output
+notifications over at least 250 ms of monotonic host time, independently of UI redraws.
+It measures guest-image throughput, not the configured frame-rate cap or confirmed display
+scanout. On Vulkan the notification follows submission/publication of the guest image;
+the host still has to present it. The displayed milliseconds are `1000 / FPS`, an average
+interval rather than a measurement of individual frame times.
+
+At 60 FPS, a quarter-second window contains about 15 images. One image falling on the
+other side of a sampling boundary changes the reading by about 4 FPS. Small fluctuations
+can therefore occur with periodic output; a steady average can also hide a stall followed
+by a burst. Neither smooth-looking gameplay nor this average alone establishes stable
+60 FPS pacing.
+
+For timing investigations, compare the same scene, cap, output size, upscaler and warmed
+cache with Vulkan validation enabled and disabled. The SDK option
+`--perf_critical_path_trace=true` logs monotonic timestamps for `guest_swap`,
+`consumed_swap` and host `present` events. Compare interval distributions and published
+image sequences as well as average rates. Host `present` records a successful presentation
+API return, not a hardware scanout timestamp. Tracing and validation add work, so repeat
+measurements and include a tracing-disabled control. Keep diagnostic logs private.
+
 ## Temporal upscalers (DLSS, FSR 2/3)
 
 Switches of the fixes that give the upscaler correct motion. Turn one off to see what it fixes.
@@ -96,6 +119,7 @@ Costs (wrong image unless noted):
 | `--fh1_debug_skip_resolve_reloads`, `--fh1_debug_skip_resolve_reloads_format=<n>` | Never reload textures from resolved memory (stale images) |
 | `--fh1_native_gpu_profile_draws` | With `--fh1_native_gpu_profile`, also time every draw by its pixel shader |
 | `--fh1_frame_replay_repeat=<n>` | Run a replayed frame `n` times, as a GPU benchmark |
+| `--fh1_untile_predicated_tiling=true` | Live. Combine predicated tile passes into one draw pass. FM4 disables this on macOS, matching Windows: enabling it can clip the default 4x MSAA menus and leaves stale image bands |
 | `--fh1_debug_untile=1\|2` | Diagnostics of the single-pass tiling: keep the first tile's predication, or draw the later tiles too |
 
 Resolves and visibility:

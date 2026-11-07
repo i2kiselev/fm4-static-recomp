@@ -23,7 +23,17 @@ public sealed class VersionStore(InstallLayout layout, LauncherSettings settings
         var marker = Path.Combine(destination, PayloadMarker);
         if (File.Exists(marker) && (await File.ReadAllTextAsync(marker, cancellation)).Trim() == hash) return;
         Directory.CreateDirectory(destination);
-        await Task.Run(() => ZipFile.ExtractToDirectory(zip, destination, overwriteFiles: true), cancellation);
+        await Task.Run(() =>
+        {
+            using var archive = ZipFile.OpenRead(zip);
+            archive.ExtractToDirectory(destination, overwriteFiles: true);
+            // Reproducible ZIP timestamps may predate objects from an earlier payload
+            // with the same version. Make the extracted sources trigger a rebuild.
+            var extractedAt = DateTime.UtcNow;
+            foreach (var entry in archive.Entries)
+                if (entry.Name.Length != 0)
+                    File.SetLastWriteTimeUtc(Path.Combine(destination, entry.FullName), extractedAt);
+        }, cancellation);
         await File.WriteAllTextAsync(marker, hash + "\n", cancellation);
     }
 

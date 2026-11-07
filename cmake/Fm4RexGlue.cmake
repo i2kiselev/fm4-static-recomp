@@ -37,10 +37,21 @@ else()
         "${CMAKE_CURRENT_BINARY_DIR}/rexglue-artifacts"
         CACHE PATH "ShiftGlue artifacts for the FM4 host build" FORCE)
     add_subdirectory("${REXSDK_DIR}" rexglue-sdk EXCLUDE_FROM_ALL)
-    set(FM4_STATIC_RECOMP_REXGLUE_CODEGEN
-        "${REXSDK_DIR}/out/win-amd64/Release/rexglue${CMAKE_HOST_EXECUTABLE_SUFFIX}"
-        CACHE FILEPATH "The standalone ShiftGlue generator")
+    if(APPLE)
+        set(FM4_STATIC_RECOMP_REXGLUE_CODEGEN
+            "${REXSDK_DIR}/out/mac-arm64/rexglue"
+            CACHE FILEPATH "The standalone ShiftGlue generator")
+    else()
+        set(FM4_STATIC_RECOMP_REXGLUE_CODEGEN
+            "${REXSDK_DIR}/out/win-amd64/Release/rexglue${CMAKE_HOST_EXECUTABLE_SUFFIX}"
+            CACHE FILEPATH "The standalone ShiftGlue generator")
+    endif()
 endif()
+# CI's native tests need the SDK runtime, but no executable derived from a disc.
+if(FM4_TESTS_ONLY)
+    return()
+endif()
+
 if(NOT EXISTS "${FM4_STATIC_RECOMP_REXGLUE_CODEGEN}")
     message(FATAL_ERROR
         "The standalone generator is missing. Run tools/codegen.ps1 before configuring.")
@@ -188,5 +199,12 @@ function(fm4_static_recomp_add_generated_module target_name generated_directory 
     fm4_static_recomp_apply_recomp_settings(${target_name} "${_generated_dir}")
     add_dependencies(${target_name} fm4_static_recomp_codegen)
     set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+    if(APPLE)
+        set(_module_reg "${_generated_dir}/fm4_static_recomp_register.cpp")
+        if(EXISTS "${_module_reg}")
+            set_property(SOURCE "${_module_reg}" APPEND PROPERTY COMPILE_OPTIONS -O0 -fno-global-isel)
+            set_source_files_properties("${_module_reg}" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+        endif()
+    endif()
     rexglue_configure_module_target(${target_name} HOST ${REXGLUE_HOST_TARGET})
 endfunction()

@@ -1,5 +1,7 @@
 // Copyright (c) 2026, i2kiselev
 // BSD 3-Clause License: see LICENSE in the repository root.
+using Fm4StaticRecomp.Launcher.Core.Platform;
+
 namespace Fm4StaticRecomp.Launcher.Core.Discs;
 
 public enum DiscInputKind { Iso, God, ExtractedFolder, PackageFolder }
@@ -17,7 +19,7 @@ public sealed record DiscInput(DiscInputKind Kind, string Path, string? HeaderMe
     // Whatever the player picks: a file or folder that cannot be read is no disc, not an error.
     public static DiscInput? Detect(string path)
     {
-        try { return DetectReadable(path); }
+        try { return DetectReadable(SourcePath.Resolve(path)); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or OverflowException)
         {
             return null;

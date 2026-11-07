@@ -3,3 +3,10 @@ out/
 __pycache__/
 config/rexglue/fm4_manifest.local.toml
 .artifacts/
+/game
+/user
+thirdparty/shiftglue-sdk/
+
+# Generated launcher test reports.
+**/TestResults/
+.DS_Store
