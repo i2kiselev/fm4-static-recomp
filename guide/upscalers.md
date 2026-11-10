@@ -1,4 +1,4 @@
-# Temporal upscalers: DLSS, FSR 2 and FSR 3
+# Temporal upscalers: DLSS, FSR 2, FSR 3 and FSR 4
 
 [← Back to the README](../README.md)
 
@@ -11,8 +11,11 @@ upscalers need.
 
 1. Open the GRAPHICS page: **BACK + START** held together on a controller, **F6**, or Play
    Career → My Profile → Options → GRAPHICS. The launcher's GRAPHICS have the same rows and a few launcher-only ones.
-2. **UPSCALER**: DLSS on an NVIDIA RTX GPU, otherwise FSR 3 or FSR 2 (any GPU). The row skips
-   an upscaler your GPU cannot run.
+2. **UPSCALER**: DLSS on an NVIDIA RTX GPU, FSR 4 on an AMD Radeon RX 6000 or later GPU or a
+   recent Ryzen APU, otherwise FSR 3 or FSR 2 (any GPU). The row skips an upscaler your GPU
+   cannot run. FSR 4 comes from AMD's FidelityFX SDK 2.4.0 Vulkan runtime, staged in
+   `upscalers/fidelityfx/2.4.0/`; the RX 9000 Series runs AMD's full model, older GPUs and
+   APUs lighter ones.
 3. **RESOLUTION SCALE**: the render size, from the table below.
 4. **SHARPNESS**: 30 % by default; Off to 100 %.
 5. **SAVE & APPLY** (**Y**). The upscaler switches at once, MSAA from the next screen.
