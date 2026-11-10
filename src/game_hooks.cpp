@@ -63,6 +63,12 @@ REXCVAR_DEFINE_INT32(fm4_frame_rate, 120, "Forza Motorsport 4",
                      "processors: the guest vblank rate (fh1_guest_vblank_hz) in races, "
                      "menus and the showroom")
     .range(30, 240);
+REXCVAR_DEFINE_INT32(fm4_debug_vblank_hz, 0, "Forza Motorsport 4",
+                     "Diagnostics: override the normal guest vblank rate, for example 360 or "
+                     "480 Hz, to measure throughput above the player frame-rate range; 0 is off. "
+                     "Fast loading and fm4_console_rate take precedence")
+    .range(0, 2000)
+    .lifecycle(rex::cvar::Lifecycle::kHotReload);
 REXCVAR_DEFINE_INT32(fm4_menu_vblank_hz, 0, "Forza Motorsport 4",
                      "Diagnostics: vblanks per second the game's main loop sees outside races, "
                      "the nearest whole fraction of the guest vblank (0 = every vblank)");
@@ -1208,9 +1214,11 @@ bool Fm4SkipVblankCallback() {
   const bool fast_load = g_fast_load.load(std::memory_order_relaxed);
   const bool race = g_race_session.load(std::memory_order_relaxed);
   const bool console = REXCVAR_GET(fm4_console_rate);
+  const int32_t debug_vblank_hz = REXCVAR_GET(fm4_debug_vblank_hz);
   const double vblank_hz = fast_load ? kLoadVblankHz
                            : console ? kConsoleVblankHz
-                                     : double(REXCVAR_GET(fm4_frame_rate));
+                           : debug_vblank_hz > 0 ? double(debug_vblank_hz)
+                                                : double(REXCVAR_GET(fm4_frame_rate));
   static double applied_hz = 0.0;
   if (vblank_hz != applied_hz) {
     applied_hz = vblank_hz;

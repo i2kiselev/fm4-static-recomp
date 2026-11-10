@@ -76,6 +76,7 @@ Views and measurements:
 |---|---|---|
 | `--fm4_console_rate` | `false` | The console's pacing: races at 60 fps, the showroom and other half-rate scenes at 30 |
 | `--fm4_frame_rate=30..59` | `120` | A frame rate below the lowest a player picks (60), for testing slow processors; the launcher's SETTINGS → ADVANCED → **30 FPS (DIAGNOSTIC)** passes `30`. Each car still steps about every 1/60 s: the game runs it twice a tick |
+| `--fm4_debug_vblank_hz` | `0` | Override the normal guest vblank rate for throughput tests above the player frame-rate range (`0`: off, up to `2000` Hz); for example, `--fm4_debug_vblank_hz=360` or `480`. Takes effect live; fast loading and `--fm4_console_rate` retain precedence. This is a high ceiling, not literal unlimited FPS, and does not turn off host VSync or a presentation limit. Normal frame-rate settings and their UI range stay unchanged |
 | `--fm4_menu_vblank_hz` | `0` | Vblanks per second the game's main loop sees outside races (`0`: every vblank) |
 | `--fm4_physics_log` | empty | A CSV file receiving every main loop time step and each car's physics substeps |
 | `--fm4_car_min_substeps` | `0` | A car's physics substeps per tick are at least this many; the launcher passes `6` on Project Forza Plus 4 |
