@@ -168,8 +168,8 @@ const RowText kRows[] = {
      "Renders the game at a multiple of 1280x720: sharper edges and textures, more GPU load."},
     {"UPSCALER", &kUpscaler,
      "Upscales the picture from the resolution scale to your display. DLSS (NVIDIA RTX GPUs), "
-     "FSR 4 (AMD Radeon RX 9000 GPUs), FSR 2 and FSR 3 (any GPU) use the game's depth and "
-     "motion and smooth edges themselves: "
+     "FSR 4 (AMD Radeon RX 6000 or later and recent Ryzen APUs), FSR 2 and FSR 3 (any GPU) use "
+     "the game's depth and motion and smooth edges themselves: "
      "while one runs, MSAA and post AA are off, the MSAA change from the next screen. FSR 1 "
      "(any GPU, light) upscales and sharpens the finished picture, after MSAA and post AA. Off "
      "stretches the picture."},
