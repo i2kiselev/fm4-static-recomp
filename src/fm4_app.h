@@ -561,6 +561,8 @@ class Fm4App final : public rex::ReXApp {
     std::vector<fm4_static_recomp::hostui::MenuTab> tabs = {
         {"GRAPHICS",
          [this, services] { return ui::CreateGraphicsPage(*graphics_config_, services); }},
+        {"LIGHTING",
+         [this, services] { return ui::CreateLightingPage(*graphics_config_, services); }},
         {"KEYBOARD", [this] {
            ui::ControlsPageServices keys;
            keys.controller_layout = [] { return fm4_static_recomp::input::ControllerLayout(); };
