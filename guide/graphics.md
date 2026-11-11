@@ -84,3 +84,31 @@ FRAME RATE, FULLSCREEN, RESOLUTION SCALE, UPSCALER and SHARPNESS are not part of
 | BLOOM | Full rate updates the glow every frame, where the console skips every second one in 16-car races. |
 | MOTION BLUR | The speed blur on the road surface. |
 | DEPTH OF FIELD | The focus blur of the showroom, pre-race and replay cameras and photo mode. |
+
+## Lighting
+
+The LIGHTING tab (in game beside GRAPHICS, and in the launcher's SETTINGS) changes the light of
+every track against the track's own values, so tracks keep their differences; GAME is the
+track as made. Changes apply at once.
+
+| Setting | Effect |
+|---|---|
+| BLOOM STRENGTH | How strongly bright parts glow, from off to twice the track's. |
+| BLOOM THRESHOLD | How bright a part must be to glow: higher keeps the glow to the sun, lights and reflections. |
+| EXPOSURE | Brightens or darkens the picture by stops after the game's eye adaptation. |
+| SATURATION | Colour strength; most tracks take 15 % of the colour away, and FULL COLOUR gives it back there. |
+
+### HDR
+
+Below a line on the same tab, for an HDR display with Windows HDR on.
+
+| Setting | Effect |
+|---|---|
+| HDR | Sends the picture to the display in HDR; the HUD and menus stay at the paper white. |
+| HDR MODE | NATIVE takes the highlights from the game's own HDR scene, before its tone curve flattened them; EXPANDED stretches the finished SDR picture's bright parts. |
+| HDR PEAK BRIGHTNESS | The brightest your display shows: set it to the display's peak. |
+| HDR PAPER WHITE | How bright SDR white, the HUD and the menus are. |
+| HDR GAMMA | How dark the shadows are: 2.2 as a usual SDR display, 2.0 as the game encodes its picture, SRGB lifts the darkest shades most, 2.4 is darker. |
+
+Frame generation stays off with HDR. After HDR has been on, the game presents through Vulkan
+rather than DXGI until it is started again.

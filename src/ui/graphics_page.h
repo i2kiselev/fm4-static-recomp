@@ -57,4 +57,9 @@ struct GraphicsPageServices {
 std::unique_ptr<hostui::MenuScreen> CreateGraphicsPage(config::HostConfig& config,
                                                        GraphicsPageServices services);
 
+// The LIGHTING page: bloom, exposure and saturation against each track's own
+// values, saved to the same graphics.toml as the GRAPHICS page.
+std::unique_ptr<hostui::MenuScreen> CreateLightingPage(config::HostConfig& config,
+                                                       GraphicsPageServices services);
+
 }  // namespace fm4_static_recomp::ui
