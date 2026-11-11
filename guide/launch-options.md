@@ -11,8 +11,10 @@ or in the launcher's SETTINGS.
 | `--fm4_frame_rate=60..240` | Frame rate of races, menus and the showroom (down to 30 for [testing a slow processor](high-frame-rate.md#testing-a-slow-processor)) |
 | `--vulkan_present_mode=immediate\|fifo` | VSYNC off or on |
 | `--swap_post_effect=none\|fxaa\|fxaa_extreme` | Post-process anti-aliasing |
-| `--present_effect=bilinear\|fsr\|fsr2\|fsr3\|dlss` | UPSCALER: off, FSR 1, FSR 2, FSR 3 or DLSS |
+| `--present_effect=bilinear\|fsr\|fsr2\|fsr3\|fsr4\|dlss` | UPSCALER: off, FSR 1, FSR 2, FSR 3, FSR 4 or DLSS |
 | `--present_upscaler_sharpness=0..100` | SHARPNESS after the upscaler, in percent |
+| `--present_frame_generation=true` | FRAME GENERATION: AMD FSR frame generation with FSR 2, 3 or 4 |
+| `--fh1_native_hud=true` | HUD: NATIVE, the HUD and menus drawn at the display's resolution under DLSS, FSR 2, 3 or 4 |
 | `--present_dlss_preset=auto\|k\|m\|j\|l\|default` | DLSS PRESET |
 | `--fm4_disc2_packages=<folder>` | Install the Disc 2 packages from this folder |
 | `--fm4_dlc_packages=<folder>` | Install every DLC package under this folder |

@@ -52,6 +52,9 @@ struct Setting {
 
 const Setting kFrameRate = {"fm4_frame_rate", false, {}, 60, 240};
 const Setting kVsync = {"vulkan_present_mode", true, {{"OFF", "immediate"}, {"ON", "fifo"}}};
+const Setting kFrameGeneration = {"present_frame_generation", false,
+                                  {{"OFF", "false"}, {"ON", "true"}}};
+const Setting kHud = {"fh1_native_hud", false, {{"UPSCALED", "false"}, {"NATIVE", "true"}}};
 const Setting kDetail = {"fm4_level_of_detail",
                          true,
                          {{"CONSOLE", "console"},
@@ -64,6 +67,7 @@ const Setting kUpscaler = {"present_effect",
                             {"FSR 1", "fsr"},
                             {"FSR 2", "fsr2"},
                             {"FSR 3", "fsr3"},
+                            {"FSR 4", "fsr4"},
                             {"DLSS", "dlss"}}};
 const Setting kDlssPreset = {
     "present_dlss_preset",
@@ -114,8 +118,8 @@ const Setting* const kPresetSettings[] = {
 constexpr size_t kPresetSettingCount = std::size(kPresetSettings);
 
 const Setting* const kSettings[] = {
-    &kFrameRate, &kVsync, &kScale, &kUpscaler, &kDlssPreset, &kSharpness, &kPostAa,
-    &kShowroomMsaa, &kRaceMsaa, &kAnisotropy,
+    &kFrameRate, &kVsync, &kScale, &kUpscaler, &kDlssPreset, &kSharpness, &kFrameGeneration,
+    &kHud, &kPostAa, &kShowroomMsaa, &kRaceMsaa, &kAnisotropy,
     &kSceneryShadows, &kReflectionUpdates, &kDetail, &kMirror, &kBloom, &kSoftParticles, &kCrowds,
     &kMotionBlur, &kDepthOfField, &kCarDirt};
 
@@ -167,7 +171,8 @@ const RowText kRows[] = {
      "Renders the game at a multiple of 1280x720: sharper edges and textures, more GPU load."},
     {"UPSCALER", &kUpscaler,
      "Upscales the picture from the resolution scale to your display. DLSS (NVIDIA RTX GPUs), "
-     "FSR 2 and FSR 3 (any GPU) use the game's depth and motion and smooth edges themselves: "
+     "FSR 4 (AMD Radeon RX 6000 or later and recent Ryzen APUs), FSR 2 and FSR 3 (any GPU) use "
+     "the game's depth and motion and smooth edges themselves: "
      "while one runs, MSAA and post AA are off, the MSAA change from the next screen. FSR 1 "
      "(any GPU, light) upscales and sharpens the finished picture, after MSAA and post AA. Off "
      "stretches the picture."},
@@ -176,8 +181,18 @@ const RowText kRows[] = {
      "GPU, else K; Default leaves the choice to the DLSS runtime and the NVIDIA app's override.",
      false, &kUpscaler, "dlss"},
     {"SHARPNESS", &kSharpness,
-     "Sharpens the picture after the upscaler. Off leaves the picture of DLSS, FSR 2 or FSR 3 "
-     "as it is; FSR 1 always sharpens a little."},
+     "Sharpens the picture after the upscaler. Off leaves the picture of DLSS, FSR 2, FSR 3 "
+     "or FSR 4 as it is; FSR 1 always sharpens a little."},
+    {"FRAME GENERATION", &kFrameGeneration,
+     "AMD FSR frame generation: one generated frame between each two the game renders, for "
+     "smoother motion at about one frame more input latency. Runs with FSR 2, FSR 3 or FSR 4 "
+     "and pauses while a menu like this one is open. It presents through Vulkan, not DXGI, so "
+     "tools that need DXGI frames (Lossless Scaling, AFMF) do not see them."},
+    {"HUD", &kHud,
+     "How the HUD and menus reach your display while DLSS, FSR 2, FSR 3 or FSR 4 upscales. "
+     "Upscaled stretches them from the resolution scale, as before. Native draws them a second "
+     "time at the display's resolution: sharp text, gauges and menus, for a little more GPU "
+     "work."},
     {"GRAPHICS PRESET", nullptr,
      "Sets every setting below. Console is the game as on the console; "
      "High raises most, adds FXAA and uses 2x MSAA everywhere; Ultra also raises the level of "
@@ -485,7 +500,10 @@ std::string UpscalerName(const Draft& draft, const GraphicsPageServices& service
     if (!rex::ui::IsTemporalUpscalerActive()) {
       return std::string();
     }
-    return effect == "dlss" ? "DLSS" : effect == "fsr3" ? "FSR 3" : "FSR 2";
+    return effect == "dlss"   ? "DLSS"
+           : effect == "fsr4" ? "FSR 4"
+           : effect == "fsr3" ? "FSR 3"
+                              : "FSR 2";
   }
   return !UpscalerChosen(draft, services) || !RenderFits(draft, services)
              ? std::string()
@@ -879,6 +897,20 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
   MenuRow sharpness = Row("SHARPNESS", kSharpness, draft);
   sharpness.enabled = [draft, services] { return !UpscalerName(*draft, services).empty(); };
   rows.push_back(std::move(sharpness));
+
+  MenuRow frame_generation = Row("FRAME GENERATION", kFrameGeneration, draft);
+  frame_generation.enabled = [draft, services] {
+    const std::string upscaler = UpscalerName(*draft, services);
+    return !upscaler.empty() && upscaler != "FSR 1" && upscaler != "DLSS";
+  };
+  rows.push_back(std::move(frame_generation));
+
+  MenuRow hud = Row("HUD", kHud, draft);
+  hud.enabled = [draft, services] {
+    const std::string upscaler = UpscalerName(*draft, services);
+    return !upscaler.empty() && upscaler != "FSR 1";
+  };
+  rows.push_back(std::move(hud));
 
   MenuRow preset;
   preset.label = "GRAPHICS PRESET";
