@@ -5,7 +5,7 @@
 # config/rexglue/releases/<image>.toml; each image's [functions] are in fragments-<image>.toml.
 
 # Only these mixer copies may bypass FMA, after static or runtime proof of float-valued inputs.
-exact_single_fma_functions = [0x82B56430, 0x82B5CCF0, 0x82B94F78]
+exact_single_fma_functions = [0x82B3FC08, 0x82B56430, 0x82B5CCF0, 0x82B5E260, 0x82B94F78]
 
 # Microsoft CRT non-local jump pair (9 setjmp and 8 longjmp call sites). These
 # must be semantic codegen hooks so a longjmp restores the host-side PPCContext

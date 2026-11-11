@@ -150,6 +150,8 @@ image = "rev1"
 # hook Fm4MusicMovieStarted: identical function
 0x829851AC = { at = 0x8298FF94, fingerprint = "6a89bc7dbeb283a1" }
 # exact_single_fma_functions: identical function
+0x82B3FC08 = { at = 0x82B4A208, fingerprint = "f55ca4ffa79c0297" }
+# exact_single_fma_functions: identical function
 0x82B56430 = { at = 0x82B60A20, fingerprint = "e79bb93e071dd44e" }
 # hook Fm4AudioStableGain: identical function
 0x82B58C44 = { at = 0x82B63234, fingerprint = "b1c15bb0669fb1ba" }
@@ -157,6 +159,8 @@ image = "rev1"
 0x82B58D50 = { at = 0x82B63340, fingerprint = "66b787fa14cf6f97" }
 # exact_single_fma_functions: identical function
 0x82B5CCF0 = { at = 0x82B672E0, fingerprint = "405754c4e302367f" }
+# exact_single_fma_functions: identical function
+0x82B5E260 = { at = 0x82B68810, fingerprint = "dc3332fc8aa9fafd" }
 # exact_single_fma_functions: identical function
 0x82B94F78 = { at = 0x82B9F560, fingerprint = "7d2a19cea4bbcbf3" }
 # hook Fm4AudioMixBlock: identical function
