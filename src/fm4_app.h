@@ -55,6 +55,9 @@
 #include "ui/guest_frame_stats.h"
 #include "ui/hostui/host_ui.h"
 #include "ui/hostui/ui_fonts.h"
+#include "wheel/wheel_input.h"
+#include "wheel/wheel_probe.h"
+#include "wheel/wheel_settings.h"
 
 REXCVAR_DECLARE(std::string, fm4_config_root);
 REXCVAR_DECLARE(std::string, fm4_write_graphics_schema);
@@ -116,13 +119,25 @@ class Fm4App final : public rex::ReXApp {
         std::make_unique<fm4_static_recomp::config::HostConfig>(config_root / "graphics.toml");
     controls_config_ =
         std::make_unique<fm4_static_recomp::config::HostConfig>(config_root / "controls.toml");
+    wheel_config_ =
+        std::make_unique<fm4_static_recomp::config::HostConfig>(config_root / "wheel.toml");
+  }
+
+  // The racing wheel's settings (the launcher's WHEEL panel) reach their cvars.
+  void LoadWheelSettings() {
+    if (wheel_config_->Load()) {
+      fm4_static_recomp::wheel::ApplySavedWheelSettings(*wheel_config_);
+    } else {
+      REXLOG_ERROR("Wheel settings: cannot read {}", wheel_config_->path().string());
+    }
   }
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
     const fm4_static_recomp::ToolMode mode = fm4_static_recomp::CurrentToolMode();
     if (mode == fm4_static_recomp::ToolMode::kInstall ||
         mode == fm4_static_recomp::ToolMode::kShaderCache ||
-        mode == fm4_static_recomp::ToolMode::kUiFonts) {
+        mode == fm4_static_recomp::ToolMode::kUiFonts ||
+        mode == fm4_static_recomp::ToolMode::kWheelProbe) {
       config.gpu_plugin.clear();
       config.audio_factory = nullptr;
       config.tool_mode = true;
@@ -130,6 +145,8 @@ class Fm4App final : public rex::ReXApp {
     }
     config.gpu_plugin = "fh1";
     fm4_static_recomp::ConfigureScriptedInput(config);
+    LoadWheelSettings();
+    fm4_static_recomp::wheel::ConfigureWheelInput(config);
     fm4_static_recomp::ApplyBuiltInDefaults(fm4_static_recomp::DefaultStage::kBeforeGpuPlugin);
     // The GPU settings are registered by the plugin, so it is loaded here
     // rather than by the app, and the saved values reach them before the GPU
@@ -180,6 +197,11 @@ class Fm4App final : public rex::ReXApp {
       } else {
         REXLOG_ERROR("Graphics schema: cannot write {}", path.string());
       }
+      return true;
+    }
+    if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kWheelProbe) {
+      LoadWheelSettings();
+      fm4_static_recomp::wheel::RunWheelProbe();
       return true;
     }
     if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kUiFonts) {
@@ -572,6 +594,7 @@ class Fm4App final : public rex::ReXApp {
 
   std::unique_ptr<fm4_static_recomp::config::HostConfig> graphics_config_;
   std::unique_ptr<fm4_static_recomp::config::HostConfig> controls_config_;
+  std::unique_ptr<fm4_static_recomp::config::HostConfig> wheel_config_;
   // The keyboard filter's ramp times, apart from controls_mutex_: the filter runs under the
   // input system's device lock.
   std::mutex ramp_mutex_;

@@ -415,3 +415,51 @@ registers = ["r31"]
 address = 0x8297AA50
 name = "Fm4MusicMovieStopped"
 registers = ["r31"]
+
+# Racing wheel force feedback (src/wheel/wheel_hooks.cpp). The six XInput-FF wrappers
+# (user, ...) turn the user into the wheel's handle (0x82C9F0B8) and call the XInputdFF*
+# function they resolved at start. While the racing wheel driver has player one, the hooks
+# answer them at their entry and play the effects on the force device; otherwise the game's
+# own code runs.
+[[midasm_hook]]
+address = 0x82C9F240
+name = "Fm4WheelFfbDeviceInfo"
+registers = ["r3", "r4"]
+return_on_true = true
+
+[[midasm_hook]]
+address = 0x82C9F2A0
+name = "Fm4WheelFfbSetEffect"
+registers = ["r3", "r4", "r5", "r6"]
+return_on_true = true
+
+[[midasm_hook]]
+address = 0x82C9F300
+name = "Fm4WheelFfbUpdateEffect"
+registers = ["r3", "r4", "r6"]
+return_on_true = true
+
+[[midasm_hook]]
+address = 0x82C9F360
+name = "Fm4WheelFfbEffectOperation"
+registers = ["r3", "r4", "r5", "r7"]
+return_on_true = true
+
+[[midasm_hook]]
+address = 0x82C9F3C8
+name = "Fm4WheelFfbReset"
+registers = ["r3", "r4"]
+return_on_true = true
+
+[[midasm_hook]]
+address = 0x82C9F430
+name = "Fm4WheelFfbDeviceControl"
+registers = ["r3", "r5"]
+return_on_true = true
+
+# The wheel's per-frame update (this = the wheel object: user index at +0, the driving flag
+# at +5, read before it plays the effects): whether the player is driving.
+[[midasm_hook]]
+address = 0x823A42A0
+name = "Fm4WheelUpdate"
+registers = ["r3"]

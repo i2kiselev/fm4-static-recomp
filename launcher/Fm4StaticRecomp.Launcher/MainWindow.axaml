@@ -172,6 +172,8 @@
                             ToolTip.Tip="Language, launch options and advanced options."/>
                     <Button x:Name="ControlsButton" Classes="quiet nav" Content="CONTROLS" Click="ControlsButton_Click"
                             ToolTip.Tip="The keyboard's keys and how fast they ramp."/>
+                    <Button x:Name="WheelButton" Classes="quiet nav" Content="WHEEL" Click="WheelButton_Click"
+                            ToolTip.Tip="A racing wheel, pedals and shifter, and force feedback."/>
                 </WrapPanel>
 
                 <TextBlock x:Name="StatusText" Margin="0,12,0,0" FontSize="15" TextWrapping="Wrap"
@@ -235,6 +237,10 @@
 
                 <Border x:Name="ControlsPanel" Classes="strip" IsVisible="False">
                     <StackPanel x:Name="ControlsBody" Spacing="10"/>
+                </Border>
+
+                <Border x:Name="WheelPanel" Classes="strip" IsVisible="False">
+                    <StackPanel x:Name="WheelBody" Spacing="10"/>
                 </Border>
 
                 <!-- Progress and the log. -->

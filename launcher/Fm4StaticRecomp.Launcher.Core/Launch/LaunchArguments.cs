@@ -120,6 +120,14 @@ public static class LaunchArguments
         return args;
     }
 
+    // The WHEEL panel's live view (src\wheel\wheel_probe.cpp); --fm4_wheel_probe itself is added by WheelProbe.
+    public static IReadOnlyList<string> ForWheelProbe(InstallLayout layout) =>
+    [
+        $"--game_data_root={layout.Game}",
+        $"--fm4_config_root={layout.Config}",
+        $"--log_file={Path.Combine(layout.Logs, "wheel-probe.log")}",
+    ];
+
     public static IReadOnlyList<string> ForContentInstall(InstallLayout layout, string? disc2Folder,
         string? dlcFolder, string logFile)
     {

@@ -19,10 +19,17 @@ REXCVAR_DEFINE_STRING(fm4_shader_list_dir, "", "Forza Motorsport 4",
                       "Folder of the shipped shader list for --fm4_build_shader_cache");
 REXCVAR_DEFINE_STRING(fm4_export_ui_fonts, "", "Forza Motorsport 4",
                       "Write the disc's UI fonts, decompressed, to this folder, then quit");
+REXCVAR_DEFINE_BOOL(fm4_wheel_probe, false, "Forza Motorsport 4",
+                    "Write the connected controllers and what the racing wheel bindings read "
+                    "from them to stdout as JSON lines until stdin closes (the launcher's WHEEL "
+                    "panel), then quit");
 
 namespace fm4_static_recomp {
 
 ToolMode CurrentToolMode() {
+  if (REXCVAR_GET(fm4_wheel_probe)) {
+    return ToolMode::kWheelProbe;
+  }
   if (!std::string(REXCVAR_GET(fm4_write_graphics_schema)).empty()) {
     return ToolMode::kSchema;
   }

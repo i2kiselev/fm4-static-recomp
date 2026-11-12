@@ -281,6 +281,8 @@ public partial class MainWindow : Window
     private void ShowMode(Mode mode)
     {
         _mode = mode;
+        // The game takes the controllers and the force device itself.
+        if (mode != Mode.Ready) StopWheelProbe();
         SetupPanel.IsVisible = mode is Mode.Setup or Mode.Building;
         PrimaryButton.IsVisible = true;
         AltButton.IsVisible = false;
@@ -560,6 +562,7 @@ public partial class MainWindow : Window
             Close();
             return;
         }
+        StopWheelProbe();
         lock (_sessionLogGate)
         {
             _sessionLog?.Dispose();

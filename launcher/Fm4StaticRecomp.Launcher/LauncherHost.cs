@@ -176,6 +176,13 @@ public sealed class LauncherHost
     public ControlsSettings? Controls() =>
         Settings.ActiveVersion is { } version && ControlsSettings.Supports(version) ? new ControlsSettings(Layout.ControlsToml) : null;
 
+    public WheelSettings Wheel() => new(Layout.WheelToml);
+
+    // The active build's executable when it has the WHEEL panel's live view, else null.
+    public string? WheelProbeExecutable() =>
+        Settings.ActiveVersion is { } version && WheelProbe.Supported(Layout.GameExecutable(version))
+            ? Layout.GameExecutable(version) : null;
+
     public static void Open(string target)
     {
         try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); }

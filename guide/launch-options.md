@@ -17,6 +17,8 @@ or in the launcher's SETTINGS.
 | `--fm4_disc2_packages=<folder>` | Install the Disc 2 packages from this folder |
 | `--fm4_dlc_packages=<folder>` | Install every DLC package under this folder |
 | `--fm4_skip_intro=true` | Skip the startup disclaimer and studio videos |
+| `--fm4_wheel_enabled=true` | WHEEL: a racing wheel as player one; its settings are in [Racing wheels](racing-wheels.md#settings) |
+| `--fm4_wheel_probe=true` | The launcher's WHEEL panel: write the controllers as JSON lines to stdout until stdin closes, then quit |
 | `--fm4_show_fps=true` | Show the [frame rate overlay](../DEBUG_OPTIONS.md#reading-the-fps-overlay) from the start (F3 shows and hides it). In the launcher: SETTINGS → ADVANCED → SHOW FPS |
 | `--controller_vibration=false` | Turns all controller vibration off (VIBRATION STRENGTH keeps its value). In the launcher: SETTINGS → CONTROLLER VIBRATION |
 | `--fm4_audio_compatibility=true` | Opt-in audio mixer path for repeated or slowed race audio, most of all on processors without FMA instructions (most made before 2013, and some Celeron and Pentium models). Off by default. In the launcher: SETTINGS → ADVANCED → AUDIO FOR OLDER CPUS. Restart the game after changing it |
