@@ -36,6 +36,7 @@ set(FM4_HOST_SOURCES
     src/game_hooks.cpp
     src/audio_gain.cpp
     src/custom_music.cpp
+    src/mixer_options.cpp
     src/car_dirt.cpp
     src/code_image_check.cpp
     src/shadow_map.cpp
@@ -112,12 +113,14 @@ if(FM4_BUILD_TESTS)
         tests/guest_frame_stats_test.cpp
         tests/controls_page_test.cpp
         tests/controller_layout_test.cpp
+        tests/mixer_options_test.cpp
         src/car_dirt.cpp
         src/audio_gain.cpp
         src/dlc_licenses.cpp
         src/code_image_check.cpp
         src/shadow_map.cpp
         src/file_open_log.cpp
+        src/mixer_options.cpp
         src/game_language.cpp
         src/string_log.cpp
         src/config/host_config.cpp

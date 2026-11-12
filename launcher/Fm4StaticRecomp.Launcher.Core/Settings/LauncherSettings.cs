@@ -22,6 +22,8 @@ public sealed class LauncherSettings
         ControllerVibration = _file.Get("controller_vibration") != "false";
         AudioPopFix = _file.Get("audio_pop_fix") != "false";
         AudioCompatibility = _file.Get("audio_compatibility") == "true";
+        KeepMusicOnCrash = _file.Get("keep_music_on_crash") == "true";
+        LightMusicFilter = _file.Get("music_filter") == "light";
         MenuMusicFolder = _file.Get("menu_music_folder");
         RaceMusicFolder = _file.Get("race_music_folder");
         AsyncReadbacks = _file.Get("async_readbacks") != "false";
@@ -48,6 +50,8 @@ public sealed class LauncherSettings
     public bool ControllerVibration { get; set; }
     public bool AudioPopFix { get; set; }
     public bool AudioCompatibility { get; set; }
+    public bool KeepMusicOnCrash { get; set; }
+    public bool LightMusicFilter { get; set; }
     public string? MenuMusicFolder { get; set; }
     public string? RaceMusicFolder { get; set; }
     public bool AsyncReadbacks { get; set; }
@@ -83,6 +87,8 @@ public sealed class LauncherSettings
         Flag("controller_vibration", ControllerVibration);
         Flag("audio_pop_fix", AudioPopFix);
         Flag("audio_compatibility", AudioCompatibility);
+        Flag("keep_music_on_crash", KeepMusicOnCrash);
+        Text("music_filter", LightMusicFilter ? "light" : "default");
         Text("menu_music_folder", MenuMusicFolder);
         Text("race_music_folder", RaceMusicFolder);
         Flag("async_readbacks", AsyncReadbacks);

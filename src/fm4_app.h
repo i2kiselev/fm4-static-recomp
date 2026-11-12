@@ -46,6 +46,7 @@
 #include "input/keyboard_ramp.h"
 #include "input/prompt_strings.h"
 #include "input/prompt_swap.h"
+#include "mixer_options.h"
 #include "scripted_input.h"
 #include "shader_cache/cache_writer.h"
 #include "shader_cache/disc_shaders.h"
@@ -204,6 +205,9 @@ class Fm4App final : public rex::ReXApp {
     if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kNone &&
         !GameFolderMatchesBuild(paths.game_data_root)) {
       return false;
+    }
+    if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kNone) {
+      fm4_static_recomp::InstallMixerOptions(paths.game_data_root);
     }
     if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kShaderCache) {
       return RunShaderCacheTool();
