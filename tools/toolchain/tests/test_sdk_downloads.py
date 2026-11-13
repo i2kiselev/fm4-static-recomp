@@ -22,7 +22,7 @@ def find_sdk():
     return None
 
 
-def write_pins(root, dlss_commit="d" * 40, dlss=(), ffx_commit="f" * 40, ffx=(), runtime="ab" * 32):
+def write_pins(root, dlss_commit="d" * 40, dlss=(), ffx_commit="f" * 40, ffx=(), runtime="ab" * 32, sdk2=None):
     (root / "cmake").mkdir(parents=True, exist_ok=True)
     entries = "\n".join(f'    "{path}|{digest.lower()}"' for path, digest in dlss)
     (root / "cmake" / "rexglue_dlss.cmake").write_text(
@@ -31,7 +31,10 @@ def write_pins(root, dlss_commit="d" * 40, dlss=(), ffx_commit="f" * 40, ffx=(),
     headers = "\n".join(f'    "{path}|{digest.lower()}"' for path, digest in ffx)
     (root / "cmake" / "rexglue_ffx_api_headers.cmake").write_text(
         f"set(_rexglue_ffx_api_commit {ffx_commit})\nset(_rexglue_ffx_api_files\n{headers})\n"
-        f"    set(_rexglue_ffx_runtime_hash\n        {runtime.lower()})\n", encoding="utf-8")
+        f"    set(_rexglue_ffx_runtime_hash\n        {runtime.lower()})\n"
+        + ("" if sdk2 is None else "    set(_rexglue_ffx_sdk2_files\n"
+           + "".join(f'        "{path}|{digest.lower()}"\n' for path, digest in sdk2) + "    )\n"),
+        encoding="utf-8")
 
 
 class SdkDownloadsTest(unittest.TestCase):
@@ -56,6 +59,9 @@ class SdkDownloadsTest(unittest.TestCase):
         self.assertEqual(pins.ffx_commit, "eee08db1688ac3d1275a70b728f4a8ba22914213")
         self.assertEqual(len(pins.ffx_headers), 4)
         self.assertEqual(pins.ffx_runtime_sha256, "A1624CC4238FEF046F30C4D80CE3F47BE63FC5F5373F49E3EE9EDB9960F54C78")
+        self.assertEqual(pins.ffx_sdk2_files, [
+            ("amd_fidelityfx_loader_vk.dll", "38A56A01FB3565C0757D9F5C1E4E69DE4B65E5F2E5769B323B200DC1F142BAB9"),
+            ("amd_fidelityfx_upscaler_vk.dll", "4A7E895AF6E0B615D40A84D59EB8C2B1054AD91CDD0C739567940270D51BDAB7")])
 
     def test_read_pins_names_the_file_missing_a_pin(self):
         write_pins(self.temp)
@@ -82,6 +88,23 @@ class SdkDownloadsTest(unittest.TestCase):
         self.assertEqual((self.temp / "dlss" / "lib" / "x.lib").read_bytes(), lib)
         self.assertEqual((self.temp / "build" / "ffx-api-headers" / "ffx_api" / "vk" / "ffx_api_vk.h").read_bytes(), ffx)
         self.assertEqual((self.temp / "build" / "ffx-api-headers" / "runtime" / "amd_fidelityfx_vk.dll").read_bytes(), dll)
+
+    def test_prefetch_puts_the_sdk_2_runtime_where_cmake_looks(self):
+        dll, loader = b"MZ runtime", b"MZ loader"
+        served = {f"/NVIDIA/DLSS/{'d' * 40}/include/a.h": b"h\n",
+                  f"/rexglue/FidelityFX-SDK/{'f' * 40}/PrebuiltSignedDLL/amd_fidelityfx_vk.dll": dll,
+                  "/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/v2.4.0/Kits/FidelityFX/signedbin/"
+                  "amd_fidelityfx_loader_vk.dll": loader}
+        write_pins(self.temp, dlss=[("include/a.h", sha(b"h\n"))], runtime=sha(dll), sdk2=[("amd_fidelityfx_loader_vk.dll", sha(loader))])
+        pins = sdk_downloads.read_pins(self.temp)
+        with server.serve(served) as base:
+            sdk_downloads.prefetch(pins, self.temp / "dlss", self.temp / "build", base_urls=[base + TEMPLATE])
+        self.assertEqual((self.temp / "build" / "ffx-api-headers" / "runtime-2.4.0" /
+                          "amd_fidelityfx_loader_vk.dll").read_bytes(), loader)
+
+    def test_an_sdk_without_the_sdk_2_pin_reads_none(self):
+        write_pins(self.temp, dlss=[("include/a.h", sha(b"h\n"))])
+        self.assertEqual(sdk_downloads.read_pins(self.temp).ffx_sdk2_files, [])
 
     def test_a_dlss_header_served_with_crlf_matches_its_lf_pin(self):
         served_header = b"x\r\ny\r\n"
