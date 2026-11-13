@@ -25,8 +25,10 @@ using fm4_static_recomp::hostui::MenuScreen;
 using fm4_static_recomp::hostui::NavCommand;
 using fm4_static_recomp::hostui::PadNavigator;
 
+enum class Tab { kKeyboard, kMouse };
+
 struct Page {
-  explicit Page(std::string_view text, uint32_t layout = 0)
+  explicit Page(std::string_view text, uint32_t layout = 0, Tab tab = Tab::kKeyboard)
       : path(std::filesystem::temp_directory_path() / "fm4_controls_page_test.toml"),
         config(path) {
     std::ofstream(path, std::ios::binary | std::ios::trunc) << text;
@@ -38,7 +40,8 @@ struct Page {
       return apply_works;
     };
     services.now = [this] { return now; };
-    screen = ui::CreateControlsPage(config, std::move(services));
+    screen = tab == Tab::kMouse ? ui::CreateMousePage(config, std::move(services))
+                                : ui::CreateControlsPage(config, std::move(services));
   }
   ~Page() { std::filesystem::remove(path); }
 
@@ -207,16 +210,66 @@ TEST_CASE("The ramp rows step by a hundredth and save without quotes", "[control
   CHECK(page.File() == "ramp_steer_seconds = 0.18\n");
 }
 
+TEST_CASE("The MOUSE tab has mouse look and its sensitivity, and the keys are not on it",
+          "[controls_page]") {
+  const Page page("", 0, Tab::kMouse);
+  CHECK(page.screen->title() == "MOUSE");
+  const auto& rows = page.screen->rows();
+  REQUIRE(rows.size() == 2);
+  CHECK(rows[0].label == "MOUSE LOOK (HOLD RIGHT BUTTON)");
+  CHECK(rows[1].label == "MOUSE LOOK SENSITIVITY");
+  const Page keyboard("");
+  for (const MenuRow& row : keyboard.screen->rows()) {
+    CHECK(!row.label.starts_with("MOUSE"));
+  }
+}
+
+TEST_CASE("Mouse look flips off and saves a bare false", "[controls_page]") {
+  Page page("", 0, Tab::kMouse);
+  REQUIRE(page.screen->SetFocus(page.Index("MOUSE LOOK (HOLD RIGHT BUTTON)")));
+  CHECK(page.Row("MOUSE LOOK (HOLD RIGHT BUTTON)").value() == "ON");
+  page.screen->Handle(NavCommand::kRight);
+  CHECK(page.Row("MOUSE LOOK (HOLD RIGHT BUTTON)").value() == "OFF");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File() == "mouse_look = false\n");
+  CHECK(page.applied == 1);
+}
+
+TEST_CASE("Mouse look sensitivity steps by one from 10 to 100", "[controls_page]") {
+  {
+    Page page("", 0, Tab::kMouse);
+    REQUIRE(page.screen->SetFocus(page.Index("MOUSE LOOK SENSITIVITY")));
+    CHECK(page.Row("MOUSE LOOK SENSITIVITY").value() == "25");
+    page.screen->Handle(NavCommand::kRight);
+    CHECK(page.Row("MOUSE LOOK SENSITIVITY").value() == "26");
+    page.screen->Handle(NavCommand::kApply);
+    CHECK(page.File() == "mouse_look_sensitivity = 26\n");
+  }
+  {
+    Page page("mouse_look_sensitivity = 100\n", 0, Tab::kMouse);
+    REQUIRE(page.screen->SetFocus(page.Index("MOUSE LOOK SENSITIVITY")));
+    page.screen->Handle(NavCommand::kRight);
+    CHECK(page.Row("MOUSE LOOK SENSITIVITY").value() == "100");
+  }
+  {
+    Page page("mouse_look_sensitivity = 10\n", 0, Tab::kMouse);
+    REQUIRE(page.screen->SetFocus(page.Index("MOUSE LOOK SENSITIVITY")));
+    page.screen->Handle(NavCommand::kLeft);
+    CHECK(page.Row("MOUSE LOOK SENSITIVITY").value() == "10");
+  }
+}
+
 TEST_CASE("RESET ALL drafts the defaults of both sections, which remove the lines",
           "[controls_page]") {
-  Page page("driving_a = \"B\"\nramp_look_seconds = 0.3\nmenu_a = \"B\"\n");
+  Page page("driving_a = \"B\"\nramp_look_seconds = 0.3\nmenu_a = \"B\"\nmouse_look = false\n");
   REQUIRE(page.screen->SetFocus(page.Index("DEFAULTS")));
   page.screen->Handle(NavCommand::kAccept);
   CHECK(page.Slots("HANDBRAKE (A)")[0] == "SPACE");
   CHECK(page.Slots("SELECT (A)")[0] == "ENTER");
   CHECK(page.Row("LOOKING AROUND").value() == "0.15 S");
   page.screen->Handle(NavCommand::kApply);
-  CHECK(page.File() == "\n");
+  // The mouse's line belongs to the MOUSE tab.
+  CHECK(page.File() == "mouse_look = false\n");
 }
 
 TEST_CASE("A key you set in one section takes nothing from the other", "[controls_page]") {

@@ -50,7 +50,8 @@ uint8_t ToTrigger(double value) {
 
 KeyboardRamp::KeyboardRamp(RampRates rates) : rates_(rates) {}
 
-void KeyboardRamp::Apply(rex::input::X_INPUT_GAMEPAD& pad, double elapsed_seconds, bool driving) {
+void KeyboardRamp::Apply(rex::input::X_INPUT_GAMEPAD& pad, double elapsed_seconds, bool driving,
+                         bool mouse_look) {
   const double steer = Stick(pad.thumb_lx);
   const double left_trigger = Trigger(pad.left_trigger);
   const double right_trigger = Trigger(pad.right_trigger);
@@ -70,11 +71,17 @@ void KeyboardRamp::Apply(rex::input::X_INPUT_GAMEPAD& pad, double elapsed_second
                            rates_.pedal_return_seconds);
   right_trigger_ = MoveAxis(right_trigger_, right_trigger, elapsed, rates_.pedal_seconds,
                             rates_.pedal_return_seconds);
-  look_x_ = MoveAxis(look_x_, look_x, elapsed, rates_.look_seconds, rates_.look_seconds);
-  look_y_ = MoveAxis(look_y_, look_y, elapsed, rates_.look_seconds, rates_.look_seconds);
   pad.thumb_lx = ToStick(steer_);
   pad.left_trigger = ToTrigger(left_trigger_);
   pad.right_trigger = ToTrigger(right_trigger_);
+  if (mouse_look) {
+    // Released, the look keys rise from rest.
+    look_x_ = 0.0;
+    look_y_ = 0.0;
+    return;
+  }
+  look_x_ = MoveAxis(look_x_, look_x, elapsed, rates_.look_seconds, rates_.look_seconds);
+  look_y_ = MoveAxis(look_y_, look_y, elapsed, rates_.look_seconds, rates_.look_seconds);
   pad.thumb_rx = ToStick(look_x_);
   pad.thumb_ry = ToStick(look_y_);
 }

@@ -32,4 +32,9 @@ inline constexpr auto kCaptureTimeout = std::chrono::seconds(5);
 std::unique_ptr<hostui::MenuScreen> CreateControlsPage(config::HostConfig& config,
                                                        ControlsPageServices services);
 
+// The MOUSE tab after KEYBOARD: mouse look in races and its sensitivity, in the same
+// controls.toml and saved the same way (controller_layout is not used).
+std::unique_ptr<hostui::MenuScreen> CreateMousePage(config::HostConfig& config,
+                                                    ControlsPageServices services);
+
 }  // namespace fm4_static_recomp::ui

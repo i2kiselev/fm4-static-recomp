@@ -201,6 +201,46 @@ TEST_CASE("Ramp rates accept decimal notation and reject malformed or out-of-ran
   }
 }
 
+TEST_CASE("Mouse look is on at sensitivity 25 by default", "[controls]") {
+  const MouseLook look = DefaultControls().mouse_look;
+  CHECK(look.enabled);
+  CHECK(look.sensitivity == 25);
+}
+
+TEST_CASE("The file sets mouse look and its sensitivity", "[controls]") {
+  const MouseLook look =
+      LoadFrom("mouse_look = false\nmouse_look_sensitivity = 60\n").mouse_look;
+  CHECK(!look.enabled);
+  CHECK(look.sensitivity == 60);
+}
+
+TEST_CASE("Sensitivity 25 turns a tenth of a degree per mouse count", "[controls]") {
+  CHECK(MouseLookDegreesPerCount(25) == 0.1);
+  CHECK(MouseLookDegreesPerCount(10) == 0.04);
+  CHECK(MouseLookDegreesPerCount(100) == 0.4);
+}
+
+TEST_CASE("Unreadable mouse look values keep the defaults", "[controls]") {
+  for (std::string_view line : {"mouse_look = yes\n", "mouse_look = \"\"\n", "mouse_look = 1\n",
+                                "mouse_look_sensitivity = 0\n", "mouse_look_sensitivity = -1\n",
+                                "mouse_look_sensitivity = fast\n", "mouse_look_sensitivity = inf\n",
+                                "mouse_look_sensitivity = infinity\n",
+                                "mouse_look_sensitivity = nan\n"}) {
+    CAPTURE(line);
+    const MouseLook look = LoadFrom(line).mouse_look;
+    CHECK(look.enabled);
+    CHECK(look.sensitivity == 25);
+  }
+}
+
+TEST_CASE("A mouse look sensitivity outside 10 to 100 is held to it, a fraction rounded",
+          "[controls]") {
+  CHECK(LoadFrom("mouse_look_sensitivity = 500\n").mouse_look.sensitivity == 100);
+  CHECK(LoadFrom("mouse_look_sensitivity = 1e300\n").mouse_look.sensitivity == 100);
+  CHECK(LoadFrom("mouse_look_sensitivity = 3\n").mouse_look.sensitivity == 10);
+  CHECK(LoadFrom("mouse_look_sensitivity = 40.6\n").mouse_look.sensitivity == 41);
+}
+
 TEST_CASE("A missing file loads the defaults without writing one", "[controls]") {
   const auto path = std::filesystem::temp_directory_path() / "fm4_controls_missing.toml";
   std::filesystem::remove(path);

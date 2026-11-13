@@ -48,7 +48,19 @@ The pre-race screen, pause menu, replays and results use these keys too.
 In photo mode, as on a controller, **Numpad 8 4 2 6** (left stick) move the camera, **I J K L**
 (right stick) pan it, and **W A S D** or the arrow keys (D-pad) rotate and zoom it.
 
-The mouse is not used.
+## Looking around with the mouse
+
+In a race, hold the **right mouse button** and move the mouse left or right: the camera turns
+around your car and stays where you leave it. Let go of the button and the camera goes back
+behind the car. The mouse pointer is hidden while you drive.
+
+To turn this off or change how fast the camera turns (**MOUSE LOOK SENSITIVITY**, 10 to 100,
+25 by default), open the **MOUSE** tab next to KEYBOARD in the game's PC OPTIONS (see
+[Rebinding keys](#rebinding-keys) below for how to get there), or the **MOUSE** tab in the
+launcher's **CONTROLS** page. Very fast flicks make the game jump the camera to the new angle
+instead of turning it; that is the game's own camera.
+
+Outside races the mouse is not used.
 
 ## Rebinding keys
 

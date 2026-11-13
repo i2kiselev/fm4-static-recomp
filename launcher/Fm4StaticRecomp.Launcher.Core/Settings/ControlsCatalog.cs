@@ -20,6 +20,11 @@ public static class ControlsCatalog
 
     public static string FileKey(ControlSet set, string id) => (set == ControlSet.Driving ? "driving_" : "menu_") + id;
 
+    // Hold the right mouse button in a race to look around the car.
+    public const string MouseLookKey = "mouse_look", MouseLookSensitivityKey = "mouse_look_sensitivity";
+    public const bool MouseLookDefault = true;
+    public const int MouseLookSensitivityDefault = 25;
+
     public static IReadOnlyList<RampRow> Ramps { get; } =
     [
         new("ramp_steer_seconds", "Steering: rest to full", 0.17),

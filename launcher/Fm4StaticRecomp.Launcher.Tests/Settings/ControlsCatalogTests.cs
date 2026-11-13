@@ -84,6 +84,11 @@ public partial class ControlsCatalogTests
         Assert.True(ramp.Success, "the controls.ramp line is missing in controls.cpp");
         var values = ramp.Groups[1].Value.Split(',').Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToArray();
         Assert.Equal(values, ControlsCatalog.Ramps.Select(r => r.Default));
+
+        var look = MouseLookLine().Match(source);
+        Assert.True(look.Success, "the controls.mouse_look line is missing in controls.cpp");
+        Assert.Equal(ControlsCatalog.MouseLookDefault, look.Groups[1].Value == "true");
+        Assert.Equal(ControlsCatalog.MouseLookSensitivityDefault, int.Parse(look.Groups[2].Value, CultureInfo.InvariantCulture));
     }
 
     // kLeftShoulder -> left_shoulder, kLStickUp -> lstick_up, kDpadUp -> dpad_up.
@@ -111,4 +116,7 @@ public partial class ControlsCatalogTests
 
     [GeneratedRegex(@"controls\.ramp\s*=\s*\{([^}]+)\};")]
     private static partial Regex RampLine();
+
+    [GeneratedRegex(@"controls\.mouse_look\s*=\s*\{(true|false),\s*([0-9]+)\};")]
+    private static partial Regex MouseLookLine();
 }
