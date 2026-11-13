@@ -205,4 +205,10 @@ class PadNavigator {
   uint64_t next_repeat_ms_ = 0;
 };
 
+// The first row a list of `visible_rows` shows from `list_begin` on. Keys and the wheel keep
+// the focus in the middle; `kept_first`, the list as the pointer found it, stays put while the
+// focus is on it, so pointing at the bottom row does not scroll the list.
+size_t FirstVisibleRow(size_t row_count, size_t list_begin, size_t visible_rows, size_t focus,
+                       std::optional<size_t> kept_first);
+
 }  // namespace fm4_static_recomp::hostui

@@ -218,6 +218,10 @@ class HostUi final : public rex::ui::UIDrawer, public rex::ui::WindowInputListen
   };
   std::vector<RowRect> row_rects_;
   std::vector<RowRect> tab_rects_;
+  // The list's first row in the latest draw, and the one the pointer keeps while it moves the
+  // focus; keys, the wheel and a new screen let the list follow the focus again.
+  size_t shown_first_ = 0;
+  std::optional<size_t> pointer_first_;
   // Screen and output size of the last recorded layout event.
   std::string layout_key_;
 };

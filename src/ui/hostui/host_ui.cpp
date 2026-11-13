@@ -272,6 +272,7 @@ bool HostUi::Open(std::vector<MenuTab> tabs, size_t tab) {
   tabs_ = std::move(tabs);
   tab_ = tab;
   screen_ = std::move(screen);
+  pointer_first_.reset();
   opened_at_ = std::chrono::steady_clock::now();
   const auto device = input_system_ ? input_system_->ActiveDevice(0) : std::nullopt;
   keyboard_prompts_ = device && device->synthetic;
@@ -300,6 +301,7 @@ void HostUi::Close() {
   }
   screen_.reset();
   row_rects_.clear();
+  pointer_first_.reset();
   tab_rects_.clear();
   if (!registered_) {
     return;
@@ -390,6 +392,7 @@ void HostUi::SwitchTab(size_t tab) {
   screen_ = std::move(screen);
   tab_ = tab;
   row_rects_.clear();
+  pointer_first_.reset();
   REXLOG_INFO("Host UI: tab {}", screen_->title());
   RequestPaint();
 }
@@ -398,6 +401,7 @@ void HostUi::Apply(NavCommand command) {
   if (!is_open()) {
     return;
   }
+  pointer_first_.reset();
   if (command == NavCommand::kPreviousTab || command == NavCommand::kNextTab) {
     if (tabs_.size() > 1) {
       SwitchTab((tab_ + (command == NavCommand::kNextTab ? 1 : tabs_.size() - 1)) %
@@ -892,11 +896,9 @@ void HostUi::DrawMenu(rex::ui::UIDrawContext& context) {
   }
   DrawTabs();
 
-  size_t first = list_begin;
-  if (rows.size() - list_begin > visible_rows &&
-      screen.focus() >= list_begin + visible_rows / 2) {
-    first = std::min(screen.focus() - visible_rows / 2, rows.size() - visible_rows);
-  }
+  const size_t first =
+      FirstVisibleRow(rows.size(), list_begin, visible_rows, screen.focus(), pointer_first_);
+  shown_first_ = first;
   row_rects_.assign(rows.size(), RowRect{0, 0, -1, -1});
   if (slider_section) {
     DrawSliderSection(rows[0], screen.focus() == 0 && rows[0].is_enabled());
@@ -1206,6 +1208,7 @@ void HostUi::OnMouseMove(rex::ui::MouseEvent& e) {
     if (float(e.x()) >= rect.x0 && float(e.x()) < rect.x1 && float(e.y()) >= rect.y0 &&
         float(e.y()) < rect.y1) {
       if (screen_->focus() != i && screen_->SetFocus(i)) {
+        pointer_first_ = shown_first_;
         RequestPaint();
       }
       return;

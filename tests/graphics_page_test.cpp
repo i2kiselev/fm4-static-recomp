@@ -701,3 +701,19 @@ TEST_CASE("Choosing an upscaler over a scale above the screen drafts the scale d
   CHECK(page->Handle(NavCommand::kBack) == MenuScreen::Result::kBack);
   CHECK(rex::cvar::GetFlagByName("resolution_scale") == "4");
 }
+
+TEST_CASE("Keys keep the focus in the middle of a long list", "[host_menu]") {
+  using fm4_static_recomp::hostui::FirstVisibleRow;
+  CHECK(FirstVisibleRow(30, 0, 13, 3, std::nullopt) == 0);
+  CHECK(FirstVisibleRow(30, 0, 13, 10, std::nullopt) == 4);
+  CHECK(FirstVisibleRow(30, 0, 13, 29, std::nullopt) == 17);
+  CHECK(FirstVisibleRow(10, 0, 13, 9, std::nullopt) == 0);
+}
+
+TEST_CASE("Pointing at a row does not scroll the list", "[host_menu]") {
+  using fm4_static_recomp::hostui::FirstVisibleRow;
+  CHECK(FirstVisibleRow(30, 0, 13, 12, 0) == 0);
+  CHECK(FirstVisibleRow(30, 0, 13, 16, 4) == 4);
+  // A focus the kept list no longer shows (a key moved it) centres again.
+  CHECK(FirstVisibleRow(30, 0, 13, 20, 4) == 14);
+}
