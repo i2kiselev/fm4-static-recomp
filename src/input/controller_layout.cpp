@@ -53,6 +53,7 @@ constexpr std::array<std::array<Action, kColumns.size()>, kControllerLayoutCount
 }};
 
 std::atomic<uint32_t> g_layout{0};
+std::atomic<bool> g_dpad_steering{false};
 
 std::string_view Label(Action action, PadControl control) {
   switch (action) {
@@ -95,6 +96,10 @@ std::string_view Label(Action action, PadControl control) {
 void SetControllerLayout(uint32_t layout) { g_layout.store(layout, std::memory_order_relaxed); }
 
 uint32_t ControllerLayout() { return g_layout.load(std::memory_order_relaxed); }
+
+void SetDpadSteering(bool on) { g_dpad_steering.store(on, std::memory_order_relaxed); }
+
+bool DpadSteering() { return g_dpad_steering.load(std::memory_order_relaxed); }
 
 std::string_view DrivingAction(uint32_t layout, PadControl control) {
   switch (control) {

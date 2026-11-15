@@ -18,6 +18,11 @@ inline constexpr uint32_t kControllerLayoutCount = 13;
 void SetControllerLayout(uint32_t layout);
 uint32_t ControllerLayout();
 
+// The first player's profile steers with the D-pad (D-PAD STEERING); false until a layout
+// build says so. Any thread.
+void SetDpadSteering(bool on);
+bool DpadSteering();
+
 // What the control does while driving under `layout`, e.g. "Gear up"; empty for a control
 // the layout leaves unused. An unknown layout reads as the default one.
 std::string_view DrivingAction(uint32_t layout, PadControl control);

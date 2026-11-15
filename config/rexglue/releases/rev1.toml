@@ -43,6 +43,10 @@ image = "rev1"
 0x823C6AF4 = { at = 0x823C7154, fingerprint = "1a3fff1bd3c8a727" }
 # hook Fm4ThumbnailRenderDone: identical function
 0x823C6BA0 = { at = 0x823C7200, fingerprint = "fdcee8e5a396a703" }
+# hook Fm4DpadSteeringTelemetry: identical function
+0x82406D74 = { at = 0x824099DC, fingerprint = "b5e954e7998e9658" }
+# hook Fm4DpadSteeringTelemetry jump_address_on_true: identical function
+0x82406D84 = { at = 0x824099EC, fingerprint = "a6d34a1a300b0f38" }
 # hook Fm4ControllerLayoutApplied: identical function
 0x8243136C = { at = 0x82434CC4, fingerprint = "9f78ad3202b6b692" }
 # hook Fm4PresentInterval: fragment, neighbours' shift

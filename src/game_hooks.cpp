@@ -1018,6 +1018,11 @@ void Fm4CommandBufferClipRect(PPCRegister& r1) {
   StoreGuestWord(rect + 12, y + LoadGuestWord(viewport + 12));
 }
 
+namespace {
+// Fm4ControllerLayoutApplied runs just before the build Fm4DpadSteeringTelemetry sits in.
+std::atomic<bool> g_first_player_layout_build{false};
+}  // namespace
+
 // The keys tabs name each pad button by what the first player's pad layout makes it do.
 void Fm4ControllerLayoutApplied(PPCRegister& r4, PPCRegister& r5, PPCRegister& r31) {
   FM4_HOOK_CENSUS();
@@ -1025,9 +1030,28 @@ void Fm4ControllerLayoutApplied(PPCRegister& r4, PPCRegister& r5, PPCRegister& r
       rex::system::kernel_state()->memory()->virtual_membase() + r31.u32;
   const uint32_t index = LoadGuestWord(player + 0x1C);
   REXLOG_INFO("Controller layout: player {} device {} layout {}", index, r5.u32, r4.u32);
-  if (index == 0 && r5.u32 == 0) {
+  const bool first_player = index == 0 && r5.u32 == 0;
+  g_first_player_layout_build.store(first_player, std::memory_order_relaxed);
+  if (first_player) {
     fm4_static_recomp::input::SetControllerLayout(r4.u32);
+    fm4_static_recomp::input::SetDpadSteering(false);
   }
+}
+
+// D-PAD STEERING (only then is this reached) takes all four D-pad buttons from the layout
+// but steers with left/right alone: up/down keep the layout's Telemetry for the keyboard's
+// telemetry keys; the pad's own D-pad up/down stay unused while driving (fm4_app.h).
+bool Fm4DpadSteeringTelemetry(PPCRegister& r26) {
+  FM4_HOOK_CENSUS();
+  constexpr uint32_t kDpadUp = 8;
+  constexpr uint32_t kDpadDown = 9;
+  if (r26.u32 == kDpadUp) {
+    REXLOG_INFO("Controller layout: D-pad steering, D-pad up/down keep Telemetry for the keyboard");
+    if (g_first_player_layout_build.load(std::memory_order_relaxed)) {
+      fm4_static_recomp::input::SetDpadSteering(true);
+    }
+  }
+  return r26.u32 == kDpadUp || r26.u32 == kDpadDown;
 }
 
 namespace {

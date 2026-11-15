@@ -159,6 +159,17 @@ address = 0x8243136C
 name = "Fm4ControllerLayoutApplied"
 registers = ["r4", "r5", "r31"]
 
+# 0x82406C78 binds the layout's buttons (r26 = index into the 0x8200EB98 name table:
+# 8 DPadUp, 9 DPadDown, 10 DPadLeft, 11 DPadRight). Here only with the profile's D-PAD
+# STEERING on (flag byte 0): it skips all four D-pad entries, then steers with the D-pad's
+# horizontal axis (input 0x1F). Every layout binds up/down to Telemetry and leaves
+# left/right empty, so up/down are free.
+[[midasm_hook]]
+address = 0x82406D74
+name = "Fm4DpadSteeringTelemetry"
+registers = ["r26"]
+jump_address_on_true = 0x82406D84
+
 # CCarThumbnailRenderStateMachine (vtable 0x8200DA0C, state table 0x8200D9C8)
 # renders a car's garage thumbnail in states 1 to 3 (load the uithumbnail
 # backdrop, draw, read back and save), twice per new car or paint: uithumbig,

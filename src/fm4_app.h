@@ -351,6 +351,7 @@ class Fm4App final : public rex::ReXApp {
     if (auto* const input_system =
             runtime() ? static_cast<rex::input::InputSystem*>(runtime()->input_system()) : nullptr) {
       input_system->SetKeyboardStateFilter(nullptr);
+      input_system->SetPadStateFilter(nullptr);
     }
     host_ui_.reset();
     fullscreen_toggle_.reset();
@@ -440,6 +441,15 @@ class Fm4App final : public rex::ReXApp {
           ramp.Apply(pad, elapsed, input::CurrentInputContext() == input::InputContext::kDriving,
                      rex::input::mnk::IsHoldLookEngaged());
         });
+    // D-PAD STEERING: the game leaves the pad's D-pad up/down unused while driving; the
+    // telemetry they are kept on (Fm4DpadSteeringTelemetry) is for the keyboard alone.
+    input_system->SetPadStateFilter([](uint32_t user_index, rex::input::X_INPUT_GAMEPAD& pad) {
+      if (user_index == 0 && input::DpadSteering() &&
+          input::CurrentInputContext() == input::InputContext::kDriving) {
+        pad.buttons = uint16_t(pad.buttons & ~(rex::input::X_INPUT_GAMEPAD_DPAD_UP |
+                                               rex::input::X_INPUT_GAMEPAD_DPAD_DOWN));
+      }
+    });
   }
 
   // The keys the KEYBOARD tab saved, at once: the keyboard driver's binds
