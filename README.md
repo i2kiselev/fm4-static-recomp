@@ -20,18 +20,19 @@ commands run on ShiftGlue's native Vulkan renderer, written for
 [Pinyon Shift](https://github.com/arcanite24/pinyon-shift) (*Forza Horizon*) and extended
 here for FM4.
 
-## New in 0.3.2: keyboard rebinding and many audio improvements
+## New in 0.3.3: FSR 4, Xbox 360 careers and mouse look
 
 > [!TIP]
-> **[Rebind the keyboard](guide/controls.md#rebinding-keys)** in the game or in the launcher,
-> with a primary and a secondary key for each action. **The sound got a lot of work:**
-> [your own music](guide/launch-options.md#custom-soundtrack) in the menus and in races,
-> engine sounds without pops, and a faster audio path for older processors. Also new: stronger
-> vibration for controllers that vibrate too weakly, DLC that the game showed as locked works
-> now, GPU readbacks and car thumbnails are much more reliable (a car turning pink after a
-> change of home space, or a thumbnail missing a tile, should now be rare), the first start
-> prepares shaders before the title with a progress bar, and there is an
-> [experimental preview for Apple Silicon Macs](guide/macos.md). Everything else in this version:
+> **[FSR 4](guide/upscalers.md#quick-start)** sharpens the picture on AMD Radeon RX 6000 and
+> later graphics cards. A career copied off an Xbox 360 can be
+> **[continued here](guide/saves.md#a-career-from-an-xbox-360)**. In races,
+> **[hold the right mouse button to look around](guide/controls.md#looking-around-with-the-mouse)**
+> your car. Also new: race sound with AI cars no longer drags on older processors, your
+> controller signs in as player 1 when DS4Windows runs or a drum kit is connected, the keyboard
+> settings are easier to find and show your keys everywhere, the race music can play on through
+> crashes, re-saved vinyl groups open again, and
+> [longer Quick Races](guide/gameplay.md#quick-race-laps-experimental) are an experimental
+> setting. Everything else in this version:
 > [release notes](https://github.com/i2kiselev/fm4-static-recomp/releases/latest).
 >
 > Since 0.3.1, **[Project Forza Plus 4](guide/project-forza-plus.md)** sets up from the launcher
