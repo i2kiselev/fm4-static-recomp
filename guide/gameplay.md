@@ -2,8 +2,10 @@
 
 [← Back to the README](../README.md)
 
-The GAMEPLAY tab of the in-game PC OPTIONS page ([Graphics settings](graphics.md) says how to
-open it; **RB** and **LB** switch tabs) holds settings that change how the game plays.
+The GAMEPLAY tab of the in-game PC OPTIONS page holds settings that change how the game plays.
+Open PC OPTIONS (**F6**, **BACK + START** held together on a controller, or Play Career → My
+Profile → Options → PC OPTIONS) and press **RB** (the menu's RB key on the keyboard, **E** by
+default) until **GAMEPLAY** is shown; **LB** goes back, and clicking a tab's name works too.
 
 ## Quick Race laps (experimental)
 

@@ -34,7 +34,7 @@ or in the launcher's SETTINGS.
 | `--window_aspect_ratio=16:9` | The shape the window keeps while resized and at its start (the default); `free` leaves it free, with black bars around the 16:9 picture |
 | `--vulkan_present_via_dxgi=true` | Present through DXGI, for [frame generation tools](#frame-generation) |
 | `--pad_rumble_strength=0..200` | Controller vibration in percent of the game's own (`100`); above 100 each motor tops out at full speed, `0` turns it off. In the launcher: SETTINGS → VIBRATION STRENGTH |
-| `--pad_chord_game_menu=BACK+START` | Controller buttons held together that open the GRAPHICS page (`A`, `B`, `X`, `Y`, `LB`, `RB`, `LS`, `RS`, `BACK`, `START`, `UP`, `DOWN`, `LEFT`, `RIGHT` joined by `+`); empty turns it off |
+| `--pad_chord_game_menu=BACK+START` | Controller buttons held together that open PC OPTIONS (`A`, `B`, `X`, `Y`, `LB`, `RB`, `LS`, `RS`, `BACK`, `START`, `UP`, `DOWN`, `LEFT`, `RIGHT` joined by `+`); empty turns it off |
 
 ## Custom soundtrack
 

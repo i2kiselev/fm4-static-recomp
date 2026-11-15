@@ -35,7 +35,7 @@ The saved shaders are then usually out of date or damaged. To start again:
 
 1. Close the game window.
 2. Open the folder you extracted the launcher into, then `data` → `cache` → the folder named
-   after the game version, for example `0.3.2`. On a Mac, start from your data folder instead
+   after the game version, for example `0.3.3`. On a Mac, start from your data folder instead
    ([Where the game data goes](macos.md#where-the-game-data-goes)).
 3. Delete the `shaders` folder there. Leave the other folders alone.
 4. Start the game again from the launcher. It now starts without prepared shaders, so the first

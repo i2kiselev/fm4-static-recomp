@@ -7,7 +7,7 @@ keyboard is the last device you used, the game's button prompts show keycaps of 
 keys, and English prompt sentences ("PRESS THE BACK BUTTON...") name them too; touching the
 pad brings the controller buttons back. **Alt+Enter** switches between a window and fullscreen
 at any moment ([Playing in a window](windowed.md)). Other keys that always work: **F3** shows
-and hides the frame rate, **F6** opens the GRAPHICS page, **F11** works like Alt+Enter.
+and hides the frame rate, **F6** opens PC OPTIONS, **F11** works like Alt+Enter.
 
 ## Driving
 
@@ -66,7 +66,7 @@ Outside races the mouse is not used.
 
 ### In the game
 
-1. Open the GRAPHICS page (**F6**, **BACK + START** held together on a controller, or Play
+1. Open PC OPTIONS (**F6**, **BACK + START** held together on a controller, or Play
    Career → My Profile → Options → PC OPTIONS) and press **RB** (the menu's RB key on the
    keyboard, **E** by default) to reach **KEYBOARD**; **LB** goes back, and clicking a tab's
    name works too. The list has a **DRIVING** section (on the track) and a **MENUS** section.
