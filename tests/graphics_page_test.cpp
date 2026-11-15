@@ -466,6 +466,12 @@ TEST_CASE("Every live and drafted upscaler and scale greys exactly the anti-alia
     const std::string upscaling = c.upscaling;
     const bool upscales = !upscaling.empty();
     CHECK(Find(*page, "SHARPNESS")->is_enabled() == upscales);
+    // Frame generation runs with the temporal FSR upscalers alone.
+    const bool generates = upscales && upscaling != "FSR 1" && upscaling != "DLSS";
+    CHECK(Find(*page, "FRAME GENERATION")->is_enabled() == generates);
+    // The native HUD goes over any temporal upscale.
+    const bool temporal = upscales && upscaling != "FSR 1";
+    CHECK(Find(*page, "HUD")->is_enabled() == temporal);
     CHECK(Find(*page, "UPSCALER")->is_enabled());
     CHECK(Find(*page, "RESOLUTION SCALE")->is_enabled());
     CHECK(Find(*page, "GRAPHICS PRESET")->is_enabled());
@@ -483,7 +489,7 @@ TEST_CASE("Every live and drafted upscaler and scale greys exactly the anti-alia
           (upscales ? "ANISOTROPIC FILTERING" : "SHOWROOM MSAA"));
     CHECK(FocusAfter(*page, "CROWDS", NavCommand::kDown) == (upscales ? "BLOOM" : "POST AA"));
     CHECK(FocusAfter(*page, "GRAPHICS PRESET", NavCommand::kUp) ==
-          (upscales ? "SHARPNESS" : "UPSCALER"));
+          (temporal ? "HUD" : upscales ? "SHARPNESS" : "UPSCALER"));
     const std::string note = Find(*page, "RESOLUTION SCALE")->note();
     CAPTURE(note);
     if (upscales) {
@@ -716,4 +722,32 @@ TEST_CASE("Pointing at a row does not scroll the list", "[host_menu]") {
   CHECK(FirstVisibleRow(30, 0, 13, 16, 4) == 4);
   // A focus the kept list no longer shows (a key moved it) centres again.
   CHECK(FirstVisibleRow(30, 0, 13, 20, 4) == 14);
+}
+
+TEST_CASE("The LIGHTING page and the launcher's schema offer bloom, exposure and saturation",
+          "[graphics_page]") {
+  config::HostConfig config(TempFile("lighting.toml"));
+  const auto page = ui::CreateLightingPage(config, Services());
+  for (const char* label : {"BLOOM STRENGTH", "BLOOM THRESHOLD", "EXPOSURE", "SATURATION",
+                            "COCKPIT AMBIENT", "COCKPIT SHADOW LIFT", "HDR",
+                            "HDR PEAK BRIGHTNESS", "HDR PAPER WHITE", "HDR GAMMA",
+                            "HDR SHADOW LIFT"}) {
+    CAPTURE(label);
+    REQUIRE(Find(*page, label));
+    CHECK(Find(*page, label)->is_enabled());
+  }
+  const auto path = TempFile("lighting-schema.json");
+  REQUIRE(ui::WriteGraphicsSchema(path));
+  std::stringstream text;
+  text << std::ifstream(path).rdbuf();
+  const std::string schema = text.str();
+  for (const char* key : {"fm4_lighting_bloom", "fm4_lighting_bloom_threshold",
+                          "fm4_lighting_exposure", "fm4_lighting_saturation",
+                          "fm4_lighting_car_ambient", "fm4_lighting_car_shadow_lift",
+                          "present_hdr", "present_hdr_peak_nits", "present_hdr_paper_white_nits",
+                          "present_hdr_gamma", "present_hdr_shadow_lift"}) {
+    CAPTURE(key);
+    CHECK(schema.find(std::string("\"key\":\"") + key + "\"") != std::string::npos);
+  }
+  std::filesystem::remove(path);
 }
