@@ -5,7 +5,7 @@
 namespace fm4_static_recomp {
 
 // Launcher helpers that run the executable without starting the game.
-enum class ToolMode { kNone, kInstall, kSchema, kShaderCache, kUiFonts };
+enum class ToolMode { kNone, kInstall, kSchema, kShaderCache, kUiFonts, kWheelProbe };
 
 ToolMode CurrentToolMode();
 

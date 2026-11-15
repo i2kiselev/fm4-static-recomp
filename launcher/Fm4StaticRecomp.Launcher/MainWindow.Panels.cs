@@ -11,7 +11,7 @@ namespace Fm4StaticRecomp.Launcher;
 // closes it.
 public partial class MainWindow
 {
-    private enum Panel { None, Content, Graphics, Settings, Controls }
+    private enum Panel { None, Content, Graphics, Settings, Controls, Wheel }
 
     private Panel _panel = Panel.None;
 
@@ -23,10 +23,12 @@ public partial class MainWindow
         ContentPanel.IsVisible = panel == Panel.Content;
         SettingsPanel.IsVisible = IsSettings(panel);
         ControlsPanel.IsVisible = panel == Panel.Controls;
+        WheelPanel.IsVisible = panel == Panel.Wheel;
         if (panel != Panel.Controls) EndControlsCapture();
+        if (panel != Panel.Wheel) StopWheelProbe();
         foreach (var (button, owner) in new (Button, Panel)[]
                      { (ContentButton, Panel.Content), (GraphicsButton, Panel.Graphics), (SettingsButton, Panel.Settings),
-                       (ControlsButton, Panel.Controls) })
+                       (ControlsButton, Panel.Controls), (WheelButton, Panel.Wheel) })
             button.Classes.Set("selected", owner == panel);
     }
 
@@ -50,6 +52,7 @@ public partial class MainWindow
             LoadContentPanel();
         }
         else if (panel == Panel.Controls) LoadControlsPanel();
+        else if (panel == Panel.Wheel) LoadWheelPanel();
         else if (fromSettings) BuildSettingsPanel(_settingsStatus?.Text ?? "");
         else LoadSettingsPanel();
     }
@@ -59,6 +62,7 @@ public partial class MainWindow
         Panel.Content => ContentPanel,
         Panel.Graphics or Panel.Settings => SettingsPanel,
         Panel.Controls => ControlsPanel,
+        Panel.Wheel => WheelPanel,
         _ => null,
     };
 
@@ -66,9 +70,10 @@ public partial class MainWindow
     private void GraphicsButton_Click(object? sender, RoutedEventArgs e) => OpenPanel(Panel.Graphics);
     private void SettingsButton_Click(object? sender, RoutedEventArgs e) => OpenPanel(Panel.Settings);
     private void ControlsButton_Click(object? sender, RoutedEventArgs e) => OpenPanel(Panel.Controls);
+    private void WheelButton_Click(object? sender, RoutedEventArgs e) => OpenPanel(Panel.Wheel);
 
     /// <summary>--snapshot FILE [STATE] [WIDTHxHEIGHT]: render the window to a PNG and exit, to
-    /// check a layout without clicking. STATE is setup, building, ready, content, graphics, settings, controls,
+    /// check a layout without clicking. STATE is setup, building, ready, content, graphics, settings, controls, wheel,
     /// crash, failure or playing; each fills its panel with sample data where the backend has
     /// none.</summary>
     public void Snapshot(string path, string? state, string? size)
@@ -109,7 +114,7 @@ public partial class MainWindow
             case "playing":
                 ShowMode(Mode.Playing);
                 break;
-            case "content" or "graphics" or "settings" or "controls":
+            case "content" or "graphics" or "settings" or "controls" or "wheel":
                 ShowMode(Mode.Ready);
                 var panel = Enum.Parse<Panel>(state, ignoreCase: true);
                 OpenPanel(panel);

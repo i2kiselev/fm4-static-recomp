@@ -66,6 +66,12 @@ set(FM4_HOST_SOURCES
     src/ui/hostui/ui_fonts.cpp
     src/ui/hostui/vector_font.cpp
     src/ui/hostui/xds_texture.cpp
+    src/wheel/wheel_devices.cpp
+    src/wheel/wheel_hooks.cpp
+    src/wheel/wheel_input.cpp
+    src/wheel/wheel_mapping.cpp
+    src/wheel/wheel_probe.cpp
+    src/wheel/wheel_settings.cpp
 )
 
 if(NOT FM4_TESTS_ONLY)
@@ -117,6 +123,7 @@ if(FM4_BUILD_TESTS)
         tests/controller_layout_test.cpp
         tests/mixer_options_test.cpp
         tests/gameplay_page_test.cpp
+        tests/wheel_mapping_test.cpp
         src/car_dirt.cpp
         src/audio_gain.cpp
         src/dlc_licenses.cpp
@@ -143,6 +150,8 @@ if(FM4_BUILD_TESTS)
         src/ui/controls_page.cpp
         src/ui/gameplay_page.cpp
         src/ui/graphics_page.cpp
+        src/wheel/wheel_mapping.cpp
+        src/wheel/wheel_settings.cpp
     )
     # Away from the game's staged runtime, which is only as new as the last game build;
     # run with rexglue-artifacts on PATH.

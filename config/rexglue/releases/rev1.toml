@@ -189,3 +189,13 @@ image = "rev1"
 0x82D59FF0 = { at = 0x82D59FE0, references = 103 }
 # kScenarioManagerPointer: data, 79 references in identical functions
 0x82DC3750 = { at = 0x82DC3890, references = 112 }
+# The racing wheel hooks (src/wheel/wheel_hooks.cpp): Rev 1 places not yet from
+# tools/port_release.py; the fingerprints are the 1.0 code's, which tools/release_parity.py
+# checks against a Rev 1 disc.
+0x82C9F240 = { at = 0x82CA9C08, fingerprint = "690b0363e896ed01" }
+0x82C9F2A0 = { at = 0x82CA9C68, fingerprint = "d65dc42031c15cc0" }
+0x82C9F300 = { at = 0x82CA9CC8, fingerprint = "d65dc42031c15cc0" }
+0x82C9F360 = { at = 0x82CA9D28, fingerprint = "a2d3d789b2b64e53" }
+0x82C9F3C8 = { at = 0x82CA9D90, fingerprint = "690b0363e896ed01" }
+0x82C9F430 = { at = 0x82CA9DF8, fingerprint = "df66c73558e1b507" }
+0x823A42A0 = { at = 0x823A3F68, fingerprint = "a367511e16609c3a" }

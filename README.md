@@ -85,6 +85,7 @@ the command line? See the [manual install](guide/manual-install.md).
 | [Upscalers](guide/upscalers.md) | DLSS, FSR 2, FSR 3 and FSR 1: what to pick, how the port feeds them, known limits |
 | [High frame rates](guide/high-frame-rate.md) | Picking a frame rate, how the game runs at up to 240 fps at real speed, limits |
 | [Keyboard](guide/controls.md) | Key layout for driving and menus, rebinding |
+| [Racing wheels](guide/racing-wheels.md) | A wheel, pedals and shifter from any USB devices, binding them in the launcher, force feedback |
 | [Launch options](guide/launch-options.md) | Command-line options, languages, `-Compat`, frame generation, setting options, logs and crash reports |
 | [Debug options](DEBUG_OPTIONS.md) | Debug views, A/B switches of rendering fixes and diagnostics |
 | [Testing and benchmarks](guide/performance.md) | What was played, frame rates and VRAM, comparisons with Xenia and hl360-forza4 |
@@ -169,7 +170,7 @@ Known problems are tracked as
 
 1. **Upscaler polish**: the remaining shimmer (see
    [Known limitations](guide/upscalers.md#known-limitations)).
-2. **Racing wheels**, starting with MOZA wheels.
+2. **Racing wheels**: experimental support is in ([Racing wheels](guide/racing-wheels.md)); more wheels to test.
 3. **Linux**: a native build of the game and the launcher.
 4. **Other disc releases**, such as the Essentials Edition.
 5. More tests on niche or legacy hardware.
