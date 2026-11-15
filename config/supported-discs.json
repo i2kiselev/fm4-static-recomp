@@ -1404,6 +1404,349 @@
     ]
    },
    {
+    "name": "1.0 Asia",
+    "media_id": "633772A0",
+    "code_image": "1.0",
+    "files": [
+     {
+      "path": "$SystemUpdate/AvatarEditor.xex",
+      "size": 15552512,
+      "sha256": "5D4131A0F88A7F193E3B1A6515578C90D45A69DFF8ED897BC0832D8188E96335",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/BiometricSetup.xex",
+      "size": 4341760,
+      "sha256": "6CFE3463D937371244817A6C80FF7939EF343BC664C4D40162E13C9FD7784722",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Dash.AttractionScreen.xex",
+      "size": 114688,
+      "sha256": "6281CF16F672EE8B53AFBE908AFDA317B7C6CF55B64C7A53D87C5603D5D86AB2",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Dash.FieldCalibration.lex",
+      "size": 421888,
+      "sha256": "79EE76751BC96E45332905E10B05CE5364FDFE6E01A33D33ACED5D1F03B29AE6",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Dash.Kiosk.lex",
+      "size": 290816,
+      "sha256": "A593D5128B920A3CCCDE68F2A698BA5813081820EE0E09F6071446D2F832DCBF",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Dash.MP.Offline.lex",
+      "size": 466944,
+      "sha256": "C3192F92ED4FBAC9218A9B99A9D6CB85B5F975CB03EF4600F7A7B53334F43698",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Dash.NuiTroubleshooter.lex",
+      "size": 1454080,
+      "sha256": "094F69D0D07238977733F583A36BCBD95BBA0AD223DE3B915975520D4528F746",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/FFFE07DF00000001",
+      "size": 1093632,
+      "sha256": "F6ADD9A0D6F3564A3AF197BEB481566B218D0C2971E1FD967D2F85B6EA1F9496",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/FFFE07DF00000002",
+      "size": 15048704,
+      "sha256": "62A05D9D699AF5455A01409EFF7F33FBBB3BFE53F77F84A55CE95A0674049E21",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/FFFE07DF00000006",
+      "size": 10170368,
+      "sha256": "2C8A30E1D03C2923B72FA7E317DDDCCCB32CD7DC454141640A4865F7388405EA",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/FFFE07DF00000008",
+      "size": 33116160,
+      "sha256": "DD8B8C1515E196C0D25437138E5C139BB4AAD18E0895C1A2A81BF000E3AFC7EB",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Guide.AvatarMiniCreator.xex",
+      "size": 413696,
+      "sha256": "7D837B05D2D368402EC252654B91903ACCE3B6DC0DD661D18B7AD70D163C4DD4",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Guide.NuiTroubleshooter.xex",
+      "size": 253952,
+      "sha256": "262BEA96634A3624960C52FB4F58B012DA75D7867E4441C633125CE7E525A480",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Xam.Community.xex",
+      "size": 131072,
+      "sha256": "CD7D8C38CDE85466E0DDF6A64A05BFBEA5860CC424FAA86E411AAA97349CDC10",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Xam.LiveMessenger.xex",
+      "size": 86016,
+      "sha256": "7A0FFF0F460379FC4461E9C19C44A391A4EAA8D77DF1DB43A9BC06CF7021C5A8",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/Xam.WordRegister.xex",
+      "size": 20480,
+      "sha256": "43EA82B6B467DEAB130B612C7553A2306DB184D628A31E9E146DDE785CEAB134",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/XimeDic.xex",
+      "size": 573440,
+      "sha256": "D17782E593BF917E6CC6CA9B0F9CA621C41AFFED7E8A23DA6EB5BCDB89084487",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/XimeDicCh.xex",
+      "size": 69632,
+      "sha256": "473DC0DA429141157CCF99B3D006644631DEE2ABA6C6677DCD34733DC742F7FA",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/dash.ExtraAVCodecs.xex",
+      "size": 835584,
+      "sha256": "C03C8AF4BBFFBEFA404C259AFD43C7AA56C70B633662A2C15541A095DC599141",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/dash.NuiFirstUse.xex",
+      "size": 1458176,
+      "sha256": "1E93F3AD9E7564342F57DE7B0FD4851E0BBAD05F7B83F1F06520F27AE70F0248",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/dash.firstuse.xex",
+      "size": 1736704,
+      "sha256": "D606136A87AF1C55814EDA4C4706260D00707A3DDCEA505A78BC2466820B267D",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/dash.natalpregame.xex",
+      "size": 434176,
+      "sha256": "6755B1E4157DEC0F17C55FA546B6B253F03484DD625A2815E35CBA03CB87BD42",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/dash.nuihub.xex",
+      "size": 278528,
+      "sha256": "EBB65DC5BAD2C0260A6475773AEDA88C8E8905A3E16E799BB528E13428042E76",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/dashnui.xex",
+      "size": 1404928,
+      "sha256": "0BF64E294D00A28A8503C5A3907FE208DDF9B00556A3193461E3B35FDADCD884",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/livepack.xex",
+      "size": 2752512,
+      "sha256": "1B8CD4EA2AA7FA41E068B67F7C0390424FA3328269067DCAF12CBD10AF1E0812",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/mediasite.xzp",
+      "size": 11485,
+      "sha256": "7DAC1EB764929E82356F40DEE3A44999E3C82C18B5204148DB000E5B84ACFA0B",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/natalsu.xex",
+      "size": 16384,
+      "sha256": "0AAEF2E1B275CDB9AB0EEFD8DAAADC0B78001469319D2DD8822E7C936255AF4B",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/nuihud.xex",
+      "size": 28672,
+      "sha256": "C1A05F56BA21181A5DE5C4BB679A597F6B623D9CFDC121A4229852F5A549FD4B",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/su20076000_00000000",
+      "size": 11649024,
+      "sha256": "8556342D4400DD8A0E07FEB3E981F03AFBBBA0CB25B914CBCAFD1A7A711D911F",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/system.manifest",
+      "size": 6276,
+      "sha256": "D4BCBAFF488A6274652B6394057946D5884D16F9F7B99CF52736410947F6B408",
+      "optional": true
+     },
+     {
+      "path": "$SystemUpdate/ximedicex.xex",
+      "size": 368640,
+      "sha256": "A967B2BD9E3556A14E2E3EB0DA0A865CB21FEF7E9C34900CB46C1889AA2905AF",
+      "optional": true
+     },
+     {
+      "path": "AvatarAwards",
+      "size": 368640,
+      "sha256": "70108B680D88AB47B9C964032CF5579CE4C3B7E4146F2F951D3AA20B3E5689C7"
+     },
+     {
+      "path": "Media/Livery.zip",
+      "size": 19883806,
+      "sha256": "0132C4EBB8420B375A84138FF4271A498BCFBE1978F22779833C401154BB36D9"
+     },
+     {
+      "path": "Media/StringTables/CHT.zip",
+      "size": 424611,
+      "sha256": "C8E94767A437BD541F94CC4459E188DDCAAE080497D2FCDA35E5DCA44F1C47E0"
+     },
+     {
+      "path": "Media/StringTables/DE.zip",
+      "size": 480333,
+      "sha256": "58EA4C8475A204617C552D15BF15F186D7EF6FD50BE4C4B9CFA32C112CF48480"
+     },
+     {
+      "path": "Media/StringTables/DEV.zip",
+      "size": 320132,
+      "sha256": "612D4086E2C7F8F7D16112ED4BDFE7A20B4DC9B87FB503D0A4F21A6961567D0E"
+     },
+     {
+      "path": "Media/StringTables/EN.zip",
+      "size": 344718,
+      "sha256": "DAEE5F97FF30B8EB2B7D8CA33AA74134A071DBD79A5A68C13F5FCC7414E78490"
+     },
+     {
+      "path": "Media/StringTables/ES.zip",
+      "size": 468354,
+      "sha256": "7B1032A51BCA0A299AE56C4FF1F65EEAECA8F200C53EB320F64ECCC44AD442CF"
+     },
+     {
+      "path": "Media/StringTables/FR.zip",
+      "size": 476969,
+      "sha256": "E98721F68223972A9E34688459E354B5BAB61C1CD9189E85C18BE4EC96D980BB"
+     },
+     {
+      "path": "Media/StringTables/GB.zip",
+      "size": 337344,
+      "sha256": "D548D7CFF3246E1F924C0D2EC0DB6A0BAD283C2744DB9E927EF8CE12330E3B06"
+     },
+     {
+      "path": "Media/StringTables/HU.zip",
+      "size": 485757,
+      "sha256": "730EAFC143597668DD43328F2103846109F02FD397750DC6393B93D311402220"
+     },
+     {
+      "path": "Media/StringTables/IT.zip",
+      "size": 473201,
+      "sha256": "9D3AE65EA3577BA3F83301D4BBAAF245E77ABE2D53C5AFDF799D6952D9F3561B"
+     },
+     {
+      "path": "Media/StringTables/JP.zip",
+      "size": 434368,
+      "sha256": "FD52AD7A05A4B56328F41910C42DA476C9D9069C08730B6461B75E4803455204"
+     },
+     {
+      "path": "Media/StringTables/KO.zip",
+      "size": 443305,
+      "sha256": "175A2077C333227950543D9564E2C89BBAFCF3DC4100F47A96E5D43DB81E30D1"
+     },
+     {
+      "path": "Media/StringTables/LOC.zip",
+      "size": 315531,
+      "sha256": "A9F21F686808CE847719462B4AC6BEB34D5DC53ABFF734C58DC3760E3A5D4CA0"
+     },
+     {
+      "path": "Media/StringTables/MX.zip",
+      "size": 345100,
+      "sha256": "B0DF94D4435708E0C759AF19116FD30D4A1178E19B36C032CA104902BD0DD384"
+     },
+     {
+      "path": "Media/StringTables/PL.zip",
+      "size": 485721,
+      "sha256": "8D09B084F9DC5A16285BC059B0591C7AD3243FF462FB53FEA64A9EBC8C44B5BC"
+     },
+     {
+      "path": "Media/StringTables/RU.zip",
+      "size": 373624,
+      "sha256": "D858795DE70E77360B869D3C6E0BC0B95659B0B31B7F8AB69B3B0EB6685494B1"
+     },
+     {
+      "path": "Media/StringTables/br.zip",
+      "size": 345094,
+      "sha256": "AC4CCB7B6305094D812E7E56F3AFDB69914443B608DFB73F4832C3FF481E4FF7"
+     },
+     {
+      "path": "Media/StringTables/cz.zip",
+      "size": 481823,
+      "sha256": "C353FB6A043E32DB6FED871875C088B50645FE6F7E4CFBF4EE4B8F3F2BAC5BBB"
+     },
+     {
+      "path": "Media/StringTables/nl.zip",
+      "size": 339434,
+      "sha256": "CDE1E39E89831727CC5DF15E09C45773CF63138E6A96700FBB07AF798BF914F8"
+     },
+     {
+      "path": "Media/UI.zip",
+      "size": 4388131,
+      "sha256": "05B6A8B96334A39F2717D716E1815AD537C21E3AA9ACCDC7EF0870B6B8EE5BBA"
+     },
+     {
+      "path": "Media/UI/Textures.zip",
+      "size": 435538044,
+      "sha256": "077F417D56031C4726671119F81B5A2F43466982FAD2A115C7B57CA35CE40FF9"
+     },
+     {
+      "path": "Media/cars/Driver.zip",
+      "size": 4946036,
+      "sha256": "71BC91354031F866B731325351D6C64724C0C4A7AAB541323B3581B4F0624E75"
+     },
+     {
+      "path": "Media/cars/Shared.zip",
+      "size": 4054354,
+      "sha256": "ABAD80F8D2176E07EFFEA9F597352B892CB84BE355DB9BE9155E526388D276C9"
+     },
+     {
+      "path": "Media/db/gamedb.slt",
+      "size": 6500352,
+      "sha256": "02216ECB4139B417F6D0922EF2AEF3614FC79157E0001D3C0FD97E16A83F40FD"
+     },
+     {
+      "path": "Media/zipmanifest.xml",
+      "size": 104875,
+      "sha256": "5C6CC1D70D873AD9146F7DE875F6A6A359CEAF594F2D9744757BCA04031A9095"
+     },
+     {
+      "path": "SpeechFacade_default.xex",
+      "size": 2138112,
+      "sha256": "CF06CAC7C34E38A9B45DB5C7DA4A690C7414C8B461537463D3162465E89431BD"
+     },
+     {
+      "path": "XMediaFacade_default.xex",
+      "size": 2662400,
+      "sha256": "FEC814D3066C73B182543E80A50C7C7CAF48749E4026AE933BF19654D4F118A7"
+     },
+     {
+      "path": "default.xex",
+      "size": 15155200,
+      "sha256": "763636FE8CC9D2FF822ADE4C972EFEF907E193F31175DEF127863575BF3C4AD5"
+     },
+     {
+      "path": "hash.manifest",
+      "size": 36904,
+      "sha256": "7640BB86211855CB10034CD881573D9447D19001BB5B68D462579562FF846289"
+     }
+    ]
+   },
+   {
     "name": "Project Forza Plus 4 1.3",
     "media_id": "633772A0",
     "code_image": "1.0",
