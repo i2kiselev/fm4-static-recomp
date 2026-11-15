@@ -272,3 +272,14 @@ TEST_CASE("Keys the keyboard driver does not know are left out", "[controls]") {
   CHECK(LoadFrom("driving_x = \"Shift+W,shift\"\n").driving.keys[size_t(PadControl::kX)] ==
         "Shift+W");
 }
+
+TEST_CASE("A key names the pad buttons the keyboard driver's binds give it", "[controls]") {
+  const rex::input::mnk::KeybindMap binds = {
+      {"keybind_dpad_down", "Semicolon"},
+      {"keybind_x", "X,Semicolon"},
+      {"keybind_right_shoulder", "Shift+W"},
+  };
+  CHECK(PadButtonsOfKey(binds, rex::ui::VirtualKey::kOem1) == "x,dpad_down");
+  CHECK(PadButtonsOfKey(binds, rex::ui::VirtualKey::kW) == "right_shoulder");
+  CHECK(PadButtonsOfKey(binds, rex::ui::VirtualKey::kOem7).empty());
+}

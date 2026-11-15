@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 
+#include <rex/input/mnk/mnk_bind.h>
 #include <rex/ui/virtual_key.h>
 
 namespace fm4_static_recomp::config {
@@ -105,6 +106,10 @@ std::string UsableKeys(std::string_view bind);
 // A pressed key's name in the bind syntax ("W", "Return", "Shift"); empty for the function
 // keys (the app's shortcuts) and the mouse buttons.
 std::string BindKeyName(rex::ui::VirtualKey key);
+
+// The controls.toml names of the pad buttons and stick directions whose binds name the key,
+// modifiers aside ("x,dpad_down"); empty when none does.
+std::string PadButtonsOfKey(const rex::input::mnk::KeybindMap& binds, rex::ui::VirtualKey key);
 
 // Hands the set to the keyboard driver in place of its keybind_* options.
 void ApplyBindings(const BindingSet& set);

@@ -67,6 +67,7 @@ REXCVAR_DECLARE(std::string, fm4_shader_list_dir);
 REXCVAR_DECLARE(std::string, fm4_export_ui_fonts);
 REXCVAR_DECLARE(bool, fm4_show_fps);
 REXCVAR_DECLARE(bool, controller_vibration);
+REXCVAR_DECLARE(bool, fm4_log_keys);
 
 // Alt+Enter, ahead of the GRAPHICS page and the keyboard driver: Enter alone is START and the
 // menus' A. Upstream's SDK has no such key today; if a merge brings one, keep only one.
@@ -88,6 +89,39 @@ class FullscreenToggle final : public rex::ui::WindowInputListener {
   }
 
  private:
+  rex::ui::Window& window_;
+};
+
+// fm4_log_keys: first in line, so it sees every key even when a later listener takes it.
+class KeyLog final : public rex::ui::WindowInputListener {
+ public:
+  explicit KeyLog(rex::ui::Window& window) : window_(window) {
+    window_.AddInputListener(this, fm4_static_recomp::hostui::HostUi::kZOrder + 2);
+  }
+  ~KeyLog() override { window_.RemoveInputListener(this); }
+
+  void OnKeyDown(rex::ui::KeyEvent& e) override {
+    if (!e.prev_state()) {
+      Log(e, "down");
+    }
+  }
+  void OnKeyUp(rex::ui::KeyEvent& e) override { Log(e, "up"); }
+
+ private:
+  static void Log(const rex::ui::KeyEvent& e, const char* what) {
+    const auto binds = rex::input::mnk::KeybindOverrides();
+    const std::string buttons =
+        binds ? fm4_static_recomp::input::PadButtonsOfKey(*binds, e.virtual_key()) : "";
+    const std::string name = rex::ui::VirtualKeyToString(e.virtual_key());
+    REXLOG_INFO("Key log: {} (0x{:02X}) {} in {} -> {}", name.empty() ? "?" : name,
+                uint32_t(e.virtual_key()), what,
+                fm4_static_recomp::input::CurrentInputContext() ==
+                        fm4_static_recomp::input::InputContext::kDriving
+                    ? "driving"
+                    : "menu",
+                buttons.empty() ? "no pad button" : buttons);
+  }
+
   rex::ui::Window& window_;
 };
 
@@ -251,6 +285,9 @@ class Fm4App final : public rex::ReXApp {
     if (rex::ui::Window* const window = this->window()) {
       window->SetCursorVisibility(rex::ui::Window::CursorVisibility::kAutoHidden);
       fullscreen_toggle_ = std::make_unique<FullscreenToggle>(*window);
+      if (REXCVAR_GET(fm4_log_keys)) {
+        key_log_ = std::make_unique<KeyLog>(*window);
+      }
       fm4_static_recomp::ui::LimitFrameRateToDisplay(
           fm4_static_recomp::ui::DisplayRefreshHz(window->GetNativeWindowHandle()));
     }
@@ -317,6 +354,7 @@ class Fm4App final : public rex::ReXApp {
     }
     host_ui_.reset();
     fullscreen_toggle_.reset();
+    key_log_.reset();
   }
 
   // A registered dialog, even one with nothing to draw, moves presentation to
@@ -612,4 +650,5 @@ class Fm4App final : public rex::ReXApp {
   std::atomic<bool> keyboard_prompts_{false};
   std::unique_ptr<fm4_static_recomp::hostui::HostUi> host_ui_;
   std::unique_ptr<FullscreenToggle> fullscreen_toggle_;
+  std::unique_ptr<KeyLog> key_log_;
 };

@@ -15,12 +15,16 @@
 #include <xlocale.h>
 #endif
 
+#include <rex/cvar.h>
 #include <rex/input/mnk/mnk_bind.h>
 #include <rex/input/mnk/mnk_input_driver.h>
 #include <rex/logging.h>
 #include <rex/ui/keybinds.h>
 
 #include "config/host_config.h"
+
+REXCVAR_DEFINE_BOOL(fm4_log_keys, false, "Forza Motorsport 4",
+                    "Log each key the game window receives and the pad buttons it presses");
 
 namespace fm4_static_recomp::input {
 namespace {
@@ -380,6 +384,24 @@ std::string BindKeyName(rex::ui::VirtualKey key) {
     return {};
   }
   return rex::ui::VirtualKeyToString(key);
+}
+
+std::string PadButtonsOfKey(const rex::input::mnk::KeybindMap& binds, rex::ui::VirtualKey key) {
+  std::string buttons;
+  for (const ControlNames& names : kNames) {
+    const auto bind = binds.find(std::string_view(names.option));
+    if (bind == binds.end()) {
+      continue;
+    }
+    for (const std::string_view token : Tokens(bind->second)) {
+      if (rex::ui::ParseVirtualKey(BareKey(token)) == key) {
+        buttons += buttons.empty() ? "" : ",";
+        buttons += names.file;
+        break;
+      }
+    }
+  }
+  return buttons;
 }
 
 void ApplyBindings(const BindingSet& set) {
