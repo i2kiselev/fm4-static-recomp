@@ -52,6 +52,71 @@ struct Setting {
 
 const Setting kFrameRate = {"fm4_frame_rate", false, {}, 60, 240};
 const Setting kVsync = {"vulkan_present_mode", true, {{"OFF", "immediate"}, {"ON", "fifo"}}};
+const Setting kFrameGeneration = {"present_frame_generation", false,
+                                  {{"OFF", "false"}, {"ON", "true"}}};
+const Setting kHud = {"fh1_native_hud", false, {{"UPSCALED", "false"}, {"NATIVE", "true"}}};
+// LIGHTING: each scales or offsets the track's own value (TrackSettings.xml), applied to the
+// game's bloom and tonemap draws (shiftglue-sdk fm4_lighting.cpp).
+const Setting kLightingBloom = {"fm4_lighting_bloom",
+                                false,
+                                {{"OFF", "0"},
+                                 {"25 %", "25"},
+                                 {"50 %", "50"},
+                                 {"75 %", "75"},
+                                 {"GAME", "100"},
+                                 {"125 %", "125"},
+                                 {"150 %", "150"},
+                                 {"200 %", "200"}}};
+const Setting kLightingBloomThreshold = {"fm4_lighting_bloom_threshold",
+                                         false,
+                                         {{"50 %", "50"},
+                                          {"75 %", "75"},
+                                          {"GAME", "100"},
+                                          {"150 %", "150"},
+                                          {"200 %", "200"},
+                                          {"300 %", "300"},
+                                          {"400 %", "400"}}};
+const Setting kLightingExposure = {"fm4_lighting_exposure",
+                                   false,
+                                   {{"-1.5 EV", "-150"},
+                                    {"-1 EV", "-100"},
+                                    {"-0.75 EV", "-75"},
+                                    {"-0.5 EV", "-50"},
+                                    {"-0.25 EV", "-25"},
+                                    {"GAME", "0"},
+                                    {"+0.25 EV", "25"},
+                                    {"+0.5 EV", "50"},
+                                    {"+0.75 EV", "75"},
+                                    {"+1 EV", "100"},
+                                    {"+1.5 EV", "150"}}};
+// The cars' ambient light and a floor under their colours (shiftglue-sdk fm4_lighting.cpp).
+const Setting kCockpitAmbient = {"fm4_lighting_car_ambient",
+                                 false,
+                                 {{"GAME", "100"},
+                                  {"150 %", "150"},
+                                  {"200 %", "200"},
+                                  {"300 %", "300"},
+                                  {"400 %", "400"},
+                                  {"600 %", "600"}}};
+const Setting kCockpitShadowLift = {"fm4_lighting_car_shadow_lift",
+                                   false,
+                                   {{"OFF", "0"},
+                                    {"1", "10"},
+                                    {"2", "25"},
+                                    {"3", "50"},
+                                    {"4", "100"},
+                                    {"5", "200"},
+                                    {"6", "400"}}};
+const Setting kLightingSaturation = {"fm4_lighting_saturation",
+                                     false,
+                                     {{"50 %", "50"},
+                                      {"75 %", "75"},
+                                      {"90 %", "90"},
+                                      {"GAME", "100"},
+                                      {"110 %", "110"},
+                                      {"FULL COLOUR", "118"},
+                                      {"130 %", "130"},
+                                      {"150 %", "150"}}};
 const Setting kDetail = {"fm4_level_of_detail",
                          true,
                          {{"CONSOLE", "console"},
@@ -115,10 +180,11 @@ const Setting* const kPresetSettings[] = {
 constexpr size_t kPresetSettingCount = std::size(kPresetSettings);
 
 const Setting* const kSettings[] = {
-    &kFrameRate, &kVsync, &kScale, &kUpscaler, &kDlssPreset, &kSharpness, &kPostAa,
-    &kShowroomMsaa, &kRaceMsaa, &kAnisotropy,
+    &kFrameRate, &kVsync, &kScale, &kUpscaler, &kDlssPreset, &kSharpness, &kFrameGeneration,
+    &kHud, &kPostAa, &kShowroomMsaa, &kRaceMsaa, &kAnisotropy,
     &kSceneryShadows, &kReflectionUpdates, &kDetail, &kMirror, &kBloom, &kSoftParticles, &kCrowds,
-    &kMotionBlur, &kDepthOfField, &kCarDirt};
+    &kMotionBlur, &kDepthOfField, &kCarDirt, &kLightingBloom, &kLightingBloomThreshold,
+    &kLightingExposure, &kLightingSaturation, &kCockpitAmbient, &kCockpitShadowLift};
 
 struct Preset {
   const char* label;
@@ -180,6 +246,16 @@ const RowText kRows[] = {
     {"SHARPNESS", &kSharpness,
      "Sharpens the picture after the upscaler. Off leaves the picture of DLSS, FSR 2, FSR 3 "
      "or FSR 4 as it is; FSR 1 always sharpens a little."},
+    {"FRAME GENERATION", &kFrameGeneration,
+     "AMD FSR frame generation: one generated frame between each two the game renders, for "
+     "smoother motion at about one frame more input latency. Runs with FSR 2, FSR 3 or FSR 4 "
+     "and pauses while a menu like this one is open. It presents through Vulkan, not DXGI, so "
+     "tools that need DXGI frames (Lossless Scaling, AFMF) do not see them."},
+    {"HUD", &kHud,
+     "How the HUD and menus reach your display while DLSS, FSR 2, FSR 3 or FSR 4 upscales. "
+     "Upscaled stretches them from the resolution scale, as before. Native draws them a second "
+     "time at the display's resolution: sharp text, gauges and menus, for a little more GPU "
+     "work."},
     {"GRAPHICS PRESET", nullptr,
      "Sets every setting below. Console is the game as on the console; "
      "High raises most, adds FXAA and uses 2x MSAA everywhere; Ultra also raises the level of "
@@ -235,6 +311,28 @@ const RowText kRows[] = {
      "Applies from the next screen."},
     {"CAR DIRT", &kCarDirt,
      "The dirt cars gather in a race. Off leaves cars clean."},
+    {"BLOOM STRENGTH", &kLightingBloom,
+     "How strongly bright parts glow, against each track's own bloom. Off leaves no glow; "
+     "Game is the track as made.",
+     true},
+    {"BLOOM THRESHOLD", &kLightingBloomThreshold,
+     "How bright a part must be to glow, against each track's own threshold. Higher keeps "
+     "the glow to the sun, lights and reflections; lower spreads it."},
+    {"EXPOSURE", &kLightingExposure,
+     "Brightens or darkens the picture by stops after the game's own eye adaptation: +1 EV "
+     "is twice as bright."},
+    {"SATURATION", &kLightingSaturation,
+     "Colour strength against each track's. Most tracks take 15% of the colour away; Full "
+     "Colour gives it back there."},
+    {"COCKPIT AMBIENT", &kCockpitAmbient,
+     "The light from the surroundings on the cockpit's headliner, pillars and trim: higher "
+     "brings them out of the shade. Only the cars' own materials change (other cars' shaded "
+     "sides too), never the track."},
+    {"COCKPIT SHADOW LIFT", &kCockpitShadowLift,
+     "Brings the cockpit's dark parts (the dash, the wheel, black trim) out of the dark, on "
+     "the cars alone: dark materials gain the most, light ones barely change, the track "
+     "never."},
+
 };
 
 const RowText& Text(const char* label) {
@@ -818,6 +916,54 @@ void LimitFrameRateToDisplay(uint32_t refresh_hz) {
               refresh_hz);
 }
 
+// The page around its rows: SAVE & APPLY, leaving with unapplied changes, the status line
+// and the queued settings applied one per frame.
+static std::unique_ptr<MenuScreen> FinishPage(const char* title, std::vector<MenuRow> rows,
+                                       const std::shared_ptr<Draft>& draft,
+                                       config::HostConfig& config,
+                                       const GraphicsPageServices& services) {
+  auto screen = std::make_unique<MenuScreen>(title, std::move(rows));
+  screen->set_apply([draft, &config] { SaveAndApply(*draft, config); });
+  // Unapplied changes keep the page open once; leaving again discards them.
+  screen->set_leave([draft] {
+    if (draft->busy()) {
+      return false;
+    }
+    if (draft->values.empty() || draft->leave_warned) {
+      return true;
+    }
+    draft->leave_warned = true;
+    return false;
+  });
+  screen->set_status([draft] {
+    if (draft->busy()) {
+      if (draft->settling == &kScale &&
+          std::chrono::steady_clock::now() - draft->set_at >= kShaderBuildShown) {
+        return hostui::MenuStatus{
+            .text = "BUILDING SHADERS FOR " + Label(kScale, Find(kScale, Live(kScale.name))) +
+                    ", FIRST TIME ONLY",
+            .busy = true};
+      }
+      return hostui::MenuStatus{.text = "APPLYING SETTINGS", .busy = true};
+    }
+    if (!draft->values.empty()) {
+      return hostui::MenuStatus{.text = "UNSAVED CHANGES", .warning = draft->leave_warned};
+    }
+    if (draft->applied) {
+      return hostui::MenuStatus{.text = "SETTINGS APPLIED. YOU CAN CONTINUE."};
+    }
+    return hostui::MenuStatus{};
+  });
+  screen->set_update([draft, services](bool closing) {
+    if (!closing) {
+      ApplyNext(*draft, services);
+    } else if (!draft->values.empty() && !draft->busy()) {
+      REXLOG_INFO("Graphics page: discarded {} unapplied changes", draft->values.size());
+    }
+  });
+  return screen;
+}
+
 std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
                                                GraphicsPageServices services) {
   auto draft = std::make_shared<Draft>();
@@ -885,6 +1031,20 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
   sharpness.enabled = [draft, services] { return !UpscalerName(*draft, services).empty(); };
   rows.push_back(std::move(sharpness));
 
+  MenuRow frame_generation = Row("FRAME GENERATION", kFrameGeneration, draft);
+  frame_generation.enabled = [draft, services] {
+    const std::string upscaler = UpscalerName(*draft, services);
+    return !upscaler.empty() && upscaler != "FSR 1" && upscaler != "DLSS";
+  };
+  rows.push_back(std::move(frame_generation));
+
+  MenuRow hud = Row("HUD", kHud, draft);
+  hud.enabled = [draft, services] {
+    const std::string upscaler = UpscalerName(*draft, services);
+    return !upscaler.empty() && upscaler != "FSR 1";
+  };
+  rows.push_back(std::move(hud));
+
   MenuRow preset;
   preset.label = "GRAPHICS PRESET";
   preset.value = [draft] {
@@ -944,46 +1104,29 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
   MenuRow car_dirt = Row("CAR DIRT", kCarDirt, draft);
   rows.push_back(std::move(car_dirt));
 
-  auto screen = std::make_unique<MenuScreen>("GRAPHICS", std::move(rows));
-  screen->set_apply([draft, &config] { SaveAndApply(*draft, config); });
-  // Unapplied changes keep the page open once; leaving again discards them.
-  screen->set_leave([draft] {
-    if (draft->busy()) {
-      return false;
-    }
-    if (draft->values.empty() || draft->leave_warned) {
-      return true;
-    }
-    draft->leave_warned = true;
-    return false;
-  });
-  screen->set_status([draft] {
-    if (draft->busy()) {
-      if (draft->settling == &kScale &&
-          std::chrono::steady_clock::now() - draft->set_at >= kShaderBuildShown) {
-        return hostui::MenuStatus{
-            .text = "BUILDING SHADERS FOR " + Label(kScale, Find(kScale, Live(kScale.name))) +
-                    ", FIRST TIME ONLY",
-            .busy = true};
-      }
-      return hostui::MenuStatus{.text = "APPLYING SETTINGS", .busy = true};
-    }
-    if (!draft->values.empty()) {
-      return hostui::MenuStatus{.text = "UNSAVED CHANGES", .warning = draft->leave_warned};
-    }
-    if (draft->applied) {
-      return hostui::MenuStatus{.text = "SETTINGS APPLIED. YOU CAN CONTINUE."};
-    }
-    return hostui::MenuStatus{};
-  });
-  screen->set_update([draft, services](bool closing) {
-    if (!closing) {
-      ApplyNext(*draft, services);
-    } else if (!draft->values.empty() && !draft->busy()) {
-      REXLOG_INFO("Graphics page: discarded {} unapplied changes", draft->values.size());
-    }
-  });
-  return screen;
+  return FinishPage("GRAPHICS", std::move(rows), draft, config, services);
+}
+
+}  // namespace fm4_static_recomp::ui
+
+namespace fm4_static_recomp::ui {
+
+std::unique_ptr<MenuScreen> CreateLightingPage(config::HostConfig& config,
+                                               GraphicsPageServices services) {
+  auto draft = std::make_shared<Draft>();
+  std::vector<MenuRow> rows;
+  for (const auto& [label, setting] :
+       {std::pair{"BLOOM STRENGTH", &kLightingBloom},
+        std::pair{"BLOOM THRESHOLD", &kLightingBloomThreshold},
+        std::pair{"EXPOSURE", &kLightingExposure},
+        std::pair{"SATURATION", &kLightingSaturation},
+        std::pair{"COCKPIT AMBIENT", &kCockpitAmbient},
+        std::pair{"COCKPIT SHADOW LIFT", &kCockpitShadowLift}}) {
+    MenuRow row = Row(label, *setting, draft);
+    row.divider_above = false;
+    rows.push_back(std::move(row));
+  }
+  return FinishPage("LIGHTING", std::move(rows), draft, config, services);
 }
 
 }  // namespace fm4_static_recomp::ui

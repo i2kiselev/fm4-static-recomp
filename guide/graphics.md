@@ -94,3 +94,18 @@ to 99, on every track; DEFAULT keeps each track's own count. It is saved to
 shows the new count. Kinect races keep their own count. Long races are not tested yet: tyre
 wear, the AI and the results screen may not hold up
 ([#75](https://github.com/i2kiselev/fm4-static-recomp/issues/75)).
+
+## Lighting
+
+The LIGHTING tab (in game beside GRAPHICS, and in the launcher's SETTINGS) changes the light of
+every track against the track's own values, so tracks keep their differences; GAME is the
+track as made. Changes apply at once.
+
+| Setting | Effect |
+|---|---|
+| BLOOM STRENGTH | How strongly bright parts glow, from off to twice the track's. |
+| BLOOM THRESHOLD | How bright a part must be to glow: higher keeps the glow to the sun, lights and reflections. |
+| EXPOSURE | Brightens or darkens the picture by stops after the game's eye adaptation. |
+| SATURATION | Colour strength; most tracks take 15 % of the colour away, and FULL COLOUR gives it back there. |
+| COCKPIT AMBIENT | The light from the surroundings on the cockpit's headliner, pillars and trim; the track is unchanged. |
+| COCKPIT SHADOW LIFT | Brings the cockpit's dark parts (dash, wheel, black trim) out of the dark; light materials barely change, the track never. |
