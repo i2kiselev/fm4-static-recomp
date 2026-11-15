@@ -34,7 +34,7 @@ public class DiscManifestTests
     {
         var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../config/supported-discs.json"));
         var manifest = DiscManifest.Load(real);
-        Assert.Equal(["61D62D9F", "26FF1101", "42C67824", "33E7B39F"], manifest.DiscReleases.Select(r => r.MediaId));
+        Assert.Equal(["61D62D9F", "26FF1101", "42C67824", "33E7B39F", "633772A0"], manifest.DiscReleases.Select(r => r.MediaId));
         Assert.Equal(4001, manifest.Disc1.Files.Count);
         Assert.Equal(4, manifest.Disc2.Packages.Count);
         foreach (var release in manifest.DiscReleases)
@@ -58,7 +58,11 @@ public class DiscManifestTests
         Assert.Equal("FEA11E87FF8434E51ED8E683023EA17281DEC02A5ED8FA226B1C73726CF15128",
             manifest.ModRelease.Files.Single(f => f.Path == "default.xex").Sha256);
         Assert.DoesNotContain(manifest.DiscReleases, r => r.Mod);
-        Assert.Null(manifest.Release("633772A0"));
+        var asia = manifest.Release("633772A0")!;
+        Assert.Equal("1.0 Asia", asia.Name);
+        Assert.False(asia.Mod);
+        Assert.Equal("763636FE8CC9D2FF822ADE4C972EFEF907E193F31175DEF127863575BF3C4AD5",
+            asia.Files.Single(f => f.Path == "default.xex").Sha256);
     }
 
     [Fact]
@@ -68,10 +72,12 @@ public class DiscManifestTests
         var manifest = DiscManifest.Load(real);
         var modXex = manifest.ModRelease.Files.Single(f => f.Path == "default.xex").Sha256;
         var pal = manifest.Release("61D62D9F")!;
+        var asia = manifest.Release("633772A0")!;
         foreach (var check in new[]
                  {
                      new RequiredCheck(null, "633772A0", modXex, null),
                      new RequiredCheck(pal, "61D62D9F", modXex, pal.Files.Single(f => f.Path == "default.xex").Sha256),
+                     new RequiredCheck(asia, "633772A0", modXex, asia.Files.Single(f => f.Path == "default.xex").Sha256),
                  })
             Assert.Contains("Project Forza Plus 4", Disc1Step.RefusalText(check, manifest));
         Assert.Contains("supports", Disc1Step.RefusalText(new RequiredCheck(null, "", "", null), manifest));
