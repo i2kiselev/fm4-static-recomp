@@ -19,7 +19,7 @@ using namespace fm4_static_recomp::input;
 
 namespace {
 
-// game_hooks.cpp's GRAPHICS entry in My Profile -> Options, a key of its own.
+// game_hooks.cpp's PC OPTIONS entry in My Profile -> Options, a key of its own.
 constexpr uint16_t kGraphicsStringKey = 0x7158;
 
 struct StringEntry {
@@ -86,7 +86,7 @@ std::vector<std::filesystem::path> StringTableArchives() {
 
 }  // namespace
 
-TEST_CASE("No string table on the disc holds the GRAPHICS entry's key", "[string_tables]") {
+TEST_CASE("No string table on the disc holds the PC OPTIONS entry's key", "[string_tables]") {
   const auto archives = StringTableArchives();
   if (archives.empty()) {
     SKIP("Media/StringTables not found under " << TestGameRoot().string());
@@ -143,6 +143,8 @@ TEST_CASE("The prompt strings' keys name the same English entries, which name bu
       {0x76B3, "ingame.str", "IDS_View_Message"},
       {0xF762, "ingame.str", "IDS_Steering_Message"},
       {0xFC27, "lobby.str", "IDS_OptionBucketNameDesc"},
+      {0x5222, "main.str", "IDS_LB"},
+      {0xD225, "main.str", "IDS_RB"},
       {0xC0F5, "main.str", "IDS_Rivals_Message"},
       {0x90AB, "mainmenu.str", "IDS_A_Start"},
       {0x206F, "myprofile.str", "IDS_Rewind_Message"},

@@ -100,6 +100,40 @@ TEST_CASE("Losing focus drops the output to zero at the return rate", "[keyboard
   CHECK(later.right_trigger == 0);
 }
 
+TEST_CASE("Mouse look passes the right stick through while driving", "[keyboard_ramp]") {
+  KeyboardRamp ramp(kRates);
+  X_INPUT_GAMEPAD pad = Raw(0, 0, 23170);
+  pad.thumb_ry = 23170;
+  ramp.Apply(pad, 0.016, true, true);
+  CHECK(pad.thumb_rx == 23170);
+  CHECK(pad.thumb_ry == 23170);
+}
+
+TEST_CASE("Releasing mouse look returns the look to rest at once", "[keyboard_ramp]") {
+  KeyboardRamp ramp(kRates);
+  for (int i = 0; i < 3; ++i) {
+    X_INPUT_GAMEPAD held = Raw(0, 0, 32767);
+    ramp.Apply(held, 0.016, true, true);
+  }
+  const X_INPUT_GAMEPAD released = Step(ramp, Raw(), 0.016);
+  CHECK(released.thumb_rx == 0);
+  CHECK(released.thumb_ry == 0);
+}
+
+TEST_CASE("Look keys held at the mouse look's release ramp from rest", "[keyboard_ramp]") {
+  KeyboardRamp ramp(kRates);
+  X_INPUT_GAMEPAD held = Raw(0, 0, 32767);
+  ramp.Apply(held, 0.016, true, true);
+  CHECK(Near(Step(ramp, Raw(0, 0, 32767), 0.05).thumb_rx, 10922, 50));
+}
+
+TEST_CASE("Steering still ramps during mouse look", "[keyboard_ramp]") {
+  KeyboardRamp ramp(kRates);
+  X_INPUT_GAMEPAD pad = Raw(32767);
+  ramp.Apply(pad, 0.05, true, true);
+  CHECK(pad.thumb_lx < 32767);
+}
+
 TEST_CASE("A long gap counts as a tenth of a second", "[keyboard_ramp]") {
   KeyboardRamp ramp(kRates);
   CHECK(Near(Step(ramp, Raw(32767), 5.0).thumb_lx, 16384, 330));

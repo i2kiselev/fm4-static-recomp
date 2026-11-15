@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>FM4StaticRecompLauncher</AssemblyName>
     <RootNamespace>Fm4StaticRecomp.Launcher</RootNamespace>
-    <Version>0.3.2</Version>
+    <Version>0.3.3</Version>
     <Product>FM4 Static Recomp Launcher</Product>
     <Description>Builds FM4 Static Recomp locally from the player's own verified game discs.</Description>
     <Authors>FM4 Static Recomp contributors</Authors>

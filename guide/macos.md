@@ -121,7 +121,7 @@ memory ranges are requested still run. A more precise memory-tracking fix is pla
 ```sh
 git clone https://github.com/i2kiselev/fm4-static-recomp.git
 cd fm4-static-recomp
-git checkout v0.3.2
+git checkout v0.3.3
 # Put your extracted Disc 1 at game/disc1, then:
 ./tools/build-mac.sh
 out/build/mac-arm64-release/fm4_static_recomp \

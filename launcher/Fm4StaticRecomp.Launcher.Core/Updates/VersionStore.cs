@@ -2,6 +2,7 @@
 // BSD 3-Clause License: see LICENSE in the repository root.
 using System.IO.Compression;
 using System.Security.Cryptography;
+using Fm4StaticRecomp.Launcher.Core.Discs;
 using Fm4StaticRecomp.Launcher.Core.Install;
 using Fm4StaticRecomp.Launcher.Core.Settings;
 
@@ -21,7 +22,13 @@ public sealed class VersionStore(InstallLayout layout, LauncherSettings settings
         await using (var stream = File.OpenRead(zip))
             hash = Convert.ToHexString(await SHA256.HashDataAsync(stream, cancellation));
         var marker = Path.Combine(destination, PayloadMarker);
-        if (File.Exists(marker) && (await File.ReadAllTextAsync(marker, cancellation)).Trim() == hash) return;
+        if (File.Exists(marker) && (await File.ReadAllTextAsync(marker, cancellation)).Trim() == hash)
+        {
+            // A cleanup tool may delete a folder from an unchanged payload (#99: one wiping every
+            // shader_cache folder); restoring only the missing files keeps the build up to date.
+            await Task.Run(() => RestoreMissing(zip, destination), cancellation);
+            return;
+        }
         Directory.CreateDirectory(destination);
         await Task.Run(() =>
         {
@@ -35,6 +42,20 @@ public sealed class VersionStore(InstallLayout layout, LauncherSettings settings
                     File.SetLastWriteTimeUtc(Path.Combine(destination, entry.FullName), extractedAt);
         }, cancellation);
         await File.WriteAllTextAsync(marker, hash + "\n", cancellation);
+    }
+
+    private static void RestoreMissing(string zip, string destination)
+    {
+        using var archive = ZipFile.OpenRead(zip);
+        foreach (var entry in archive.Entries)
+        {
+            if (entry.Name.Length == 0) continue;
+            var target = SafePath.Combine(destination, entry.FullName);
+            if (File.Exists(target)) continue;
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            entry.ExtractToFile(target);
+            File.SetLastWriteTimeUtc(target, DateTime.UtcNow);
+        }
     }
 
     public void Activate(string version)

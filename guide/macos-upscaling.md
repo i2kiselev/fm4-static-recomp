@@ -11,6 +11,7 @@ MetalFX APIs.
 | FSR 1 spatial upscaling | Built-in presenter shaders |
 | FSR 2 temporal upscaling | FidelityFX 2.3.3 runtime, built and staged from source |
 | FSR 3 temporal upscaling | FidelityFX 3.1.4 runtime, built and staged from source |
+| FSR 4 temporal upscaling | Unavailable: AMD ships its runtime for Windows only |
 | NVIDIA DLSS / DLAA | Requires supported NVIDIA hardware and the NGX runtime; unavailable on Apple Silicon |
 | FSR frame generation | Not integrated; the bundled FidelityFX build explicitly disables its frame-generation provider |
 | MetalFX temporal upscaling | Not integrated into this Vulkan presenter |

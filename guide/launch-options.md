@@ -11,7 +11,7 @@ or in the launcher's SETTINGS.
 | `--fm4_frame_rate=60..240` | Frame rate of races, menus and the showroom (down to 30 for [testing a slow processor](high-frame-rate.md#testing-a-slow-processor)) |
 | `--vulkan_present_mode=immediate\|fifo` | VSYNC off or on |
 | `--swap_post_effect=none\|fxaa\|fxaa_extreme` | Post-process anti-aliasing |
-| `--present_effect=bilinear\|fsr\|fsr2\|fsr3\|dlss` | UPSCALER: off, FSR 1, FSR 2, FSR 3 or DLSS |
+| `--present_effect=bilinear\|fsr\|fsr2\|fsr3\|fsr4\|dlss` | UPSCALER: off, FSR 1, FSR 2, FSR 3, FSR 4 or DLSS |
 | `--present_upscaler_sharpness=0..100` | SHARPNESS after the upscaler, in percent |
 | `--present_dlss_preset=auto\|k\|m\|j\|l\|default` | DLSS PRESET |
 | `--fm4_disc2_packages=<folder>` | Install the Disc 2 packages from this folder |
@@ -21,6 +21,9 @@ or in the launcher's SETTINGS.
 | `--controller_vibration=false` | Turns all controller vibration off (VIBRATION STRENGTH keeps its value). In the launcher: SETTINGS → CONTROLLER VIBRATION |
 | `--fm4_audio_compatibility=true` | Opt-in audio mixer path for repeated or slowed race audio, most of all on processors without FMA instructions (most made before 2013, and some Celeron and Pentium models). Off by default. In the launcher: SETTINGS → ADVANCED → AUDIO FOR OLDER CPUS. Restart the game after changing it |
 | `--fm4_audio_pop_fix=false` | AUDIO POP FIX off: the engine sounds pop where their loops start over and click when revving and shifting, as on a console. In the launcher: SETTINGS → ADVANCED → AUDIO POP FIX |
+| `--fm4_keep_music_on_crash=true` | The race music, your own music folder too, keeps playing when you crash hard; by default it stops for a few seconds, as on a console. In the launcher: SETTINGS → ADVANCED → MUSIC ON CRASH. Restart the game after changing it |
+| `--fm4_music_filter=light` | On some parts of each track the game thins out the bass of its own soundtrack (`default`); `light` keeps more of it. Your own music folders are not filtered. In the launcher: SETTINGS → ADVANCED → MUSIC FILTER. Restart the game after changing it |
+| `--fm4_quick_race_laps=<1-99>` | Experimental: the number of laps of every Quick Race; `0` (default) keeps each track's own count. In the game: PC OPTIONS → GAMEPLAY → QUICK RACE LAPS ([Quick Race laps](gameplay.md#quick-race-laps-experimental)) |
 | `--fm4_menu_music_folder=<folder>` | Shuffled menu MP3/WAV playlist; empty uses original music. See [Custom soundtrack](#custom-soundtrack) |
 | `--fm4_race_music_folder=<folder>` | Shuffled race MP3/WAV playlist; empty uses original music |
 | `--fm4_language=<code>` | The game's language (see [Languages](#languages)) |
@@ -31,7 +34,7 @@ or in the launcher's SETTINGS.
 | `--window_aspect_ratio=16:9` | The shape the window keeps while resized and at its start (the default); `free` leaves it free, with black bars around the 16:9 picture |
 | `--vulkan_present_via_dxgi=true` | Present through DXGI, for [frame generation tools](#frame-generation) |
 | `--pad_rumble_strength=0..200` | Controller vibration in percent of the game's own (`100`); above 100 each motor tops out at full speed, `0` turns it off. In the launcher: SETTINGS → VIBRATION STRENGTH |
-| `--pad_chord_game_menu=BACK+START` | Controller buttons held together that open the GRAPHICS page (`A`, `B`, `X`, `Y`, `LB`, `RB`, `LS`, `RS`, `BACK`, `START`, `UP`, `DOWN`, `LEFT`, `RIGHT` joined by `+`); empty turns it off |
+| `--pad_chord_game_menu=BACK+START` | Controller buttons held together that open PC OPTIONS (`A`, `B`, `X`, `Y`, `LB`, `RB`, `LS`, `RS`, `BACK`, `START`, `UP`, `DOWN`, `LEFT`, `RIGHT` joined by `+`); empty turns it off |
 
 ## Custom soundtrack
 
@@ -161,7 +164,7 @@ the command line. Two exceptions:
   variables: the paths, `user_name`, `fm4_language`, `fm4_skip_intro`, `fh1_async_readbacks`,
   `vulkan_present_via_dxgi`, `fm4_frame_rate` (30 FPS (DIAGNOSTIC)), `fm4_show_fps`,
   `controller_vibration`, `pad_rumble_strength`,
-  `fm4_audio_compatibility`, `fm4_audio_pop_fix`, the two music folders, `fullscreen`, `window_width`,
+  `fm4_audio_compatibility`, `fm4_audio_pop_fix`, `fm4_keep_music_on_crash`, `fm4_music_filter`, the two music folders, `fullscreen`, `window_width`,
   `window_height`, `fm4_car_min_substeps` on Project Forza Plus 4, and COMPAT MODE's list. Set those in its SETTINGS, or replace one in COMMAND-LINE OPTIONS.
 
 ### Checking that an option took effect

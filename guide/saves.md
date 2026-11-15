@@ -14,6 +14,7 @@ beside **PLAY**; the **PROFILE** button manages them.
 | **RENAME** | Changes the name and the gamertag (1 to 15 English letters, digits or spaces, starting with a letter). |
 | **OPEN SAVE FOLDER** | Shows the profile's folder in Explorer. |
 | **IMPORT SAVE** | Copies saves from another place into a new profile ([below](#importing-saves)). |
+| **IMPORT XBOX 360 SAVE** | Copies a career from an Xbox 360 save file into a new profile ([below](#a-career-from-an-xbox-360)). |
 | **DELETE** | Moves the profile to `deleted\` in the saves folder after you type its name; you can restore it from there by hand. |
 
 Before a new version of the game first runs a profile, the launcher zips that profile's save to
@@ -54,6 +55,31 @@ career, or, if you played a new career in that profile meanwhile, the Xenia care
 own, named like the old one with `(Xenia)` after it, and the new career stays where it is. Pick the
 new profile in the list beside PLAY. A profile that held saves of several Xenia profiles gets one new
 profile for each, named with that Xenia profile's 16 letters and digits.
+
+### A career from an Xbox 360
+
+FM4 on the Xbox 360 keeps the career in one file, `ForzaProfile`. Copy it to a USB drive on the
+console, then export it on the PC with a tool such as Horizon or Velocity, as one file. Don't extract
+it: the files inside load only together with the Xbox profile named in the file itself.
+
+1. **PROFILE → IMPORT XBOX 360 SAVE**, and choose the file.
+2. Answer **VANILLA SAVE** and name the profile (it starts as the Xbox gamertag).
+
+The new profile plays as that Xbox profile. The file is not changed.
+
+What does not work:
+
+- **Extracted files** (`ForzaProfile`, `GameplayLog`, `PlayerDatabase`, `Liveries` and so on, taken out
+  of the save with Horizon, Velocity, wxPirs or similar): they don't say which Xbox profile made them.
+  Export the save again as one file.
+- **A whole USB drive or hard drive** (the `Xbox360\Data0000`… files): open it in one of these tools and
+  export the FM4 save from it.
+- **A save moved to another profile** with a modding tool (for example, Horizon's profile ID change): the
+  game still finds it "tampered with". Use the save as the console made it.
+- **Cloud saves**: download the save to the console first, then copy it to a USB drive.
+
+Saves exported with Horizon are tested; other tools that export the save unchanged as one file should
+work the same way.
 
 ## The saves folder
 

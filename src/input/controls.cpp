@@ -3,6 +3,7 @@
 #include "input/controls.h"
 
 #include <algorithm>
+#include <cmath>
 #include <charconv>
 #include <memory>
 #include <string_view>
@@ -15,6 +16,7 @@
 #endif
 
 #include <rex/input/mnk/mnk_bind.h>
+#include <rex/input/mnk/mnk_input_driver.h>
 #include <rex/logging.h>
 #include <rex/ui/keybinds.h>
 
@@ -250,6 +252,25 @@ std::optional<double> ParseRampSeconds(std::string_view value) {
   return std::nullopt;
 }
 
+std::optional<bool> ParseMouseLookEnabled(std::string_view value) {
+  if (value == "true") {
+    return true;
+  }
+  if (value == "false") {
+    return false;
+  }
+  return std::nullopt;
+}
+
+std::optional<int> ParseMouseLookSensitivity(std::string_view value) {
+  const auto parsed = ParseRampSeconds(value);
+  if (!parsed || !std::isfinite(*parsed) || *parsed <= 0.0) {
+    return std::nullopt;
+  }
+  return int(std::lround(std::clamp(*parsed, double(kMouseLookSensitivityMin),
+                                    double(kMouseLookSensitivityMax))));
+}
+
 // Keys after Forza Horizon 6 on FM4's default controller layout (gamedb.slt,
 // ControllerLayouts, LayoutId 0): A handbrake, B gear up, X gear down, Y rewind,
 // LB clutch, RB look straight back, LT brake, RT throttle, left stick steering,
@@ -313,6 +334,7 @@ Controls DefaultControls() {
   driving.keys[size_t(PadControl::kStart)] = "Escape";
 
   controls.ramp = {0.17, 0.10, 0.10, 0.08, 0.15};
+  controls.mouse_look = {true, 25};
   return controls;
 }
 
@@ -326,6 +348,16 @@ Controls LoadControls(const ControlLookup& lookup, bool log) {
   LoadRate(lookup, "ramp_pedal_seconds", ramp.pedal_seconds);
   LoadRate(lookup, "ramp_pedal_return_seconds", ramp.pedal_return_seconds);
   LoadRate(lookup, "ramp_look_seconds", ramp.look_seconds);
+  if (const auto value = lookup("mouse_look")) {
+    if (const auto enabled = ParseMouseLookEnabled(*value)) {
+      controls.mouse_look.enabled = *enabled;
+    }
+  }
+  if (const auto value = lookup("mouse_look_sensitivity")) {
+    if (const auto sensitivity = ParseMouseLookSensitivity(*value)) {
+      controls.mouse_look.sensitivity = *sensitivity;
+    }
+  }
   return controls;
 }
 
@@ -356,6 +388,12 @@ void ApplyBindings(const BindingSet& set) {
     binds->emplace(kNames[i].option, set.keys[i]);
   }
   rex::input::mnk::SetKeybindOverrides(std::move(binds));
+}
+
+void ApplyMouseLook(const MouseLook& look) {
+  rex::input::mnk::SetHoldLook({.enabled = look.enabled,
+                                .degrees_per_count = MouseLookDegreesPerCount(look.sensitivity),
+                                .hide_cursor = true});
 }
 
 }  // namespace fm4_static_recomp::input

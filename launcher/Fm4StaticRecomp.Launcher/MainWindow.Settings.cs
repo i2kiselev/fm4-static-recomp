@@ -25,7 +25,7 @@ public partial class MainWindow
 
     private GraphicsSettings? _graphics;
     private string? _graphicsProblem;
-    private bool _skipIntro, _audioPopFix = true, _audioCompatibility, _asyncReadbacks, _presentViaDxgi, _compat, _showFps, _controllerVibration, _diagnostic30Fps, _windowed;
+    private bool _skipIntro, _audioPopFix = true, _audioCompatibility, _keepMusicOnCrash, _lightMusicFilter, _asyncReadbacks, _presentViaDxgi, _compat, _showFps, _controllerVibration, _diagnostic30Fps, _windowed;
     private (int Width, int Height) _windowSize = WindowSizes.Default;
     private int _buildJobs, _vibrationStrength = LauncherSettings.GameVibrationStrength;
     private string _language = GameLanguages.Default.Code;
@@ -68,6 +68,7 @@ public partial class MainWindow
         _diagnostic30Fps = settings.Diagnostic30Fps;
         _audioPopFix = settings.AudioPopFix;
         _audioCompatibility = settings.AudioCompatibility;
+        (_keepMusicOnCrash, _lightMusicFilter) = (settings.KeepMusicOnCrash, settings.LightMusicFilter);
         (_menuMusicFolder, _raceMusicFolder) = (settings.MenuMusicFolder, settings.RaceMusicFolder);
         _vibrationStrength = settings.VibrationStrength;
         _commandLineOptions = settings.CommandLineOptions;
@@ -151,6 +152,7 @@ public partial class MainWindow
                || _diagnostic30Fps != settings.Diagnostic30Fps
                || _audioPopFix != settings.AudioPopFix
                || _audioCompatibility != settings.AudioCompatibility
+               || (_keepMusicOnCrash, _lightMusicFilter) != (settings.KeepMusicOnCrash, settings.LightMusicFilter)
                || _menuMusicFolder != settings.MenuMusicFolder
                || _raceMusicFolder != settings.RaceMusicFolder
                || _vibrationStrength != settings.VibrationStrength
@@ -286,6 +288,12 @@ public partial class MainWindow
             + "made before 2013 and some Celeron and Pentium models. Uses a faster calculation path for parts of the "
             + "sound mixer. Off by default; requires game restart.",
             _audioCompatibility, v => _audioCompatibility = v));
+        SettingsBody.Children.Add(ChoiceRow("MUSIC ON CRASH", ["DEFAULT", "KEEP PLAYING"], _keepMusicOnCrash,
+            "DEFAULT stops the race music for a few seconds when you crash hard, as on a console. KEEP PLAYING lets it "
+            + "play on, your own music folder too. Requires game restart.", v => _keepMusicOnCrash = v));
+        SettingsBody.Children.Add(ChoiceRow("MUSIC FILTER", ["DEFAULT", "LIGHT"], _lightMusicFilter,
+            "On some parts of each track the game thins out the bass of its own soundtrack. LIGHT keeps more of it. "
+            + "Requires game restart.", v => _lightMusicFilter = v));
         var commandLine = new TextBox { Text = _commandLineOptions, Watermark = "--name=value --other=value", Width = 420,
             HorizontalAlignment = HorizontalAlignment.Left };
         commandLine.TextChanged += (_, _) => _commandLineOptions = commandLine.Text ?? "";
@@ -506,6 +514,13 @@ public partial class MainWindow
         return new StackPanel { Spacing = 2, Children = { grid, help } };
     }
 
+    private Control ChoiceRow(string label, IReadOnlyList<string> choices, bool second, string description, Action<bool> changed)
+    {
+        var combo = Combo(choices, second ? 1 : 0);
+        combo.SelectionChanged += (_, _) => changed(combo.SelectedIndex == 1);
+        return Labelled(label, combo, description);
+    }
+
     private Control Option(string label, string description, bool value, Action<bool> changed)
     {
         var box = new CheckBox { IsChecked = value, Content = new TextBlock { Text = label } };
@@ -559,6 +574,7 @@ public partial class MainWindow
             settings.Diagnostic30Fps = _diagnostic30Fps;
             settings.AudioPopFix = _audioPopFix;
             settings.AudioCompatibility = _audioCompatibility;
+            (settings.KeepMusicOnCrash, settings.LightMusicFilter) = (_keepMusicOnCrash, _lightMusicFilter);
             settings.MenuMusicFolder = _menuMusicFolder;
             settings.RaceMusicFolder = _raceMusicFolder;
             settings.VibrationStrength = _vibrationStrength;

@@ -24,6 +24,7 @@
 #include <vector>
 
 #include <rex/cvar.h>
+#include <rex/input/mnk/mnk_input_driver.h>
 #include <rex/logging.h>
 #include <rex/memory.h>
 #include <rex/ppc/context.h>
@@ -42,6 +43,7 @@
 #include "input/controller_layout.h"
 #include "input/input_context.h"
 #include "input/prompt_strings.h"
+#include "quick_race_laps.h"
 #include "scripted_input.h"
 #include "shadow_map.h"
 #include "string_log.h"
@@ -63,6 +65,12 @@ REXCVAR_DEFINE_INT32(fm4_frame_rate, 120, "Forza Motorsport 4",
                      "processors: the guest vblank rate (fh1_guest_vblank_hz) in races, "
                      "menus and the showroom")
     .range(30, 240);
+REXCVAR_DEFINE_INT32(fm4_debug_vblank_hz, 0, "Forza Motorsport 4",
+                     "Diagnostics: override the normal guest vblank rate, for example 360 or "
+                     "480 Hz, to measure throughput above the player frame-rate range; 0 is off. "
+                     "Fast loading and fm4_console_rate take precedence")
+    .range(0, 2000)
+    .lifecycle(rex::cvar::Lifecycle::kHotReload);
 REXCVAR_DEFINE_INT32(fm4_menu_vblank_hz, 0, "Forza Motorsport 4",
                      "Diagnostics: vblanks per second the game's main loop sees outside races, "
                      "the nearest whole fraction of the guest vblank (0 = every vblank)");
@@ -217,8 +225,8 @@ void EndFastLoad(const char* reason, bool after_start_only = false) {
               std::chrono::duration<double>(elapsed).count(), reason);
 }
 
-// The GRAPHICS entry of My Profile -> Options: an action and a string key of
-// its own. The key is free in every string table (IDS_Graphics' hash, 0x7157,
+// The PC OPTIONS entry of My Profile -> Options (the GRAPHICS and KEYBOARD
+// tabs): an action and a string key of its own. The key is free in every string table (IDS_Graphics' hash, 0x7157,
 // is LiveStrings' IDS_MatchmakingBlockedTitle).
 constexpr uint32_t kGraphicsAction = 23;
 constexpr uint32_t kGraphicsStringKey = 0x7158;
@@ -241,6 +249,29 @@ std::mutex g_string_log_mutex;
 fm4_static_recomp::StringShownLog g_string_log;
 
 using fm4_guest::kStringLookup;
+using fm4_guest::kTextAssign;
+using fm4_guest::kTextSetupGetTextReturn;
+
+// Scene text elements built from a prompt string (element data -> its key, the table's text,
+// the text it shows), so a device switch can rewrite them while their scene is up.
+struct LivePromptText {
+  uint16_t key;
+  std::u16string original;
+  std::u16string shown;
+  // The layout after a rewrite measures the text it replaced (ALIGN_TO lines hug that width),
+  // so the element lays out once more on its next update.
+  bool relayout = false;
+};
+std::mutex g_live_prompt_mutex;
+std::unordered_map<uint32_t, LivePromptText> g_live_prompts;
+
+// A text element's text is a wide string at +0x84 (a 16-byte inline buffer while the capacity
+// is below 8, length at +0x94, capacity at +0x98); the element lays it out again while +0x119
+// is set, as the game's own SetText does.
+constexpr uint32_t kTextElementString = 0x84;
+constexpr uint32_t kTextElementLength = 0x94;
+constexpr uint32_t kTextElementCapacity = 0x98;
+constexpr uint32_t kTextElementLayout = 0x119;
 
 // A NUL-terminated big-endian UTF-16 copy of the text on the system heap.
 uint32_t GuestText(std::u16string_view text) {
@@ -263,6 +294,24 @@ std::u16string ReadGuestText(const uint8_t* base, uint32_t address) {
       break;
     }
     text.push_back(c);
+  }
+  return text;
+}
+
+uint32_t LoadGuestWord(const uint8_t* base, uint32_t address);
+
+std::u16string ReadElementText(const uint8_t* base, uint32_t element) {
+  const uint32_t length = LoadGuestWord(base, element + kTextElementLength);
+  const uint32_t capacity = LoadGuestWord(base, element + kTextElementCapacity);
+  if (length > capacity) {
+    return {};
+  }
+  const uint32_t data = capacity < 8 ? element + kTextElementString
+                                     : LoadGuestWord(base, element + kTextElementString);
+  std::u16string text;
+  for (uint32_t i = 0; i < length; ++i) {
+    const uint8_t* const at = base + data + 2 * i;
+    text.push_back(char16_t(at[0] << 8 | at[1]));
   }
   return text;
 }
@@ -1158,6 +1207,62 @@ void Fm4RaceMenuSceneDestroyed(PPCRegister& r3) {
   REXLOG_INFO("Race menu scene destroyed {:08X}", r3.u32);
 }
 
+namespace {
+
+thread_local uint32_t t_look_spring = 0;
+
+}  // namespace
+
+void Fm4CameraLookSpringStep(PPCRegister& r31) {
+  FM4_HOOK_CENSUS();
+  t_look_spring = r31.u32 + 0x108;
+}
+
+bool Fm4AngleSpringCut(PPCRegister& r31) {
+  FM4_HOOK_CENSUS();
+  // The game cuts any angle spring straight to its target once the gap reaches 60 degrees;
+  // a fast mouse sweep opens such gaps, so the held look eases the whole way instead.
+  return r31.u32 == t_look_spring && rex::input::mnk::IsHoldLookEngaged();
+}
+
+// Quick Race setup, after it read the track's lap count from the database (r3; r29 = the
+// game mode, which picked the column): the GAMEPLAY tab's count instead.
+void Fm4QuickRaceSetupLaps(PPCRegister& r3, PPCRegister& r29) {
+  FM4_HOOK_CENSUS();
+  const int laps = fm4_static_recomp::QuickRaceLaps(int32_t(r3.u32), r29.u32,
+                                                    fm4_static_recomp::QuickRaceLapsSetting());
+  if (laps != int32_t(r3.u32)) {
+    REXLOG_INFO("Quick Race laps: {} instead of {}", laps, int32_t(r3.u32));
+    r3.u64 = uint32_t(laps);
+  }
+}
+
+// Track select's list query (r4), before the game formats it: the copy whose LAPS column
+// gives the GAMEPLAY tab's count. One copy per count, kept: the game formats from it.
+void Fm4QuickRaceTrackQuery(PPCRegister& r4) {
+  FM4_HOOK_CENSUS();
+  const int laps = fm4_static_recomp::QuickRaceLapsSetting();
+  if (!laps) {
+    return;
+  }
+  auto* const memory = rex::system::kernel_state()->memory();
+  const auto query = fm4_static_recomp::QuickRaceLapsQuery(
+      reinterpret_cast<const char*>(memory->virtual_membase() + r4.u32), laps);
+  if (!query) {
+    return;
+  }
+  static std::mutex mutex;
+  static std::unordered_map<int, uint32_t> copies;
+  const std::lock_guard lock(mutex);
+  uint32_t& address = copies[laps];
+  if (!address) {
+    address = memory->SystemHeapAlloc(uint32_t(query->size() + 1));
+    std::memcpy(memory->virtual_membase() + address, query->c_str(), query->size() + 1);
+    REXLOG_INFO("Quick Race laps: track select shows {}", laps);
+  }
+  r4.u64 = address;
+}
+
 bool Fm4SkipVblankCallback() {
   FM4_HOOK_CENSUS();
   // Runs on every vblank, so a new rate applies from the next one. A race waking
@@ -1167,9 +1272,11 @@ bool Fm4SkipVblankCallback() {
   const bool fast_load = g_fast_load.load(std::memory_order_relaxed);
   const bool race = g_race_session.load(std::memory_order_relaxed);
   const bool console = REXCVAR_GET(fm4_console_rate);
+  const int32_t debug_vblank_hz = REXCVAR_GET(fm4_debug_vblank_hz);
   const double vblank_hz = fast_load ? kLoadVblankHz
                            : console ? kConsoleVblankHz
-                                     : double(REXCVAR_GET(fm4_frame_rate));
+                           : debug_vblank_hz > 0 ? double(debug_vblank_hz)
+                                                : double(REXCVAR_GET(fm4_frame_rate));
   static double applied_hz = 0.0;
   if (vblank_hz != applied_hz) {
     applied_hz = vblank_hz;
@@ -1242,7 +1349,7 @@ void NoteGuestFileOpen(std::string_view guest_path) {
 }  // namespace fm4_static_recomp
 
 // The end of the Options items in My Profile's menu builder (r30 = the Options
-// category, r31 = the "MyProfile" table name): GRAPHICS after them, added as
+// category, r31 = the "MyProfile" table name): PC OPTIONS after them, added as
 // the game adds each item, through the frame's own two temporaries, which the
 // last item has just released.
 void Fm4AddGraphicsOption(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r30,
@@ -1260,14 +1367,14 @@ void Fm4AddGraphicsOption(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRe
   }
 }
 
-// The string table lookup (table, key): GRAPHICS for the entry's key, and the
+// The string table lookup (table, key): PC OPTIONS for the entry's key, and the
 // strings that name pad buttons as the prompt text source rewrites them.
 bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r3,
                            PPCRegister& r4) {
   FM4_HOOK_CENSUS();
   const uint16_t key = uint16_t(r4.u32 & 0xFFFF);
   if (key == kGraphicsStringKey) {
-    static const uint32_t text = GuestText(u"GRAPHICS");
+    static const uint32_t text = GuestText(u"PC OPTIONS");
     r3.u64 = text;
     return true;
   }
@@ -1305,6 +1412,7 @@ bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCR
   if (!source) {
     return true;
   }
+  std::u16string shown = found;
   if (const auto text = source(key, found)) {
     const std::lock_guard lock(g_prompt_text_mutex);
     uint32_t& address = g_prompt_texts[*text];
@@ -1313,11 +1421,71 @@ bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCR
       REXLOG_INFO("Prompt text {:04X}: {}", key, std::string(text->begin(), text->end()));
     }
     r3.u64 = address;
+    shown = *text;
+  }
+  // A scene's static text: the element being built is the caller's r31.
+  if (uint32_t(ctx.lr) == kTextSetupGetTextReturn) {
+    const std::lock_guard lock(g_live_prompt_mutex);
+    g_live_prompts[ctx.r31.u32] = {key, found, std::move(shown)};
   }
   return true;
 }
 
-// The Options dispatcher (this, action): GRAPHICS opens the host page; the
+// A text element's update, before it checks whether to lay its text out again: a prompt
+// text built for the other device is rewritten, as the game's SetText would. The element
+// is live here; one that no longer shows the text it was given is another element now.
+void Fm4TextElementUpdate(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r30) {
+  FM4_HOOK_CENSUS();
+  const uint32_t element = r30.u32;
+  LivePromptText live;
+  {
+    const std::lock_guard lock(g_live_prompt_mutex);
+    const auto found = g_live_prompts.find(element);
+    if (found == g_live_prompts.end()) {
+      return;
+    }
+    live = found->second;
+  }
+  std::function<std::optional<std::u16string>(uint16_t, std::u16string_view)> source;
+  {
+    const std::lock_guard lock(g_prompt_text_mutex);
+    source = g_prompt_text_source;
+  }
+  if (!source) {
+    return;
+  }
+  const std::u16string wanted = source(live.key, live.original).value_or(live.original);
+  if (wanted == live.shown) {
+    if (live.relayout) {
+      base[element + kTextElementLayout] = 1;
+      const std::lock_guard lock(g_live_prompt_mutex);
+      g_live_prompts[element].relayout = false;
+    }
+    return;
+  }
+  if (ReadElementText(base, element) != live.shown) {
+    const std::lock_guard lock(g_live_prompt_mutex);
+    g_live_prompts.erase(element);
+    return;
+  }
+  uint32_t text;
+  {
+    const std::lock_guard lock(g_prompt_text_mutex);
+    uint32_t& address = g_prompt_texts[wanted];
+    if (!address) {
+      address = GuestText(wanted);
+    }
+    text = address;
+  }
+  CallGuest(ctx, base, r1.u32, kTextAssign,
+            {element + kTextElementString, text, uint32_t(wanted.size())});
+  base[element + kTextElementLayout] = 1;
+  const std::lock_guard lock(g_live_prompt_mutex);
+  g_live_prompts[element].shown = wanted;
+  g_live_prompts[element].relayout = true;
+}
+
+// The Options dispatcher (this, action): PC OPTIONS opens the host page; the
 // game's own actions go on as before.
 bool Fm4OpenGraphicsOption(PPCRegister& r4) {
   FM4_HOOK_CENSUS();

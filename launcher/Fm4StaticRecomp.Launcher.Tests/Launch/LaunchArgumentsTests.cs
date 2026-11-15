@@ -260,6 +260,38 @@ public class LaunchArgumentsTests
         else Assert.Equal(new[] { expected }, options);
     }
 
+    [Theory]
+    [InlineData(false, "0.3.3", null)]
+    [InlineData(true, "0.3.2", null)]
+    [InlineData(true, "0.3.3", "--fm4_keep_music_on_crash=true")]
+    [InlineData(true, "0.4.0", "--fm4_keep_music_on_crash=true")]
+    public void Music_on_crash_requires_opt_in_and_a_supported_version(bool keep, string version, string? expected)
+    {
+        var (layout, profile, settings, temp) = Setup();
+        using var _ = temp;
+        settings.KeepMusicOnCrash = keep;
+        var options = LaunchArguments.ForPlay(layout, version, profile, settings, new WindowsPlatform())
+            .Where(a => a.StartsWith("--fm4_keep_music_on_crash")).ToArray();
+        if (expected is null) Assert.Empty(options);
+        else Assert.Equal(new[] { expected }, options);
+    }
+
+    [Theory]
+    [InlineData(false, "0.3.3", null)]
+    [InlineData(true, "0.3.2", null)]
+    [InlineData(true, "0.3.3", "--fm4_music_filter=light")]
+    [InlineData(true, "0.4.0", "--fm4_music_filter=light")]
+    public void Light_music_filter_requires_opt_in_and_a_supported_version(bool light, string version, string? expected)
+    {
+        var (layout, profile, settings, temp) = Setup();
+        using var _ = temp;
+        settings.LightMusicFilter = light;
+        var options = LaunchArguments.ForPlay(layout, version, profile, settings, new WindowsPlatform())
+            .Where(a => a.StartsWith("--fm4_music_filter")).ToArray();
+        if (expected is null) Assert.Empty(options);
+        else Assert.Equal(new[] { expected }, options);
+    }
+
     [Fact]
     public void An_explicit_audio_compatibility_override_wins()
     {

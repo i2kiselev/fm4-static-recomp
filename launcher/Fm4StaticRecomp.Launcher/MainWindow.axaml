@@ -156,6 +156,7 @@
                                 <MenuItem Header="RENAME" Click="RenameProfile_Click"/>
                                 <MenuItem Header="OPEN SAVE FOLDER" Click="OpenSaveFolder_Click"/>
                                 <MenuItem Header="IMPORT SAVE" Click="ImportSave_Click"/>
+                                <MenuItem Header="IMPORT XBOX 360 SAVE" Click="ImportXboxSave_Click"/>
                                 <MenuItem Header="DELETE" Click="DeleteProfile_Click"/>
                             </MenuFlyout>
                         </Button.Flyout>

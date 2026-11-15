@@ -60,9 +60,19 @@ struct RampRates {
   double look_seconds;
 };
 
+// Hold the right mouse button in a race to look around the car.
+struct MouseLook {
+  bool enabled;
+  int sensitivity;
+};
+inline constexpr int kMouseLookSensitivityMin = 10, kMouseLookSensitivityMax = 100;
+// Degrees the camera turns per mouse count: 25, the default, is a tenth of a degree.
+inline double MouseLookDegreesPerCount(int sensitivity) { return sensitivity / 250.0; }
+
 struct Controls {
   BindingSet menu, driving;
   RampRates ramp;
+  MouseLook mouse_look;
 };
 
 Controls DefaultControls();
@@ -71,7 +81,8 @@ Controls DefaultControls();
 // lstick_down, lstick_left, lstick_right, lstick_press, rstick_*, dpad_up,
 // dpad_down, dpad_left, dpad_right, back, start) and ramp_steer_seconds,
 // ramp_steer_return_seconds, ramp_pedal_seconds, ramp_pedal_return_seconds,
-// ramp_look_seconds. A missing, empty or unreadable value keeps the default.
+// ramp_look_seconds, mouse_look and mouse_look_sensitivity. A missing, empty or unreadable
+// value keeps the default.
 Controls LoadControls(const config::HostConfig& config);
 // The same over any source of those values; `log` writes what LoadControls(config) logs.
 using ControlLookup = std::function<std::optional<std::string>(std::string_view name)>;
@@ -79,6 +90,11 @@ Controls LoadControls(const ControlLookup& lookup, bool log);
 
 // Parse a nonnegative ramp duration with the same rules in the loader and editor.
 std::optional<double> ParseRampSeconds(std::string_view value);
+// "true" or "false" only.
+std::optional<bool> ParseMouseLookEnabled(std::string_view value);
+// A finite number above zero, with the ramps' syntax, rounded and held to
+// kMouseLookSensitivityMin..kMouseLookSensitivityMax.
+std::optional<int> ParseMouseLookSensitivity(std::string_view value);
 
 // The control's name in controls.toml after menu_ / driving_ ("a", "lstick_up").
 std::string_view ControlFileName(PadControl control);
@@ -92,5 +108,8 @@ std::string BindKeyName(rex::ui::VirtualKey key);
 
 // Hands the set to the keyboard driver in place of its keybind_* options.
 void ApplyBindings(const BindingSet& set);
+
+// Hands mouse look to the keyboard driver; the race cursor stays hidden either way.
+void ApplyMouseLook(const MouseLook& look);
 
 }  // namespace fm4_static_recomp::input

@@ -186,9 +186,14 @@ Ink Fit(std::span<const std::string> labels, const hostui::VectorFont& font, flo
     return {};
   // A capital's height, so a lone "W" and "ESC" stand as tall.
   const Ink capital = Text("H", font, kProbe);
-  const float scale = std::min({width / probe.width, height / probe.height,
-                                letter_height / std::max(capital.height, 1)}) *
-                      0.97f;
+  float letter_scale = letter_height / std::max(capital.height, 1);
+  // Punctuation at the letters' size is a speck ("." 7 of 128 pixels): it
+  // grows, up to a capital's height.
+  if (std::all_of(text.begin(), text.end(),
+                  [](char c) { return c == ' ' || std::ispunct(uint8_t(c)); })) {
+    letter_scale = std::min(letter_scale * 2.5f, letter_height / std::max(probe.height, 1));
+  }
+  const float scale = std::min({width / probe.width, height / probe.height, letter_scale}) * 0.97f;
   return Text(text, font, kProbe * scale);
 }
 

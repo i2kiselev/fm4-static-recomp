@@ -17,6 +17,7 @@
 
 #include <rex/cvar.h>
 #include <rex/input/input_system.h>
+#include <rex/input/mnk/mnk_input_driver.h>
 #include <rex/kernel/xboxkrnl/io.h>
 #include <rex/logging.h>
 #include <rex/rex_app.h>
@@ -46,11 +47,13 @@
 #include "input/keyboard_ramp.h"
 #include "input/prompt_strings.h"
 #include "input/prompt_swap.h"
+#include "mixer_options.h"
 #include "scripted_input.h"
 #include "shader_cache/cache_writer.h"
 #include "shader_cache/disc_shaders.h"
 #include "tool_mode.h"
 #include "ui/controls_page.h"
+#include "ui/gameplay_page.h"
 #include "ui/graphics_page.h"
 #include "ui/guest_frame_stats.h"
 #include "ui/hostui/host_ui.h"
@@ -116,6 +119,8 @@ class Fm4App final : public rex::ReXApp {
         std::make_unique<fm4_static_recomp::config::HostConfig>(config_root / "graphics.toml");
     controls_config_ =
         std::make_unique<fm4_static_recomp::config::HostConfig>(config_root / "controls.toml");
+    gameplay_config_ =
+        std::make_unique<fm4_static_recomp::config::HostConfig>(config_root / "gameplay.toml");
   }
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
@@ -166,6 +171,11 @@ class Fm4App final : public rex::ReXApp {
     } else {
       REXLOG_ERROR("Controls: cannot read {}", controls_config_->path().string());
     }
+    if (gameplay_config_->Load()) {
+      fm4_static_recomp::ui::ApplySavedGameplaySettings(*gameplay_config_);
+    } else {
+      REXLOG_ERROR("Gameplay settings: cannot read {}", gameplay_config_->path().string());
+    }
   }
 
   bool WantsPresentation() const override {
@@ -204,6 +214,9 @@ class Fm4App final : public rex::ReXApp {
     if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kNone &&
         !GameFolderMatchesBuild(paths.game_data_root)) {
       return false;
+    }
+    if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kNone) {
+      fm4_static_recomp::InstallMixerOptions(paths.game_data_root);
     }
     if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kShaderCache) {
       return RunShaderCacheTool();
@@ -340,11 +353,16 @@ class Fm4App final : public rex::ReXApp {
     binding_switcher_ = std::make_unique<input::BindingSwitcher>(controls_);
     // Before the main loop's first tick, so the driver never reads its own keybind_* defaults.
     binding_switcher_->Update(input::InputContext::kMenu);
+    // The driver's own default allows mouse look, which would hide the cursor in the
+    // start menus until the first tick.
+    rex::input::mnk::SetMouseLookActive(false);
+    input::ApplyMouseLook(controls_.mouse_look);
     prompt_swap_ = CreatePromptSwap(controls_);
     // Never call the input system while holding controls_mutex_: it runs the keyboard filter
     // under its own device lock.
     fm4_static_recomp::SetInputTick([this, input_system] {
       const input::InputContext context = input::CurrentInputContext();
+      rex::input::mnk::SetMouseLookActive(context == input::InputContext::kDriving);
       // The keyboard is a synthetic device; a pad that has not moved never takes over.
       const auto device = input_system ? input_system->ActiveDevice(0) : std::nullopt;
       const bool keyboard = device && device->synthetic;
@@ -381,7 +399,8 @@ class Fm4App final : public rex::ReXApp {
             const std::lock_guard lock(ramp_mutex_);
             ramp.SetRates(ramp_rates_);
           }
-          ramp.Apply(pad, elapsed, input::CurrentInputContext() == input::InputContext::kDriving);
+          ramp.Apply(pad, elapsed, input::CurrentInputContext() == input::InputContext::kDriving,
+                     rex::input::mnk::IsHoldLookEngaged());
         });
   }
 
@@ -399,6 +418,7 @@ class Fm4App final : public rex::ReXApp {
       const std::lock_guard lock(ramp_mutex_);
       ramp_rates_ = controls.ramp;
     }
+    input::ApplyMouseLook(controls.mouse_look);
     {
       const std::lock_guard lock(controls_mutex_);
       // The old keycaps stay registered with the texture cache until taken back.
@@ -566,12 +586,19 @@ class Fm4App final : public rex::ReXApp {
            keys.controller_layout = [] { return fm4_static_recomp::input::ControllerLayout(); };
            keys.apply = [this] { return ApplyControls(); };
            return ui::CreateControlsPage(*controls_config_, std::move(keys));
-         }}};
+         }},
+        {"MOUSE", [this] {
+           ui::ControlsPageServices mouse;
+           mouse.apply = [this] { return ApplyControls(); };
+           return ui::CreateMousePage(*controls_config_, std::move(mouse));
+         }},
+        {"GAMEPLAY", [this] { return ui::CreateGameplayPage(*gameplay_config_); }}};
     host_ui_->Open(std::move(tabs), 0);
   }
 
   std::unique_ptr<fm4_static_recomp::config::HostConfig> graphics_config_;
   std::unique_ptr<fm4_static_recomp::config::HostConfig> controls_config_;
+  std::unique_ptr<fm4_static_recomp::config::HostConfig> gameplay_config_;
   // The keyboard filter's ramp times, apart from controls_mutex_: the filter runs under the
   // input system's device lock.
   std::mutex ramp_mutex_;

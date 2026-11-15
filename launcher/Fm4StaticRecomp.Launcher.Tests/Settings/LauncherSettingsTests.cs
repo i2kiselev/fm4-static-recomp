@@ -24,6 +24,27 @@ public class LauncherSettingsTests
     }
 
     [Fact]
+    public void Music_options_default_to_the_console_and_survive_save()
+    {
+        using var temp = new TempDir();
+        var path = Path.Combine(temp.Path, "launcher.toml");
+        File.WriteAllText(path, "audio_pop_fix = true\n");
+        var settings = LauncherSettings.Load(path);
+        Assert.False(settings.KeepMusicOnCrash);
+        Assert.False(settings.LightMusicFilter);
+        (settings.KeepMusicOnCrash, settings.LightMusicFilter) = (true, true);
+        settings.Save();
+        Assert.Contains("music_filter = \"light\"", File.ReadAllText(path));
+        var reloaded = LauncherSettings.Load(path);
+        Assert.True(reloaded.KeepMusicOnCrash);
+        Assert.True(reloaded.LightMusicFilter);
+        (reloaded.KeepMusicOnCrash, reloaded.LightMusicFilter) = (false, false);
+        reloaded.Save();
+        Assert.Contains("music_filter = \"default\"", File.ReadAllText(path));
+        Assert.False(LauncherSettings.Load(path).LightMusicFilter);
+    }
+
+    [Fact]
     public void Music_folder_settings_survive_save_and_can_restore_originals_independently()
     {
         using var temp = new TempDir();

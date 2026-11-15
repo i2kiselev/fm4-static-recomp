@@ -24,6 +24,8 @@ class Pins:
     ffx_commit: str
     ffx_headers: list
     ffx_runtime_sha256: str
+    # AMD's SDK 2.4.0 Vulkan runtime (FSR 4), from AMD's repository; empty for an SDK without it.
+    ffx_sdk2_files: list = ()
 
 
 def read_pins(sdk_root):
@@ -35,7 +37,8 @@ def read_pins(sdk_root):
                 _entries(dlss, "_rexglue_dlss_runtime_files", DLSS_CMAKE, allow_empty=True),
                 _value(ffx, "_rexglue_ffx_api_commit", FFX_CMAKE),
                 _entries(ffx, "_rexglue_ffx_api_files", FFX_CMAKE, allow_empty=True),
-                _value(ffx, "_rexglue_ffx_runtime_hash", FFX_CMAKE).upper())
+                _value(ffx, "_rexglue_ffx_runtime_hash", FFX_CMAKE).upper(),
+                _entries(ffx, "_rexglue_ffx_sdk2_files", FFX_CMAKE, allow_empty=True, optional=True))
 
 
 def _value(text, name, file):
@@ -45,9 +48,11 @@ def _value(text, name, file):
     return match.group(1)
 
 
-def _entries(text, name, file, allow_empty=False):
+def _entries(text, name, file, allow_empty=False, optional=False):
     match = re.search(rf"set\(\s*{name}\b(.*?)\)", text, re.DOTALL)
     if not match:
+        if optional:
+            return []
         raise ValueError(f"{file}: no {name}")
     entries = [(path, digest.upper()) for path, digest in _ENTRY.findall(match.group(1))]
     if not entries and not allow_empty:
@@ -77,6 +82,9 @@ def prefetch(pins, dlss_dir, build_dir, base_urls=BASE_URLS, progress=None):
               ffx_dir / "ffx_api" / path, digest, False) for path, digest in pins.ffx_headers]
     jobs.append(("ffx", ("rexglue", "FidelityFX-SDK", pins.ffx_commit), "PrebuiltSignedDLL/amd_fidelityfx_vk.dll",
                  ffx_dir / "runtime" / "amd_fidelityfx_vk.dll", pins.ffx_runtime_sha256, False))
+    jobs += [("ffx", ("GPUOpen-LibrariesAndSDKs", "FidelityFX-SDK", "v2.4.0"),
+              f"Kits/FidelityFX/signedbin/{path}", ffx_dir / "runtime-2.4.0" / path, digest, False)
+             for path, digest in pins.ffx_sdk2_files]
     errors, failed = [], set()
     for index, (group, (owner, repo, commit), path, destination, digest, text_lf) in enumerate(jobs):
         urls = [template.format(owner=owner, repo=repo, commit=commit, path=path) for template in base_urls]

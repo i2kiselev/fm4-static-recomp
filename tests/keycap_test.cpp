@@ -138,6 +138,23 @@ TEST_CASE("Every key's label draws, words no smaller than ENTER", "[keycap]") {
   }
 }
 
+TEST_CASE("Punctuation keys read: larger than the font draws them, no taller than a capital",
+          "[keycap]") {
+  REQUIRE_FONT();
+  const auto height = [](std::vector<std::string> labels) {
+    const Box box = DarkBox(RenderKeycap(labels, 128, *Font()));
+    return box.bottom - box.top + 1;
+  };
+  const int capital = height({"H"});
+  // At the letters' size the comma came to 16 of 128 pixels, the period 7, an H 47.
+  CHECK(height({","}) >= capital * 3 / 4);
+  CHECK(height({","}) <= capital + 1);
+  CHECK(height({"."}) >= capital / 3);
+  // Two share the cap's width.
+  CHECK(height({",", "."}) >= capital / 2);
+  CHECK(height({"["}) <= capital * 3 / 2);
+}
+
 TEST_CASE("A keycap is a light rounded key with a darker bottom edge", "[keycap]") {
   REQUIRE_FONT();
   const std::vector<std::string> labels = {"T"};

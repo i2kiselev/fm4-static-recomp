@@ -11,12 +11,15 @@ namespace fm4_static_recomp::input {
 // Smooths the keyboard's all-or-nothing steering, pedals and look while
 // driving: each axis moves toward the keys' value at full scale per its rate,
 // back toward zero at the return rate, and through zero first on a reversal.
-// Menus pass the keys through unchanged.
+// Menus pass the keys through unchanged, and so does the look while the mouse
+// turns it (mouse_look): ramping each axis would shorten a turned stick under
+// the game's look threshold.
 class KeyboardRamp {
  public:
   explicit KeyboardRamp(RampRates rates);
   void SetRates(const RampRates& rates) { rates_ = rates; }
-  void Apply(rex::input::X_INPUT_GAMEPAD& pad, double elapsed_seconds, bool driving);
+  void Apply(rex::input::X_INPUT_GAMEPAD& pad, double elapsed_seconds, bool driving,
+             bool mouse_look = false);
 
  private:
   RampRates rates_;

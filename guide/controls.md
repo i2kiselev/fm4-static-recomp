@@ -7,7 +7,7 @@ keyboard is the last device you used, the game's button prompts show keycaps of 
 keys, and English prompt sentences ("PRESS THE BACK BUTTON...") name them too; touching the
 pad brings the controller buttons back. **Alt+Enter** switches between a window and fullscreen
 at any moment ([Playing in a window](windowed.md)). Other keys that always work: **F3** shows
-and hides the frame rate, **F6** opens the GRAPHICS page, **F11** works like Alt+Enter.
+and hides the frame rate, **F6** opens PC OPTIONS, **F11** works like Alt+Enter.
 
 ## Driving
 
@@ -23,6 +23,7 @@ and hides the frame rate, **F6** opens the GRAPHICS page, **F11** works like Alt
 | Look around (back: Down) | Arrow keys |
 | Look straight back | C |
 | Telemetry | T, G |
+| Telemetry pages | , / . |
 | Pause | Esc |
 
 Driving keys apply while the car is on track and the game is not paused. Steering, pedals
@@ -47,14 +48,26 @@ The pre-race screen, pause menu, replays and results use these keys too.
 In photo mode, as on a controller, **Numpad 8 4 2 6** (left stick) move the camera, **I J K L**
 (right stick) pan it, and **W A S D** or the arrow keys (D-pad) rotate and zoom it.
 
-The mouse is not used.
+## Looking around with the mouse
+
+In a race, hold the **right mouse button** and move the mouse left or right: the camera turns
+around your car and stays where you leave it. Let go of the button and the camera goes back
+behind the car. The mouse pointer is hidden while you drive.
+
+To turn this off or change how fast the camera turns (**MOUSE LOOK SENSITIVITY**, 10 to 100,
+25 by default), open the **MOUSE** tab next to KEYBOARD in the game's PC OPTIONS (see
+[Rebinding keys](#rebinding-keys) below for how to get there), or the **MOUSE** tab in the
+launcher's **CONTROLS** page. Fast flicks swing the camera round smoothly; releasing the
+button after a large turn jumps it back behind the car, as releasing a controller's stick does.
+
+Outside races the mouse is not used.
 
 ## Rebinding keys
 
 ### In the game
 
-1. Open the GRAPHICS page (**F6**, **BACK + START** held together on a controller, or Play
-   Career → My Profile → Options → GRAPHICS) and press **RB** (the menu's RB key on the
+1. Open PC OPTIONS (**F6**, **BACK + START** held together on a controller, or Play
+   Career → My Profile → Options → PC OPTIONS) and press **RB** (the menu's RB key on the
    keyboard, **E** by default) to reach **KEYBOARD**; **LB** goes back, and clicking a tab's
    name works too. The list has a **DRIVING** section (on the track) and a **MENUS** section.
    The page moves with your menu keys (**W A S D** by default), and always with the arrow keys,

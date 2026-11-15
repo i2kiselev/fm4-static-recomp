@@ -11,10 +11,26 @@ image = "rev1"
 0x822B0040 = { at = 0x822AFF70, fingerprint = "7ea8081381454a3a" }
 # kMakeLocString: identical function
 0x822B1AE8 = { at = 0x822B1A18, fingerprint = "9d447230fd4d8cc0" }
+# hook Fm4AngleSpringCut: identical function
+0x822BC340 = { at = 0x822BBE70, fingerprint = "10c2c708eb082dc0" }
+# hook Fm4AngleSpringCut jump_address_on_true: identical function
+0x822BC348 = { at = 0x822BBE78, fingerprint = "1ec4f263cfebd711" }
 # hook Fm4MainLoopSession: changed function, aligned
 0x822F7C30 = { at = 0x822F76D0, fingerprint = "a10a38dfed0f4a75", changed = "reviewed: only a vtable slot far after the hooks moved (+0x114 became +0x118 at 0x822F8128); the hooks' code and registers are unchanged" }
 # hook Fm4MainLoopStep: changed function, aligned
 0x822F7D48 = { at = 0x822F77E8, fingerprint = "b595d62fce737a00", changed = "reviewed: only a vtable slot far after the hooks moved (+0x114 became +0x118 at 0x822F8128); the hooks' code and registers are unchanged" }
+# hook Fm4MusicStreamGain: identical function
+0x82338D2C = { at = 0x823387E4, fingerprint = "baf8b444f4af153d" }
+# hook Fm4MusicStreamPlaying: identical function
+0x82338DBC = { at = 0x82338874, fingerprint = "43ddd63cb7472886" }
+# hook Fm4TextElementUpdate: identical function
+0x8233FE4C = { at = 0x8233F904, fingerprint = "cfdee1e48e7be6d4" }
+# kTextSetupGetTextReturn: identical function
+0x8234FDA4 = { at = 0x8234F8BC, fingerprint = "179f13f7aa8ec498" }
+# kTextAssign: identical function
+0x82360E98 = { at = 0x823609D0, fingerprint = "7ff1991ab3445723" }
+# hook Fm4CameraLookSpringStep: identical function
+0x8236560C = { at = 0x8236513C, fingerprint = "c81b5941282eb28b" }
 # hook Fm4CommandBufferClipRect: identical function
 0x82390B94 = { at = 0x82390694, fingerprint = "c7526e334b2f9c46" }
 # kStringLookup: identical function
@@ -51,6 +67,8 @@ image = "rev1"
 0x824CAAB0 = { at = 0x824CED18, fingerprint = "c19484aecd0e229b" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x824CBD90 = { at = 0x824D0070, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4QuickRaceSetupLaps: identical function
+0x824D38BC = { at = 0x824D7FEC, fingerprint = "98e320c7d4b82ce7" }
 # hook Fm4AddGraphicsOption: identical function
 0x8256CCF4 = { at = 0x82572C0C, fingerprint = "9b13a0c5611cb98b" }
 # hook Fm4OpenGraphicsOption: identical function
@@ -101,6 +119,8 @@ image = "rev1"
 0x825DB968 = { at = 0x825E2268, fingerprint = "6b4589107dcc75a4" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x825DE0F0 = { at = 0x825E4818, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4QuickRaceTrackQuery: identical function
+0x825E7BB0 = { at = 0x825EE220, fingerprint = "bb2f4c0ea3bc95eb" }
 # kMenuAddItem: identical function
 0x8266FF00 = { at = 0x82675768, fingerprint = "45ef72de459a5a8c" }
 # hook Fm4SkipVblankCallback: identical function
@@ -135,10 +155,24 @@ image = "rev1"
 0x82955764 = { at = 0x8296101C, fingerprint = "237aa38c939ed291" }
 # kMakeMenuLabel: identical function
 0x82971220 = { at = 0x82479318, fingerprint = "5a66f80459b96770" }
+# hook Fm4MusicMovieStopped: identical function
+0x8297AA50 = { at = 0x82986018, fingerprint = "6b1a9754897b4f63" }
+# hook Fm4MusicMovieStarted: identical function
+0x829851AC = { at = 0x8298FF94, fingerprint = "6a89bc7dbeb283a1" }
+# exact_single_fma_functions: identical function
+0x82B3FC08 = { at = 0x82B4A208, fingerprint = "f55ca4ffa79c0297" }
+# exact_single_fma_functions: identical function
+0x82B56430 = { at = 0x82B60A20, fingerprint = "e79bb93e071dd44e" }
 # hook Fm4AudioStableGain: identical function
 0x82B58C44 = { at = 0x82B63234, fingerprint = "b1c15bb0669fb1ba" }
 # hook Fm4AudioStableGain jump_address_on_true: identical function
 0x82B58D50 = { at = 0x82B63340, fingerprint = "66b787fa14cf6f97" }
+# exact_single_fma_functions: identical function
+0x82B5CCF0 = { at = 0x82B672E0, fingerprint = "405754c4e302367f" }
+# exact_single_fma_functions: identical function
+0x82B5E260 = { at = 0x82B68810, fingerprint = "dc3332fc8aa9fafd" }
+# exact_single_fma_functions: identical function
+0x82B94F78 = { at = 0x82B9F560, fingerprint = "7d2a19cea4bbcbf3" }
 # hook Fm4AudioMixBlock: identical function
 0x82C56B78 = { at = 0x82C61008, fingerprint = "8ec1a1aee36648ff" }
 # rexcrt ConvertThreadToFiber: identical function
@@ -155,11 +189,3 @@ image = "rev1"
 0x82D59FF0 = { at = 0x82D59FE0, references = 103 }
 # kScenarioManagerPointer: data, 79 references in identical functions
 0x82DC3750 = { at = 0x82DC3890, references = 112 }
-
-0x82B56430 = { at = 0x82B60A20, fingerprint = "e79bb93e071dd44e" }
-0x82B5CCF0 = { at = 0x82B672E0, fingerprint = "405754c4e302367f" }
-0x82B94F78 = { at = 0x82B9F560, fingerprint = "7d2a19cea4bbcbf3" }
-0x82338D2C = { at = 0x823387E4, fingerprint = "baf8b444f4af153d" }
-0x82338DBC = { at = 0x82338874, fingerprint = "43ddd63cb7472886" }
-0x829851AC = { at = 0x8298FF94, fingerprint = "6a89bc7dbeb283a1" }
-0x8297AA50 = { at = 0x82986018, fingerprint = "6b1a9754897b4f63" }

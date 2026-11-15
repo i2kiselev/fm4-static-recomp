@@ -26,6 +26,16 @@ public sealed record DiscInput(DiscInputKind Kind, string Path, string? HeaderMe
         }
     }
 
+    // An extracted Disc 2 has a default.xex at its root too, so it looks like an extracted Disc 1;
+    // it is told apart by holding FM4 packages, which Disc 1 does not.
+    public static DiscInput? DetectDisc2(string path)
+    {
+        var input = Detect(path);
+        if (input is not { Kind: DiscInputKind.ExtractedFolder }) return input;
+        try { return EnumeratePackages(input.Path).Any() ? input with { Kind = DiscInputKind.PackageFolder } : null; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+    }
+
     private static DiscInput? DetectReadable(string path)
     {
         if (File.Exists(path))

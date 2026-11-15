@@ -12,6 +12,11 @@ kMakeMenuLabel = 0x82971220
 kMenuAddItem = 0x8266FF00
 # The string lookup Fm4GraphicsOptionText hooks (its entry), called for the original text.
 kStringLookup = 0x823A4780
+# Assigns a text element's wide string (string, text, length), as its SetText does.
+kTextAssign = 0x82360E98
+# Where a scene text element's setup resumes after its string's GetText (the string lookup's
+# caller's return address); the element is the caller's r31.
+kTextSetupGetTextReturn = 0x8234FDA4
 
 # Guest data the hooks read.
 [data]

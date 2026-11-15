@@ -2,6 +2,7 @@
 // BSD 3-Clause License: see LICENSE in the repository root.
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Fm4StaticRecomp.Launcher.Core.Profiles;
 
 namespace Fm4StaticRecomp.Launcher;
@@ -111,17 +112,41 @@ public partial class MainWindow
     private async void ImportSave_Click(object? sender, RoutedEventArgs e) => await ProfileActionAsync(async host =>
     {
         if (await PickSaveFolderAsync() is not { } folder) return;
+        await ImportAsync(host, folder, folder, Path.GetFileName(Path.TrimEndingDirectorySeparator(folder)));
+    });
+
+    // The file is unpacked as its Xbox profile's folder first, which then imports like a Xenia profile's folder.
+    private async void ImportXboxSave_Click(object? sender, RoutedEventArgs e) => await ProfileActionAsync(async host =>
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            { Title = "Choose your Xbox 360 FM4 save file" });
+        if (files.Count == 0 || files[0].TryGetLocalPath() is not { } file) return;
+        var staging = Path.Combine(host.Layout.Downloads, "xbox-save");
+        try
+        {
+            if (Directory.Exists(staging)) Directory.Delete(staging, recursive: true);
+            var save = await Task.Run(() => XboxSave.Extract(file, staging));
+            await ImportAsync(host, Path.Combine(staging, save.Xuid), file, save.DisplayName);
+        }
+        finally
+        {
+            if (Directory.Exists(staging)) Directory.Delete(staging, recursive: true);
+        }
+    });
+
+    private async Task ImportAsync(LauncherHost host, string folder, string source, string name)
+    {
         if (await AskSaveGameAsync(folder) is not var (game, how, warning)) return;
         if (host.Profiles.Refusal(game) is { } refusal) throw new IOException(refusal);
         var (answer, values) = await Dialog.PromptAsync(this, "IMPORT SAVE",
-            $"Copies the saves in {folder} into a new profile. The folder is not changed.",
-            [("Name", Path.GetFileName(Path.TrimEndingDirectorySeparator(folder)))], "IMPORT", "CANCEL");
+            $"Copies the saves in {source} into a new profile. The {(File.Exists(source) ? "file" : "folder")} is not changed.",
+            [("Name", name)], "IMPORT", "CANCEL");
         if (answer != "IMPORT" || values[0].Trim().Length == 0) return;
         SetBusy(true);
         try
         {
             var profile = await Task.Run(() => host.Profiles.Import(folder, values[0], game, warning));
-            AppendLog($"Profile {profile.Name} imported from {folder} as {GameName(game)} saves ({how})." +
+            AppendLog($"Profile {profile.Name} imported from {source} as {GameName(game)} saves ({how})." +
                       (warning is null ? "" : $" Imported past a warning: {warning}."));
             SaveActiveProfile(profile);
         }
@@ -129,7 +154,7 @@ public partial class MainWindow
         {
             SetBusy(false);
         }
-    });
+    }
 
     private async Task<string?> PickSaveFolderAsync()
     {

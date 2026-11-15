@@ -95,4 +95,28 @@ public class VersionStoreTests
         await store.ExtractPayloadAsync(zip, "0.1.0", CancellationToken.None);
         Assert.True(File.Exists(built));
     }
+
+    [Fact]
+    public async Task Restores_files_deleted_from_an_unchanged_payload_and_leaves_the_rest()
+    {
+        using var temp = new TempDir();
+        var layout = new InstallLayout(Path.Combine(temp.Path, "install"));
+        var store = new VersionStore(layout, LauncherSettings.Load(layout.LauncherToml));
+        var folder = Path.Combine(temp.Path, "payload");
+        Directory.CreateDirectory(Path.Combine(folder, "src", "shader_cache"));
+        File.WriteAllText(Path.Combine(folder, "src", "shader_cache", "cache_writer.cpp"), "writer");
+        File.WriteAllText(Path.Combine(folder, "src", "main.cpp"), "main");
+        var zip = Path.Combine(temp.Path, "payload.zip");
+        ZipFile.CreateFromDirectory(folder, zip);
+        await store.ExtractPayloadAsync(zip, "0.1.0", CancellationToken.None);
+        var kept = Path.Combine(layout.Source("0.1.0"), "src", "main.cpp");
+        var keptAt = DateTime.UtcNow.AddDays(-1);
+        File.SetLastWriteTimeUtc(kept, keptAt);
+        Directory.Delete(Path.Combine(layout.Source("0.1.0"), "src", "shader_cache"), recursive: true);
+
+        await store.ExtractPayloadAsync(zip, "0.1.0", CancellationToken.None);
+
+        Assert.Equal("writer", File.ReadAllText(Path.Combine(layout.Source("0.1.0"), "src", "shader_cache", "cache_writer.cpp")));
+        Assert.Equal(keptAt, File.GetLastWriteTimeUtc(kept));
+    }
 }

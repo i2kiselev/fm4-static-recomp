@@ -291,4 +291,15 @@ std::vector<NavCommand> PadNavigator::Poll(uint16_t buttons, int16_t thumb_lx, i
   return commands;
 }
 
+size_t FirstVisibleRow(size_t row_count, size_t list_begin, size_t visible_rows, size_t focus,
+                       std::optional<size_t> kept_first) {
+  if (kept_first && focus >= *kept_first && focus < *kept_first + visible_rows) {
+    return *kept_first;
+  }
+  if (row_count - list_begin > visible_rows && focus >= list_begin + visible_rows / 2) {
+    return std::min(focus - visible_rows / 2, row_count - visible_rows);
+  }
+  return list_begin;
+}
+
 }  // namespace fm4_static_recomp::hostui

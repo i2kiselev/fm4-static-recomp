@@ -138,6 +138,11 @@ std::string KeysText(const std::vector<std::string>& keys) {
   return out;
 }
 
+const std::string kMouseLook = "mouse_look";
+const std::string kMouseLookSensitivity = "mouse_look_sensitivity";
+
+std::string OnOffValue(bool on) { return on ? "true" : "false"; }
+
 // As the launcher writes ramp times (0.##).
 std::string FormatRamp(double seconds) {
   char text[32];
@@ -205,8 +210,8 @@ struct Draft {
     return Set(defaults, row.set).keys[size_t(row.control)];
   }
 
-  // The file's value as the game reads it: keys it knows, a ramp it can parse; normalized as
-  // the page writes them.
+  // The file's value as the game reads it: keys it knows, a number or switch it can parse;
+  // normalized as the page writes them.
   std::optional<std::string> Saved(std::string_view name) const {
     const auto value = config.Get(name);
     if (!value) {
@@ -215,6 +220,14 @@ struct Draft {
     if (name.starts_with("ramp_")) {
       const auto seconds = input::ParseRampSeconds(*value);
       return seconds ? std::optional(FormatRamp(*seconds)) : std::nullopt;
+    }
+    if (name == kMouseLook) {
+      const auto enabled = input::ParseMouseLookEnabled(*value);
+      return enabled ? std::optional(OnOffValue(*enabled)) : std::nullopt;
+    }
+    if (name == kMouseLookSensitivity) {
+      const auto sensitivity = input::ParseMouseLookSensitivity(*value);
+      return sensitivity ? std::optional(std::to_string(*sensitivity)) : std::nullopt;
     }
     std::string keys = input::UsableKeys(*value);
     return keys.empty() ? std::nullopt : std::optional(std::move(keys));
@@ -496,6 +509,69 @@ MenuRow RampRow(const std::shared_ptr<Draft>& draft, const Ramp& ramp) {
   return row;
 }
 
+MenuRow MouseLookRow(const std::shared_ptr<Draft>& draft) {
+  MenuRow row;
+  row.label = "MOUSE LOOK (HOLD RIGHT BUTTON)";
+  row.description =
+      "In a race, hold the right mouse button and move the mouse left or right to look around "
+      "the car. Let go and the camera goes back behind it.";
+  row.value = [draft] { return std::string(draft->Effective().mouse_look.enabled ? "ON" : "OFF"); };
+  row.adjust = [draft](int) {
+    draft->Store(kMouseLook, OnOffValue(!draft->Effective().mouse_look.enabled),
+                 OnOffValue(input::DefaultControls().mouse_look.enabled), false);
+  };
+  row.unapplied = [draft] { return draft->edits.contains(kMouseLook); };
+  return row;
+}
+
+MenuRow MouseLookSensitivityRow(const std::shared_ptr<Draft>& draft) {
+  MenuRow row;
+  row.label = "MOUSE LOOK SENSITIVITY";
+  row.description = "How far the camera turns for a given mouse movement. Higher turns faster.";
+  row.value = [draft] { return std::to_string(draft->Effective().mouse_look.sensitivity); };
+  row.adjust = [draft](int direction) {
+    const int next = std::clamp(draft->Effective().mouse_look.sensitivity + direction,
+                                input::kMouseLookSensitivityMin, input::kMouseLookSensitivityMax);
+    draft->Store(kMouseLookSensitivity, std::to_string(next),
+                 std::to_string(input::DefaultControls().mouse_look.sensitivity), false);
+  };
+  row.unapplied = [draft] { return draft->edits.contains(kMouseLookSensitivity); };
+  return row;
+}
+
+// What a save reports once no key capture runs: `what` names the page's settings.
+hostui::MenuStatus SavedStatus(const Draft& draft, const std::string& what) {
+  if (draft.save_failed) {
+    return hostui::MenuStatus{.text = "COULD NOT SAVE CONTROLS.TOML", .warning = true};
+  }
+  if (draft.apply_failed) {
+    return hostui::MenuStatus{.text = what + " SAVED; THEY APPLY AT THE NEXT START.",
+                              .warning = true};
+  }
+  if (!draft.edits.empty()) {
+    return hostui::MenuStatus{.text = "UNSAVED CHANGES", .warning = draft.leave_warned};
+  }
+  if (!draft.message.empty()) {
+    return hostui::MenuStatus{.text = draft.message};
+  }
+  if (draft.applied) {
+    return hostui::MenuStatus{.text = what + " SAVED AND APPLIED."};
+  }
+  return hostui::MenuStatus{};
+}
+
+// SAVE & APPLY, and the warning before leaving with unsaved changes.
+void SetSaving(MenuScreen& screen, const std::shared_ptr<Draft>& draft) {
+  screen.set_apply([draft] { draft->SaveAndApply(); });
+  screen.set_leave([draft] {
+    if (draft->edits.empty() || draft->leave_warned) {
+      return true;
+    }
+    draft->leave_warned = true;
+    return false;
+  });
+}
+
 MenuRow Heading(const char* label) {
   MenuRow row;
   row.label = label;
@@ -558,14 +634,7 @@ std::unique_ptr<MenuScreen> CreateControlsPage(config::HostConfig& config,
       .active = [draft] { return draft->capture.has_value(); },
       .key = [draft](const std::string& key) { draft->TakeKey(key); },
       .cancel = [draft] { draft->capture.reset(); }});
-  screen->set_apply([draft] { draft->SaveAndApply(); });
-  screen->set_leave([draft] {
-    if (draft->edits.empty() || draft->leave_warned) {
-      return true;
-    }
-    draft->leave_warned = true;
-    return false;
-  });
+  SetSaving(*screen, draft);
   screen->set_status([draft, labels] {
     if (draft->capture) {
       const auto left = kCaptureTimeout - (draft->services.now() - draft->capture->started);
@@ -580,23 +649,7 @@ std::unique_ptr<MenuScreen> CreateControlsPage(config::HostConfig& config,
       return hostui::MenuStatus{.text = "PRESS THE KEY FOR " + label + " (CANCELS IN " +
                                         std::to_string(seconds) + " S)"};
     }
-    if (draft->save_failed) {
-      return hostui::MenuStatus{.text = "COULD NOT SAVE CONTROLS.TOML", .warning = true};
-    }
-    if (draft->apply_failed) {
-      return hostui::MenuStatus{.text = "KEYS SAVED; THEY APPLY AT THE NEXT START.",
-                                .warning = true};
-    }
-    if (!draft->edits.empty()) {
-      return hostui::MenuStatus{.text = "UNSAVED CHANGES", .warning = draft->leave_warned};
-    }
-    if (!draft->message.empty()) {
-      return hostui::MenuStatus{.text = draft->message};
-    }
-    if (draft->applied) {
-      return hostui::MenuStatus{.text = "KEYS SAVED AND APPLIED."};
-    }
-    return hostui::MenuStatus{};
+    return SavedStatus(*draft, "KEYS");
   });
   screen->set_update([draft](bool closing) {
     if (draft->capture &&
@@ -605,6 +658,23 @@ std::unique_ptr<MenuScreen> CreateControlsPage(config::HostConfig& config,
     }
     if (closing && !draft->edits.empty()) {
       REXLOG_INFO("Controls page: discarded {} unapplied changes", draft->edits.size());
+    }
+  });
+  return screen;
+}
+
+std::unique_ptr<MenuScreen> CreateMousePage(config::HostConfig& config,
+                                            ControlsPageServices services) {
+  auto draft = std::make_shared<Draft>(config, std::move(services));
+  std::vector<MenuRow> rows;
+  rows.push_back(MouseLookRow(draft));
+  rows.push_back(MouseLookSensitivityRow(draft));
+  auto screen = std::make_unique<MenuScreen>("MOUSE", std::move(rows));
+  SetSaving(*screen, draft);
+  screen->set_status([draft] { return SavedStatus(*draft, "SETTINGS"); });
+  screen->set_update([draft](bool closing) {
+    if (closing && !draft->edits.empty()) {
+      REXLOG_INFO("Mouse page: discarded {} unapplied changes", draft->edits.size());
     }
   });
   return screen;

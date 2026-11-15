@@ -23,6 +23,8 @@ public partial class MainWindow
 
     private ControlsSettings? _controls;
     private ControlSet _controlSet = ControlSet.Driving;
+    // The MOUSE tab beside DRIVING and MENUS.
+    private bool _controlsMouse;
     private Capture? _capture;
     private string? _pendingModifier, _controlsProblem;
     private Action? _captureUndo;
@@ -125,7 +127,8 @@ public partial class MainWindow
         resetAll.Click += (_, _) =>
         {
             EndControlsCapture();
-            _controls.ResetAll(_controlSet);
+            if (_controlsMouse) _controls.ResetMouseLook();
+            else _controls.ResetAll(_controlSet);
             BuildControlsPanel("Defaults shown for this list; SAVE writes them.");
         };
         ControlsBody.Children.Add(new WrapPanel { Children = { _saveControlsButton, resetAll } });
@@ -135,16 +138,32 @@ public partial class MainWindow
         foreach (var (set, label) in new[] { (ControlSet.Driving, "DRIVING"), (ControlSet.Menu, "MENUS") })
         {
             var tab = new Button { Content = label, Classes = { "quiet", "nav" } };
-            tab.Classes.Set("selected", set == _controlSet);
+            tab.Classes.Set("selected", !_controlsMouse && set == _controlSet);
             tab.Click += (_, _) =>
             {
                 EndControlsCapture();
                 _controlSet = set;
+                _controlsMouse = false;
                 BuildControlsPanel("");
             };
             tabs.Children.Add(tab);
         }
+        var mouseTab = new Button { Content = "MOUSE", Classes = { "quiet", "nav" } };
+        mouseTab.Classes.Set("selected", _controlsMouse);
+        mouseTab.Click += (_, _) =>
+        {
+            EndControlsCapture();
+            _controlsMouse = true;
+            BuildControlsPanel("");
+        };
+        tabs.Children.Add(mouseTab);
         ControlsBody.Children.Add(tabs);
+        if (_controlsMouse)
+        {
+            AddMouseLookRows();
+            UpdateControlsActions();
+            return;
+        }
         ControlsBody.Children.Add(Help(_controlSet == ControlSet.Driving
             ? "Used while the car is on the track and the game is not paused. Each action has a primary key and an optional secondary key."
             : "Used in menus, the pre-race screen, the pause menu, replays and results. Each action has a primary key and an optional secondary key."));
@@ -168,6 +187,54 @@ public partial class MainWindow
 
         AddRampRows();
         UpdateControlsActions();
+    }
+
+    private void AddMouseLookRows()
+    {
+        ControlsBody.Children.Add(Help("In a race, hold the right mouse button and move the mouse left or right to look around the car. "
+                                       + "Let go and the camera goes back behind it."));
+        const string lookLabel = "Mouse look (hold right button)", sensitivityLabel = "Mouse look sensitivity";
+        var box = new CheckBox { IsChecked = _controls!.MouseLook, Content = new TextBlock { Text = lookLabel } };
+        var slider = new Slider
+        {
+            Minimum = ControlsSettings.MouseLookLow, Maximum = ControlsSettings.MouseLookHigh, Value = _controls.MouseLookSensitivity,
+            SmallChange = 1, LargeChange = 5, IsSnapToTickEnabled = true, TickFrequency = 1, Width = 320,
+        };
+        var value = new TextBlock { Width = 64, VerticalAlignment = VerticalAlignment.Center, Foreground = Brush("ValueBrush") };
+        var reset = new Button { Content = "RESET", Classes = { "link" }, FontSize = 16, Padding = new Thickness(14, 10), VerticalAlignment = VerticalAlignment.Center };
+        void Show()
+        {
+            value.Text = _controls.MouseLookSensitivity.ToString(CultureInfo.InvariantCulture);
+            reset.IsEnabled = !_controls.MouseLookIsDefault;
+            if (_controlsUnsaved is not null) _controlsUnsaved.IsVisible = _controls.Changed;
+        }
+        box.IsCheckedChanged += (_, _) =>
+        {
+            _controls.MouseLook = box.IsChecked == true;
+            Show();
+        };
+        slider.ValueChanged += (_, e) =>
+        {
+            _controls.SetMouseLookSensitivity((int)Math.Round(e.NewValue));
+            Show();
+        };
+        reset.Click += (_, _) =>
+        {
+            _controls.ResetMouseLook();
+            box.IsChecked = _controls.MouseLook;
+            slider.Value = _controls.MouseLookSensitivity;
+            Show();
+        };
+        AutomationProperties.SetName(box, lookLabel);
+        AutomationProperties.SetName(slider, sensitivityLabel);
+        Show();
+        ControlsBody.Children.Add(box);
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { slider, value, reset } };
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("260,*") };
+        grid.Children.Add(new TextBlock { Text = sensitivityLabel, VerticalAlignment = VerticalAlignment.Center });
+        Grid.SetColumn(line, 1);
+        grid.Children.Add(line);
+        ControlsBody.Children.Add(grid);
     }
 
     private Control ControlRowView(ControlRow row)

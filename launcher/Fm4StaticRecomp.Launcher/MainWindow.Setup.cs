@@ -321,10 +321,10 @@ public partial class MainWindow
     private async Task ChooseDisc2Async(string path)
     {
         SetBusy(true);
-        var input = await Task.Run(() => DiscInput.Detect(path));
+        var input = await Task.Run(() => DiscInput.DetectDisc2(path));
         SetBusy(false);
         _stepOverrides.Remove(Step.Disc2);
-        if (input is null or { Kind: DiscInputKind.ExtractedFolder })
+        if (input is null)
         {
             _disc2Input = null;
             UpdateSetupRows();

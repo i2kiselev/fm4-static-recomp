@@ -64,6 +64,7 @@ const Setting kUpscaler = {"present_effect",
                             {"FSR 1", "fsr"},
                             {"FSR 2", "fsr2"},
                             {"FSR 3", "fsr3"},
+                            {"FSR 4", "fsr4"},
                             {"DLSS", "dlss"}}};
 const Setting kDlssPreset = {
     "present_dlss_preset",
@@ -167,7 +168,8 @@ const RowText kRows[] = {
      "Renders the game at a multiple of 1280x720: sharper edges and textures, more GPU load."},
     {"UPSCALER", &kUpscaler,
      "Upscales the picture from the resolution scale to your display. DLSS (NVIDIA RTX GPUs), "
-     "FSR 2 and FSR 3 (any GPU) use the game's depth and motion and smooth edges themselves: "
+     "FSR 4 (AMD Radeon RX 6000 or later and recent Ryzen APUs), FSR 2 and FSR 3 (any GPU) use "
+     "the game's depth and motion and smooth edges themselves: "
      "while one runs, MSAA and post AA are off, the MSAA change from the next screen. FSR 1 "
      "(any GPU, light) upscales and sharpens the finished picture, after MSAA and post AA. Off "
      "stretches the picture."},
@@ -176,8 +178,8 @@ const RowText kRows[] = {
      "GPU, else K; Default leaves the choice to the DLSS runtime and the NVIDIA app's override.",
      false, &kUpscaler, "dlss"},
     {"SHARPNESS", &kSharpness,
-     "Sharpens the picture after the upscaler. Off leaves the picture of DLSS, FSR 2 or FSR 3 "
-     "as it is; FSR 1 always sharpens a little."},
+     "Sharpens the picture after the upscaler. Off leaves the picture of DLSS, FSR 2, FSR 3 "
+     "or FSR 4 as it is; FSR 1 always sharpens a little."},
     {"GRAPHICS PRESET", nullptr,
      "Sets every setting below. Console is the game as on the console; "
      "High raises most, adds FXAA and uses 2x MSAA everywhere; Ultra also raises the level of "
@@ -485,7 +487,10 @@ std::string UpscalerName(const Draft& draft, const GraphicsPageServices& service
     if (!rex::ui::IsTemporalUpscalerActive()) {
       return std::string();
     }
-    return effect == "dlss" ? "DLSS" : effect == "fsr3" ? "FSR 3" : "FSR 2";
+    return effect == "dlss"   ? "DLSS"
+           : effect == "fsr4" ? "FSR 4"
+           : effect == "fsr3" ? "FSR 3"
+                              : "FSR 2";
   }
   return !UpscalerChosen(draft, services) || !RenderFits(draft, services)
              ? std::string()

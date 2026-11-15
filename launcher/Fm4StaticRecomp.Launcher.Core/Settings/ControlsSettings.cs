@@ -11,6 +11,7 @@ namespace Fm4StaticRecomp.Launcher.Core.Settings;
 public sealed class ControlsSettings(string tomlPath)
 {
     public const double RampLow = 0.02, RampHigh = 0.60;
+    public const int MouseLookLow = 10, MouseLookHigh = 100;
 
     // A primary key and an optional secondary one. A hand-edited file may list more: they are shown and kept, not added.
     public const int MaxKeys = 2;
@@ -116,6 +117,30 @@ public sealed class ControlsSettings(string tomlPath)
 
     public bool RampIsDefault(string key) => FormatRamp(Ramp(key)) == FormatRamp(RampRowOf(key).Default);
 
+    public bool MouseLook
+    {
+        get => _edited.TryGetValue(ControlsCatalog.MouseLookKey, out var edit) ? edit.Value == "true" : SavedMouseLook();
+        set => StoreValue(ControlsCatalog.MouseLookKey, OnOff(value), OnOff(SavedMouseLook()), OnOff(ControlsCatalog.MouseLookDefault));
+    }
+
+    public int MouseLookSensitivity =>
+        _edited.TryGetValue(ControlsCatalog.MouseLookSensitivityKey, out var edit)
+            ? int.Parse(edit.Value, CultureInfo.InvariantCulture) : SavedMouseLookSensitivity();
+
+    public void SetMouseLookSensitivity(int sensitivity) =>
+        StoreValue(ControlsCatalog.MouseLookSensitivityKey, Whole(Math.Clamp(sensitivity, MouseLookLow, MouseLookHigh)),
+                   Whole(SavedMouseLookSensitivity()), Whole(ControlsCatalog.MouseLookSensitivityDefault));
+
+    public void ResetMouseLook()
+    {
+        MouseLook = ControlsCatalog.MouseLookDefault;
+        SetMouseLookSensitivity(ControlsCatalog.MouseLookSensitivityDefault);
+    }
+
+    public bool MouseLookIsDefault =>
+        MouseLook == ControlsCatalog.MouseLookDefault
+        && MouseLookSensitivity == ControlsCatalog.MouseLookSensitivityDefault;
+
     // The game may have written the file since it was read: only this session's edits are applied on top.
     public void Save()
     {
@@ -124,7 +149,7 @@ public sealed class ControlsSettings(string tomlPath)
         foreach (var (key, edit) in _edited)
         {
             if (edit.Value == edit.Default) file.Remove(key);
-            else file.Set(key, edit.Value, quoted: !key.StartsWith("ramp_", StringComparison.Ordinal));
+            else file.Set(key, edit.Value, quoted: key.StartsWith("driving_", StringComparison.Ordinal) || key.StartsWith("menu_", StringComparison.Ordinal));
         }
         file.Save(tomlPath);
         _file = file;
@@ -155,6 +180,27 @@ public sealed class ControlsSettings(string tomlPath)
         if (value == FormatRamp(SavedRamp(row.Key))) _edited.Remove(row.Key);
         else _edited[row.Key] = new Edit(value, FormatRamp(row.Default));
     }
+
+    private void StoreValue(string key, string value, string saved, string defaultValue)
+    {
+        if (value == saved) _edited.Remove(key);
+        else _edited[key] = new Edit(value, defaultValue);
+    }
+
+    // The game's rules (src\input\controls.cpp): "true" or "false" only; a finite sensitivity above
+    // zero, held to the range and rounded half away from zero as std::lround does.
+    private bool SavedMouseLook() =>
+        _file.Get(ControlsCatalog.MouseLookKey) switch { "true" => true, "false" => false, _ => ControlsCatalog.MouseLookDefault };
+
+    private int SavedMouseLookSensitivity() =>
+        _file.Get(ControlsCatalog.MouseLookSensitivityKey) is { } stored && ParseRamp(stored) is { } value
+        && double.IsFinite(value) && value > 0
+            ? (int)Math.Round(Math.Clamp(value, MouseLookLow, MouseLookHigh), MidpointRounding.AwayFromZero)
+            : ControlsCatalog.MouseLookSensitivityDefault;
+
+    private static string OnOff(bool on) => on ? "true" : "false";
+
+    private static string Whole(int value) => value.ToString(CultureInfo.InvariantCulture);
 
     private double SavedRamp(string key) =>
         _file.Get(key) is { } stored && ParseRamp(stored) is { } seconds ? seconds : RampRowOf(key).Default;

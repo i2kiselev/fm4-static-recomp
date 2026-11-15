@@ -5,7 +5,7 @@
 # config/rexglue/releases/<image>.toml; each image's [functions] are in fragments-<image>.toml.
 
 # Only these mixer copies may bypass FMA, after static or runtime proof of float-valued inputs.
-exact_single_fma_functions = [0x82B56430, 0x82B5CCF0, 0x82B94F78]
+exact_single_fma_functions = [0x82B3FC08, 0x82B56430, 0x82B5CCF0, 0x82B5E260, 0x82B94F78]
 
 # Microsoft CRT non-local jump pair (9 setjmp and 8 longjmp call sites). These
 # must be semantic codegen hooks so a longjmp restores the host-side PPCContext
@@ -235,6 +235,14 @@ context = true
 registers = ["r1", "r3", "r4"]
 return_on_true = true
 
+# A text element's update (r30 = the element), before it checks whether to lay its text
+# out again: prompt texts follow the device switch while their scene is up.
+[[midasm_hook]]
+address = 0x8233FE4C
+name = "Fm4TextElementUpdate"
+context = true
+registers = ["r1", "r30"]
+
 # The Options dispatcher (this, action): action 23 opens the host page. The
 # game ignores actions it has no scene for, so nothing else changes.
 [[midasm_hook]]
@@ -415,3 +423,32 @@ registers = ["r31"]
 address = 0x8297AA50
 name = "Fm4MusicMovieStopped"
 registers = ["r31"]
+
+# The cameras' shared update (vtable 0x82004A34 + 0xC and three other camera vtables) steps
+# the look yaw, an angle spring at the camera (r31) + 0x108, through 0x822BC190.
+[[midasm_hook]]
+address = 0x8236560C
+name = "Fm4CameraLookSpringStep"
+registers = ["r31"]
+
+# The angle spring (r31) sets the angle to its target at once when the wrapped gap is 60
+# degrees or more (fcmpu against 0x82000DFC); true goes on to the spring step instead.
+[[midasm_hook]]
+address = 0x822BC340
+name = "Fm4AngleSpringCut"
+registers = ["r31"]
+jump_address_on_true = 0x822BC348
+
+# Quick Race setup (0x824D35D8), right after the lap count column's read (vtable + 0x80,
+# r3; r29 = the game mode, which picked QuickRaceLapCount or the Kinect column).
+[[midasm_hook]]
+address = 0x824D38BC
+name = "Fm4QuickRaceSetupLaps"
+registers = ["r3", "r29"]
+
+# Track select's list query (r4, the Tracks query reading QuickRaceLapCount by name for the
+# LAPS box, or another one on the branch joining here) at its vsnprintf (0x823AA8A0).
+[[midasm_hook]]
+address = 0x825E7BB0
+name = "Fm4QuickRaceTrackQuery"
+registers = ["r4"]

@@ -644,6 +644,15 @@ def window_upscalers(run):
                 session.hold("A LX=0", 600)
                 # A hot lap starts rolling.
                 time.sleep(12)
+                # A temporal upscaler runs only on an output at least the render's size: at 2x the
+                # windows are smaller, and the first one to run in the race (FSR 2 going
+                # fullscreen) built the race's upscaler variants there, 87 pipelines the seed lacks.
+                # One run here leaves each window step what the window itself makes.
+                session.set_option("present_effect", "fsr2")
+                session.set_option("fullscreen", "true")
+                time.sleep(4)
+                session.set_option("fullscreen", "false")
+                time.sleep(2.5)
                 for upscaler in upscalers:
                     _window_framing(run, session, "hot lap", upscaler, scale)
                 session.poll()

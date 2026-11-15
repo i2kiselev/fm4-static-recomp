@@ -154,8 +154,8 @@ public partial class MainWindow
         var staging = Path.Combine(host.Layout.Downloads, "disc2");
         try
         {
-            var input = await Task.Run(() => DiscInput.Detect(path), cancellation);
-            if (input is null or { Kind: DiscInputKind.ExtractedFolder })
+            var input = await Task.Run(() => DiscInput.DetectDisc2(path), cancellation);
+            if (input is null)
             {
                 ContentLine($"{DisplayName(path)} is not an FM4 Disc 2 image, GOD folder or packages folder.");
                 return;

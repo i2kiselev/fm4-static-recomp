@@ -36,6 +36,8 @@ set(FM4_HOST_SOURCES
     src/game_hooks.cpp
     src/audio_gain.cpp
     src/custom_music.cpp
+    src/mixer_options.cpp
+    src/quick_race_laps.cpp
     src/car_dirt.cpp
     src/code_image_check.cpp
     src/shadow_map.cpp
@@ -46,6 +48,7 @@ set(FM4_HOST_SOURCES
     src/shader_cache/cache_writer.cpp
     src/shader_cache/disc_shaders.cpp
     src/config/host_config.cpp
+    src/input/bc3_encoder.cpp
     src/input/controller_layout.cpp
     src/input/controls.cpp
     src/input/input_context.cpp
@@ -54,6 +57,7 @@ set(FM4_HOST_SOURCES
     src/input/prompt_strings.cpp
     src/input/prompt_swap.cpp
     src/ui/controls_page.cpp
+    src/ui/gameplay_page.cpp
     src/ui/graphics_page.cpp
     src/ui/hostui/glyph_atlas.cpp
     src/ui/hostui/host_ui.cpp
@@ -95,6 +99,7 @@ if(FM4_BUILD_TESTS)
         tests/dlc_licenses_test.cpp
         tests/keyboard_ramp_test.cpp
         tests/input_context_test.cpp
+        tests/bc3_encoder_test.cpp
         tests/keycap_test.cpp
         tests/prompt_swap_test.cpp
         tests/prompt_strings_test.cpp
@@ -110,15 +115,20 @@ if(FM4_BUILD_TESTS)
         tests/guest_frame_stats_test.cpp
         tests/controls_page_test.cpp
         tests/controller_layout_test.cpp
+        tests/mixer_options_test.cpp
+        tests/gameplay_page_test.cpp
         src/car_dirt.cpp
         src/audio_gain.cpp
         src/dlc_licenses.cpp
         src/code_image_check.cpp
         src/shadow_map.cpp
         src/file_open_log.cpp
+        src/mixer_options.cpp
+        src/quick_race_laps.cpp
         src/game_language.cpp
         src/string_log.cpp
         src/config/host_config.cpp
+        src/input/bc3_encoder.cpp
         src/input/controller_layout.cpp
         src/input/controls.cpp
         src/input/keyboard_ramp.cpp
@@ -131,6 +141,7 @@ if(FM4_BUILD_TESTS)
         src/ui/hostui/vector_font.cpp
         src/ui/hostui/menu.cpp
         src/ui/controls_page.cpp
+        src/ui/gameplay_page.cpp
         src/ui/graphics_page.cpp
     )
     # Away from the game's staged runtime, which is only as new as the last game build;

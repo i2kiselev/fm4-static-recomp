@@ -328,6 +328,81 @@ public class ControlsSettingsTests
     }
 
     [Fact]
+    public void Mouse_look_is_saved_bare_and_removed_at_default()
+    {
+        using var temp = new TempDir();
+        var path = temp.File("controls.toml");
+        var settings = new ControlsSettings(path);
+        Assert.True(settings.MouseLook);
+        Assert.Equal(25, settings.MouseLookSensitivity);
+        Assert.True(settings.MouseLookIsDefault);
+        settings.MouseLook = false;
+        settings.SetMouseLookSensitivity(40);
+        Assert.Equal(40, settings.MouseLookSensitivity);
+        settings.SetKey(Driving, "x", 0, "Z");
+        settings.Save();
+        var text = File.ReadAllText(path);
+        Assert.Contains("mouse_look = false\n", text);
+        Assert.Contains("mouse_look_sensitivity = 40\n", text);
+        Assert.Contains("driving_x = \"Z\"\n", text);
+        Assert.False(settings.MouseLookIsDefault);
+        settings.ResetMouseLook();
+        Assert.True(settings.MouseLookIsDefault);
+        settings.Save();
+        Assert.Equal("driving_x = \"Z\"\n", File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void Mouse_look_sensitivity_is_clamped()
+    {
+        using var temp = new TempDir();
+        var settings = new ControlsSettings(temp.File("controls.toml"));
+        settings.SetMouseLookSensitivity(500);
+        Assert.Equal(100, settings.MouseLookSensitivity);
+        settings.SetMouseLookSensitivity(0);
+        Assert.Equal(10, settings.MouseLookSensitivity);
+    }
+
+    [Theory]
+    [InlineData("mouse_look = yes\n")]
+    [InlineData("mouse_look = 1\n")]
+    [InlineData("mouse_look_sensitivity = 0\n")]
+    [InlineData("mouse_look_sensitivity = -1\n")]
+    [InlineData("mouse_look_sensitivity = fast\n")]
+    [InlineData("mouse_look_sensitivity = inf\n")]
+    [InlineData("mouse_look_sensitivity = Infinity\n")]
+    [InlineData("mouse_look_sensitivity = NaN\n")]
+    public void Unreadable_mouse_look_values_read_as_the_defaults(string text)
+    {
+        using var temp = new TempDir();
+        var settings = new ControlsSettings(Write(temp, text));
+        Assert.True(settings.MouseLook);
+        Assert.Equal(25, settings.MouseLookSensitivity);
+    }
+
+    [Theory]
+    [InlineData("500", 100)]
+    [InlineData("1e300", 100)]
+    [InlineData("3", 10)]
+    [InlineData("40.6", 41)]
+    [InlineData("40.5", 41)]
+    public void A_saved_sensitivity_is_rounded_and_held_to_10_to_100_as_the_game_does(string stored, int expected)
+    {
+        using var temp = new TempDir();
+        var settings = new ControlsSettings(Write(temp, $"mouse_look_sensitivity = {stored}\n"));
+        Assert.Equal(expected, settings.MouseLookSensitivity);
+    }
+
+    [Fact]
+    public void Reads_saved_mouse_look_values()
+    {
+        using var temp = new TempDir();
+        var settings = new ControlsSettings(Write(temp, "mouse_look = false\nmouse_look_sensitivity = 60\n"));
+        Assert.False(settings.MouseLook);
+        Assert.Equal(60, settings.MouseLookSensitivity);
+    }
+
+    [Fact]
     public void Reports_a_file_that_is_not_key_value_lines()
     {
         using var temp = new TempDir();

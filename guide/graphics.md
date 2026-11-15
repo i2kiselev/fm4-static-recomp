@@ -2,17 +2,16 @@
 
 [← Back to the README](../README.md)
 
-**Play Career → My Profile → Options → GRAPHICS**, or **F6** or **BACK + START** held
-together on a controller anywhere, opens a settings page
-in the game's own style. Each row explains itself; a changed row is marked red until **SAVE &
+**Play Career → My Profile → Options → PC OPTIONS**, or **F6** or **BACK + START** held
+together on a controller anywhere, opens the PC OPTIONS page in the game's own style, on its
+**GRAPHICS** tab, which this guide describes. Each row explains itself; a changed row is marked red until **SAVE &
 APPLY** (**Y** on a controller, the menu's Y key on the keyboard, **Y** by default) saves the
 changes to `config\graphics.toml` in the state folder and applies them one after another. The
 page then says the settings are applied; a row's change takes effect at once or from the next
 race or screen, as the row says. Leaving with unapplied changes asks once more; leaving again
 discards them. A
 [launch option](launch-options.md) for one of these settings sets its starting value for that
-session only. **RB** and **LB** switch to the KEYBOARD tab, which rebinds the keyboard
-([Keyboard](controls.md#in-the-game)).
+session only.
 
 ## Presets
 
@@ -52,12 +51,12 @@ FRAME RATE, FULLSCREEN, RESOLUTION SCALE, UPSCALER and SHARPNESS are not part of
 
 | Setting | Effect |
 |---|---|
-| UPSCALER | Off stretches the picture to your display. DLSS (NVIDIA RTX GPUs), FSR 2 or FSR 3 (any GPU) upscale it from the resolution scale with the game's depth and motion and smooth edges themselves, so MSAA and post AA are off while one runs. With the output at the render size they work as anti-aliasing alone (DLAA). FSR 1 (any GPU, light on the GPU) upscales and sharpens the finished picture, after MSAA and post AA, which stay on: for a 1080p screen at 1x, e.g. a handheld. They all only upscale: while one is chosen, RESOLUTION SCALE offers the scales up to the screen's size (1x and 2x on a 1440p display), and choosing one over a larger scale lowers the scale with it, shown as a change before SAVE & APPLY. The launcher's GRAPHICS follow the same rule for the display the launcher is on, or for WINDOW SIZE with WINDOWED on. A larger scale saved before, or a game window or screen smaller than that display, is downscaled without the upscaler: the row then reads e.g. `DLSS (OFF AT 3X)` and MSAA and post AA apply again. Applies at once; the MSAA change from the next screen. How they work and which to pick: [Upscalers](upscalers.md). |
+| UPSCALER | Off stretches the picture to your display. DLSS (NVIDIA RTX GPUs), FSR 4 (AMD Radeon RX 6000 or later, recent Ryzen APUs; Windows), FSR 2 or FSR 3 (any GPU) upscale it from the resolution scale with the game's depth and motion and smooth edges themselves, so MSAA and post AA are off while one runs. With the output at the render size they work as anti-aliasing alone (DLAA). FSR 1 (any GPU, light on the GPU) upscales and sharpens the finished picture, after MSAA and post AA, which stay on: for a 1080p screen at 1x, e.g. a handheld. They all only upscale: while one is chosen, RESOLUTION SCALE offers the scales up to the screen's size (1x and 2x on a 1440p display), and choosing one over a larger scale lowers the scale with it, shown as a change before SAVE & APPLY. The launcher's GRAPHICS follow the same rule for the display the launcher is on, or for WINDOW SIZE with WINDOWED on. A larger scale saved before, or a game window or screen smaller than that display, is downscaled without the upscaler: the row then reads e.g. `DLSS (OFF AT 3X)` and MSAA and post AA apply again. Applies at once; the MSAA change from the next screen. How they work and which to pick: [Upscalers](upscalers.md). |
 | SHARPNESS | Sharpening after the upscaler: Off, or 10 % to 100 %; 30 % by default. FSR 1 always sharpens a little, even at Off; strong sharpening makes fences and fine nets (e.g. the 599 GTO's grille) shimmer, so keep it moderate. Applies at once. |
 | DLSS PRESET | In the launcher only, while UPSCALER is DLSS: the DLSS model. Auto takes M where DLSS upscales by more than 1.8x on an RTX 40 or later GPU, else K; K, M, J and L pick one; Default leaves the choice to the DLSS runtime and the NVIDIA app's override. From the next start. |
 | SHOWROOM MSAA | The game's own multisampling in the showroom, menus, pre-race, replays and photo mode: 4x as on the console, 2x or off. Fewer samples are faster and leave edge smoothing to the resolution scale. From the next screen. |
 | RACE MSAA | The same in races, the countdown and the results: 2x as on the console (4x in races alone on track), 4x (heavy on the GPU) or off. From the next race. |
-| POST AA | FXAA or FXAA Extreme over the finished picture; Extreme smooths and softens more. Off while DLSS, FSR 2 or FSR 3 runs; under FSR 1 it applies before the upscale, and its softening is upscaled too. |
+| POST AA | FXAA or FXAA Extreme over the finished picture; Extreme smooths and softens more. Off while DLSS, FSR 2, FSR 3 or FSR 4 runs; under FSR 1 it applies before the upscale, and its softening is upscaled too. |
 | ANISOTROPIC FILTERING | Keeps textures sharp at grazing angles. Game keeps what the game asks for; 2x to 16x force it. |
 
 ### Scene detail

@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 
 [![NVIDIA DLSS](https://img.shields.io/badge/NVIDIA-DLSS-76B900?logo=nvidia&logoColor=white)](guide/upscalers.md)
-[![AMD FSR 1, 2 and 3](https://img.shields.io/badge/AMD-FSR%201%20%7C%202%20%7C%203-ED1C24?logo=amd&logoColor=white)](guide/upscalers.md)
+[![AMD FSR 1, 2, 3 and 4](https://img.shields.io/badge/AMD-FSR%201%20%7C%202%20%7C%203%20%7C%204-ED1C24?logo=amd&logoColor=white)](guide/upscalers.md)
 [![Mod: Project Forza Plus 4 1.3](https://img.shields.io/badge/mod-Project%20Forza%20Plus%204%201.3-orange)](guide/project-forza-plus.md)
 
 An unofficial static recompilation of the Xbox 360 release of *Forza Motorsport 4* for
@@ -20,21 +20,22 @@ commands run on ShiftGlue's native Vulkan renderer, written for
 [Pinyon Shift](https://github.com/arcanite24/pinyon-shift) (*Forza Horizon*) and extended
 here for FM4.
 
-## New in 0.3.2: keyboard rebinding and many audio improvements
+## New in 0.3.3: FSR 4, Xbox 360 careers and mouse look
 
 > [!TIP]
-> **[Rebind the keyboard](guide/controls.md#rebinding-keys)** in the game or in the launcher,
-> with a primary and a secondary key for each action. **The sound got a lot of work:**
-> [your own music](guide/launch-options.md#custom-soundtrack) in the menus and in races,
-> engine sounds without pops, and a faster audio path for older processors. Also new: stronger
-> vibration for controllers that vibrate too weakly, DLC that the game showed as locked works
-> now, GPU readbacks and car thumbnails are much more reliable (a car turning pink after a
-> change of home space, or a thumbnail missing a tile, should now be rare), the first start
-> prepares shaders before the title with a progress bar, and there is an
-> [experimental preview for Apple Silicon Macs](guide/macos.md). Everything else in this version:
+> **[FSR 4](guide/upscalers.md#quick-start)** sharpens the picture on AMD Radeon RX 6000 and
+> later graphics cards. A career copied off an Xbox 360 can be
+> **[continued here](guide/saves.md#a-career-from-an-xbox-360)**. In races,
+> **[hold the right mouse button to look around](guide/controls.md#looking-around-with-the-mouse)**
+> your car. Also new: race sound with AI cars no longer drags on older processors, your
+> controller signs in as player 1 when DS4Windows runs or a drum kit is connected, the keyboard
+> settings are easier to find and show your keys everywhere, the race music can play on through
+> crashes, re-saved vinyl groups open again, and
+> [longer Quick Races](guide/gameplay.md#quick-race-laps-experimental) are an experimental
+> setting. Everything else in this version:
 > [release notes](https://github.com/i2kiselev/fm4-static-recomp/releases/latest).
 >
-> Since 0.3.1, **[Project Forza Plus 4](guide/project-forza-plus.md)** sets up from the launcher
+> **[Project Forza Plus 4](guide/project-forza-plus.md)** sets up from the launcher
 > **as a new install of its own**, and the **Rev 1** (1.1) Disc 1 releases work.
 
 > [!NOTE]
@@ -81,10 +82,11 @@ the command line? See the [manual install](guide/manual-install.md).
 | [Manual install](guide/manual-install.md) | Command-line setup, Disc 2 and DLC, updating |
 | [Project Forza Plus 4](guide/project-forza-plus.md) | Setting up the mod: its own install, career modes, saves, what is left out |
 | [Project Forza Plus 4: how the port runs it](guide/project-forza-plus-internals.md) | The mod's 1.0 code, also on Rev 1 discs, what setup takes and patches, why saves don't mix, the AI's physics steps |
-| [Graphics settings](guide/graphics.md) | The in-game GRAPHICS page, presets, what each setting does |
-| [Upscalers](guide/upscalers.md) | DLSS, FSR 2, FSR 3 and FSR 1: what to pick, how the port feeds them, known limits |
+| [Graphics settings](guide/graphics.md) | The GRAPHICS tab of the in-game PC OPTIONS, presets, what each setting does |
+| [Upscalers](guide/upscalers.md) | DLSS, FSR 2, FSR 3, FSR 4 and FSR 1: what to pick, how the port feeds them, known limits |
 | [High frame rates](guide/high-frame-rate.md) | Picking a frame rate, how the game runs at up to 240 fps at real speed, limits |
-| [Keyboard](guide/controls.md) | Key layout for driving and menus, rebinding |
+| [Gameplay settings](guide/gameplay.md) | The in-game GAMEPLAY tab: Quick Race laps (experimental) |
+| [Keyboard and mouse](guide/controls.md) | Key layout for driving and menus, rebinding, looking around with the mouse (the KEYBOARD and MOUSE tabs of PC OPTIONS) |
 | [Launch options](guide/launch-options.md) | Command-line options, languages, `-Compat`, frame generation, setting options, logs and crash reports |
 | [Debug options](DEBUG_OPTIONS.md) | Debug views, A/B switches of rendering fixes and diagnostics |
 | [Testing and benchmarks](guide/performance.md) | What was played, frame rates and VRAM, comparisons with Xenia and hl360-forza4 |
@@ -104,7 +106,7 @@ ShiftGlue SDK (without this project's game hooks and renderer changes):
 | Race loading | Console speed | Console speed | Faster |
 | Sun and lights | Correct | Screen-filling glare | Correct |
 | Anti-aliasing | The game's 2x/4x MSAA | The game's MSAA | Showroom and race MSAA 4x, 2x or off each, FXAA, FXAA Extreme, DLAA |
-| Upscaling | - | DLSS, FSR 2 and FSR 3 with Forza Horizon's camera tracking, which does not fit FM4 | **DLSS, FSR 2 and FSR 3** with FM4's own depth, camera cuts and per-object motion ([how](guide/upscalers.md)) |
+| Upscaling | - | DLSS, FSR 2 and FSR 3 with Forza Horizon's camera tracking, which does not fit FM4 | **DLSS, FSR 2, FSR 3 and FSR 4** with FM4's own depth, camera cuts and per-object motion ([how](guide/upscalers.md)) |
 | Window | - | A launch option | [WINDOWED](guide/windowed.md) in the launcher, **Alt+Enter** while playing |
 | Graphics settings | Fixed | Launch options only | In-game [GRAPHICS page](guide/graphics.md) (**BACK + START** or **F6**) with presets and per-setting switches, saved between sessions |
 | VRAM at 3x | - | About 8 GB | About 2 GB |
@@ -181,7 +183,7 @@ Known problems are tracked as
 
 | Path | What it is |
 |---|---|
-| `src/` | The host app: game hooks, built-in defaults, Disc 2 and DLC install, the GRAPHICS page and its KEYBOARD tab |
+| `src/` | The host app: game hooks, built-in defaults, Disc 2 and DLC install, the PC OPTIONS page and its tabs |
 | `src/input/` | Keyboard play: bindings, driving smoothing, keycap prompts |
 | `tests/` | Unit tests of the host app |
 | `config/rexglue/` | The recompiler's input: function analysis and hooks at their 1.0 addresses, each release's fragment list, the manifest |

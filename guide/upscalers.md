@@ -1,8 +1,8 @@
-# Temporal upscalers: DLSS, FSR 2 and FSR 3
+# Temporal upscalers: DLSS, FSR 2, FSR 3 and FSR 4
 
 [← Back to the README](../README.md)
 
-The game can render at a lower resolution and have DLSS, FSR 2 or FSR 3 rebuild a sharp picture
+The game can render at a lower resolution and have DLSS, FSR 2, FSR 3 or FSR 4 rebuild a sharp picture
 at your screen's resolution, or render at the screen's resolution and use them as anti-aliasing
 alone. This page says which to pick, and how this port gives a 2011 console game what these
 upscalers need.
@@ -10,9 +10,12 @@ upscalers need.
 ## Quick start
 
 1. Open the GRAPHICS page: **BACK + START** held together on a controller, **F6**, or Play
-   Career → My Profile → Options → GRAPHICS. The launcher's GRAPHICS have the same rows and a few launcher-only ones.
-2. **UPSCALER**: DLSS on an NVIDIA RTX GPU, otherwise FSR 3 or FSR 2 (any GPU). The row skips
-   an upscaler your GPU cannot run.
+   Career → My Profile → Options → PC OPTIONS. The launcher's GRAPHICS have the same rows and a few launcher-only ones.
+2. **UPSCALER**: DLSS on an NVIDIA RTX GPU, FSR 4 on an AMD Radeon RX 6000 or later GPU or a
+   recent Ryzen APU (Windows only), otherwise FSR 3 or FSR 2 (any GPU). The row skips an upscaler your GPU
+   cannot run. FSR 4 comes from AMD's FidelityFX SDK 2.4.0 Vulkan runtime, staged in
+   `upscalers/fidelityfx/2.4.0/`; the RX 9000 Series runs AMD's full model, older GPUs and
+   APUs lighter ones.
 3. **RESOLUTION SCALE**: the render size, from the table below.
 4. **SHARPNESS**: 30 % by default; Off to 100 %.
 5. **SAVE & APPLY** (**Y**). The upscaler switches at once, MSAA from the next screen.
@@ -112,7 +115,7 @@ again in the next frame by its mesh and its place among the draws.
 | **Replay camera motion blur off** | The upscaler would turn its smear around mirrors and exhaust pipes into ghosting. `--fm4_upscaler_replay_blur=true` keeps it. |
 | **Texture detail of the output size** | Textures pick their mip level as if rendered at the output resolution (a LOD bias of `log2(render / output)`, -1 from 720p to 1440p), so the upscaled picture is not blurry. Cut-outs are the exception: see below. |
 | **Sharper car shadows at 1x** | Taking a 1x frame, the races' ground shadow map is drawn at 512 instead of 256 and the car's own shadow map at 768 instead of 512, so their edges are not blocky after a 2x upscale. |
-| **One sharpening pass** | SHARPNESS drives one RCAS pass after the upscaler, for all three; FSR's built-in sharpening is off, so nothing is sharpened twice. |
+| **One sharpening pass** | SHARPNESS drives one RCAS pass after the upscaler, for all of them; FSR's built-in sharpening is off, so nothing is sharpened twice. |
 | **Mirrors from the frame** | The rear-view mirrors (the cockpit's, the hood camera's at the top of the screen) show what the mirror's own camera sees, which moves differently from the glass, so no motion lets the upscaler follow it and it smeared. The glass is drawn without jitter and put back over the upscale from the render, as the HUD is; its rim stays the upscaler's, for smooth edges. `--present_upscaler_mirrors=false` turns this off. |
 | **Steady cut-outs** | Foliage, fences and crowds are alpha-to-coverage cut-outs; at 1x they take one steady threshold, where a dither would flicker under the jitter. They also keep the render size's mip level: from finer mips their shapes change in motion and clusters of leaves pop, at the cost of slightly softer leaves. `--present_upscaler_cut_out_no_bias=false` turns this off. |
 

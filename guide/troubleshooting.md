@@ -35,7 +35,7 @@ The saved shaders are then usually out of date or damaged. To start again:
 
 1. Close the game window.
 2. Open the folder you extracted the launcher into, then `data` → `cache` → the folder named
-   after the game version, for example `0.3.2`. On a Mac, start from your data folder instead
+   after the game version, for example `0.3.3`. On a Mac, start from your data folder instead
    ([Where the game data goes](macos.md#where-the-game-data-goes)).
 3. Delete the `shaders` folder there. Leave the other folders alone.
 4. Start the game again from the launcher. It now starts without prepared shaders, so the first
@@ -121,18 +121,21 @@ picture again.
 
 ## The controller does nothing at sign-in (NO PROFILE), but the keyboard works
 
-The game gives player 1 to the first controller Windows lists. Controller apps (DS4Windows, Steam,
-a controller maker's app) can add a hidden extra controller in front of yours, so your controller
-becomes player 2, which has no profile. Buttons that act twice come from the same thing
-([#72](https://github.com/i2kiselev/fm4-static-recomp/issues/72); a fix in the game is planned).
+The game gives player 1 to the first controller it finds. Since 0.3.3 it passes over devices that
+are not gamepads (drum kits, guitars, dance pads), and while DS4Windows shows your PlayStation
+controller as an Xbox controller, the game uses only that one, so presses no longer arrive twice
+([#72](https://github.com/i2kiselev/fm4-static-recomp/issues/72)). If the controller still does
+nothing:
 
 1. Close the game. Open the Start menu, type **Set up USB game controllers** and open it. The
-   list should show one controller only.
-2. If it shows more, close your controller apps: right-click each one's icon beside the clock and
-   choose Exit. Check the list again.
-3. A PlayStation controller needs DS4Windows: open it, go to **Settings**, tick **Hide DS4
-   Controller**, then unplug the controller and plug it in again. The list shows one controller.
-4. Start the game again.
+   list should show one controller for each player.
+2. If it shows more, close your controller apps (DS4Windows, Steam, x360ce, the controller maker's
+   app): right-click each one's icon beside the clock and choose Exit. Check the list again.
+3. Start the game again.
+
+A PlayStation controller works without DS4Windows: the game reads it directly. While DS4Windows or
+a similar app (x360ce) is running, the game leaves PlayStation and Switch controllers out and uses
+the app's Xbox controller instead. If one of them then does nothing, close that app.
 
 ## Linux, Steam Deck or Proton
 
