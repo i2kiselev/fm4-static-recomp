@@ -33,6 +33,10 @@
 #include <rex/ui/window_listener.h>
 #include <rex/ui/windowed_app_context.h>
 
+#if defined(__linux__)
+#include <SDL3/SDL_hints.h>
+#endif
+
 #include "built_in_defaults.h"
 #include "code_image_check.h"
 #include "config/host_config.h"
@@ -133,6 +137,13 @@ class Fm4App final : public rex::ReXApp {
       config.tool_mode = true;
       return;
     }
+#if defined(__linux__)
+    // SDL's PipeWire backend turns the game's 6-channel audio into "robotic static"; its PulseAudio
+    // backend (pipewire-pulse) downmixes cleanly. Try that first, fall back to the others, and
+    // keep a user's own SDL_AUDIO_DRIVER (the environment beats a normal-priority hint). Must be
+    // an SDL hint: SDL snapshots the environment when the window starts, so setenv() is too late.
+    SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "pulseaudio,pipewire,alsa");
+#endif
     config.gpu_plugin = "fh1";
     fm4_static_recomp::ConfigureScriptedInput(config);
     fm4_static_recomp::ApplyBuiltInDefaults(fm4_static_recomp::DefaultStage::kBeforeGpuPlugin);

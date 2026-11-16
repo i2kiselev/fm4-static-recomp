@@ -29,6 +29,8 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#elif defined(__linux__)
+#include <SDL3/SDL_video.h>
 #endif
 
 namespace fm4_static_recomp::ui {
@@ -803,6 +805,18 @@ uint32_t DisplayRefreshHz(void* native_window) {
       EnumDisplaySettingsW(monitor.szDevice, ENUM_CURRENT_SETTINGS, &mode) &&
       mode.dmDisplayFrequency > 1) {
     return mode.dmDisplayFrequency;
+  }
+#elif defined(__linux__)
+  // Linux: the SDL window has no native handle here, so ask SDL for the display under the game's
+  // window (its only one), or the primary display before the window exists.
+  (void)native_window;
+  int count = 0;
+  SDL_Window** windows = SDL_GetWindows(&count);
+  SDL_DisplayID display = count > 0 ? SDL_GetDisplayForWindow(windows[0]) : SDL_GetPrimaryDisplay();
+  SDL_free(windows);
+  if (const SDL_DisplayMode* mode = display ? SDL_GetCurrentDisplayMode(display) : nullptr;
+      mode && mode->refresh_rate > 1.0f) {
+    return uint32_t(mode->refresh_rate + 0.5f);
   }
 #endif
   return 0;
