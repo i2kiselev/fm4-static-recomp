@@ -5,10 +5,10 @@ its cause and fix, and what is still untested. Setup and usage are in [guide/lin
 
 **Tested on**
 
-| Machine | CPU / GPU | OS |
-|---|---|---|
-| Desktop | AMD Radeon RX 6750 XT (RADV) | Fedora 44, KDE Plasma (Wayland) |
-| Laptop | Core i3-1215U, Intel Alder Lake graphics (Mesa 26.2) | Fedora 45, KDE Plasma (Wayland) |
+| Machine | CPU / GPU | RAM | OS |
+|---|---|---|---|
+| Desktop | Ryzen 5 5600G, Radeon RX 6750 XT (RADV) | 32 GB | Fedora 44, KDE Plasma (Wayland) |
+| Laptop | Core i3-1215U, Intel UHD graphics (Mesa 26.2) | 16 GB | Fedora 45, KDE Plasma (Wayland) |
 
 Result on both: builds, boots, menus (controller and keyboard), full races and career events, saves
 that survive a restart, and a full install from scratch through the launcher, including Disc 2.
