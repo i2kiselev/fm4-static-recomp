@@ -14,7 +14,7 @@ Windows, with an experimental Apple Silicon macOS preview, built locally from yo
 
 **Mac users:** see the [macOS guide](guide/macos.md) for setup and testing status.
 
-**Linux users:** see the [Linux guide](guide/linux.md) (experimental, x86-64, tested on Fedora).
+**Linux users:** see the [Linux guide](guide/linux.md) (experimental, x86-64; tested on Fedora, also builds on Arch and Ubuntu).
 
 The game's PowerPC code is translated ahead of time into C++ by the
 [ShiftGlue SDK](https://github.com/arcanite24/shiftglue-sdk) and compiled for x86-64 on Windows or ARM64 on macOS. Its GPU

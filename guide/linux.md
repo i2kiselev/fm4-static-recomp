@@ -9,20 +9,41 @@ Fedora are untested.
 ## What you need
 
 - A Linux system with a Vulkan GPU driver (check with: `vulkaninfo --summary`).
-- Your own [supported FM4 Disc 1](../README.md#supported-game). Disc 2 content is untested on Linux.
-- About 7 GB of free RAM at peak while compiling, Python 3, Git, and these Fedora packages:
+- Your own [supported FM4 Disc 1](../README.md#supported-game). Disc 2 (optional, more cars and
+  tracks) installs through the launcher as on Windows.
+- About 7 GB of free RAM at peak while compiling, and these packages (Arch-based distributions
+  such as Manjaro and EndeavourOS use the Arch line):
+
+  **Fedora:**
 
   ```sh
   sudo dnf install python3 git clang lld cmake ninja-build vulkan-loader-devel vulkan-headers vulkan-tools libX11-devel libXext-devel libXrandr-devel libXcursor-devel libXi-devel wayland-devel libxkbcommon-devel mesa-libGL-devel libXScrnSaver-devel libXfixes-devel libXtst-devel alsa-lib-devel pulseaudio-libs-devel pipewire-devel pipewire-jack-audio-connection-kit-devel dbus-devel ibus-devel systemd-devel mesa-libEGL-devel mesa-libGLES-devel mesa-libgbm-devel libdrm-devel wayland-protocols-devel libdecor-devel libusb1-devel
   ```
 
-- The launcher has .NET built in but needs OpenSSL 3. Fedora 45 ships OpenSSL 4, so also run:
+  **Arch:**
 
   ```sh
-  sudo dnf install 'libssl.so.3()(64bit)'
+  sudo pacman -S --needed python git clang lld cmake ninja pkgconf vulkan-icd-loader vulkan-headers vulkan-tools vulkan-radeon vulkan-intel libx11 libxext libxrandr libxcursor libxi wayland libxkbcommon mesa libxss libxfixes libxtst alsa-lib libpulse pipewire pipewire-jack dbus ibus systemd libdrm wayland-protocols libdecor libusb
   ```
 
-  (this installs openssl3-libs on Fedora 45; on Fedora 44 it is already installed).
+  (`vulkan-radeon` is the AMD graphics driver and `vulkan-intel` the Intel one; you only need the one for your GPU.)
+
+  **Ubuntu** (and Ubuntu-based distributions such as Linux Mint and Pop!_OS):
+
+  ```sh
+  sudo apt install python3 git clang lld cmake ninja-build pkg-config libvulkan-dev vulkan-tools mesa-vulkan-drivers libx11-dev libx11-xcb-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libwayland-dev libxkbcommon-dev libgl-dev libxss-dev libxfixes-dev libxtst-dev libasound2-dev libpulse-dev libpipewire-0.3-dev libjack-jackd2-dev libdbus-1-dev libibus-1.0-dev libudev-dev libegl-dev libgles-dev libgbm-dev libdrm-dev wayland-protocols libdecor-0-dev libusb-1.0-0-dev
+  ```
+
+  Ubuntu 24.04's default clang (18) is too old for this code, so on 24.04 also run
+  `sudo apt install clang-20`; the build uses it automatically.
+
+- The launcher has .NET built in but needs OpenSSL 3. Fedora 45 and Arch ship OpenSSL 4, so also run:
+
+  **Fedora:** `sudo dnf install 'libssl.so.3()(64bit)'` (installs openssl3-libs on Fedora 45; already there on Fedora 44)
+
+  **Arch:** `sudo pacman -S --needed openssl-3`
+
+  **Ubuntu:** `sudo apt install libssl3t64` (normally already installed)
 
 ## Installing
 
@@ -36,7 +57,7 @@ Fedora are untested.
    ```
 
    `check-system.py` checks the build packages, OpenSSL 3, the Vulkan GPU and disk space, and
-   prints the `dnf` command for anything missing. Setup runs the same check before it builds.
+   prints the install command for anything missing (`dnf` on Fedora, `pacman` on Arch, `apt` on Ubuntu). Setup runs the same check before it builds.
 2. Optionally, `./add-to-app-menu.sh` puts the launcher in your desktop's app menu (run it again
    after moving the folder; `--remove` takes it out). Start the launcher from the menu or with
    `./FM4StaticRecompLauncher`.

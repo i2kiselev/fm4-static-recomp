@@ -129,12 +129,16 @@ class PreflightError(RuntimeError):
         self.hint = hint
 
 
-def preflight():
-    """linux/check-system.py before a long build: fail in seconds with the fix, not minutes in."""
+def check_system():
     spec = importlib.util.spec_from_file_location('check_system', ROOT / 'linux/check-system.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    problems, warnings, fixes, _ = module.check(ROOT)
+    return module
+
+
+def preflight():
+    """linux/check-system.py before a long build: fail in seconds with the fix, not minutes in."""
+    problems, warnings, fixes, _ = check_system().check(ROOT)
     for line in warnings:
         say(f'Warning: {line}')
     if problems:
@@ -143,9 +147,18 @@ def preflight():
 
 
 def check_tools():
-    missing = [t for t in ('clang', 'clang++', 'cmake', 'ninja', 'git') if not shutil.which(t)]
+    missing = [t for t in ('cmake', 'ninja', 'git') if not shutil.which(t)]
+    checks = check_system()
+    compilers = checks.find_clang()
+    if not compilers:
+        missing.insert(0, f'clang {checks.MIN_CLANG}+')
     if missing:
-        raise RuntimeError(f'Missing tools: {", ".join(missing)}. Run python3 linux/check-system.py for the dnf command.')
+        raise RuntimeError(f'Missing tools: {", ".join(missing)}. Run python3 linux/check-system.py for the install command.')
+    # Ubuntu installs newer versions beside the default one as clang-NN; use the one found.
+    COMMON[COMMON.index('-DCMAKE_C_COMPILER=clang')] = f'-DCMAKE_C_COMPILER={compilers[0]}'
+    COMMON[COMMON.index('-DCMAKE_CXX_COMPILER=clang++')] = f'-DCMAKE_CXX_COMPILER={compilers[1]}'
+    if compilers[0] != 'clang':
+        say(f'Using {compilers[0]} (the default clang is too old).')
 
 
 SDK_PATCHES = sorted((ROOT / 'linux/patches').glob('sdk-*.patch'))
