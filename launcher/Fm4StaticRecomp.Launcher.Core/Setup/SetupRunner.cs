@@ -15,7 +15,7 @@ public sealed class SetupRunner(InstallLayout layout, IPlatform platform) : IBui
 
     public static IReadOnlyList<string> Arguments(InstallLayout layout, SetupRequest request)
     {
-        if (OperatingSystem.IsMacOS())
+        if (!OperatingSystem.IsWindows())
             return [layout.SetupScript(request.Version), "--game-root", layout.Game,
                 "--cache-root", layout.Cache(request.Version),
                 "--jobs", request.BuildJobs.ToString(CultureInfo.InvariantCulture)];
@@ -35,13 +35,14 @@ public sealed class SetupRunner(InstallLayout layout, IPlatform platform) : IBui
     public async Task<SetupFailure?> BuildAsync(SetupRequest request, IProgress<SetupEvent> progress, Action<string> logLine,
         CancellationToken cancellation)
     {
-        var start = OperatingSystem.IsMacOS() ? new ProcessStartInfo("/usr/bin/env") { UseShellExecute = false }
+        var start = !OperatingSystem.IsWindows() ? new ProcessStartInfo("/usr/bin/env") { UseShellExecute = false }
             : PowerShell.StartInfo(Arguments(layout, request));
-        if (OperatingSystem.IsMacOS())
+        if (!OperatingSystem.IsWindows())
         {
             start.ArgumentList.Add("python3");
             foreach (var argument in Arguments(layout, request)) start.ArgumentList.Add(argument);
-            start.Environment["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + Environment.GetEnvironmentVariable("PATH");
+            if (OperatingSystem.IsMacOS())
+                start.Environment["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + Environment.GetEnvironmentVariable("PATH");
         }
         start.WorkingDirectory = layout.Source(request.Version);
         start.RedirectStandardOutput = true;

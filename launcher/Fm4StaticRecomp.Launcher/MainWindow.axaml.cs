@@ -211,7 +211,7 @@ public partial class MainWindow : Window
         AppendLog($"Release source: {_host.Layout.Source(_host.Payload.Version)}");
         AppendLog($"Install root: {_host.Layout.Root}");
         var host = _host;
-        if (!OperatingSystem.IsMacOS() && _args.Contains(SelfReplace.AfterUpdateSwitch))
+        if (OperatingSystem.IsWindows() && _args.Contains(SelfReplace.AfterUpdateSwitch))
             _ = Task.Run(() => UpdateCoordinator.CleanUp(host.LauncherExecutable, host.LauncherDirectory,
                 UpdateCoordinator.DownloadFolder(host.Layout, System.Version.Parse(Version))));
         try

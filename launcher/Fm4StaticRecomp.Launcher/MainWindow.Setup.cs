@@ -108,7 +108,7 @@ public partial class MainWindow
         SetStep(Step.Disc2, disc2State, disc2Text);
         Disc2Buttons.IsVisible = !setup.Disc2Installed;
 
-        LicenceRow.IsVisible = !OperatingSystem.IsMacOS();
+        LicenceRow.IsVisible = OperatingSystem.IsWindows();
         var settings = host.Settings;
         SetStep(Step.Licence, settings.UseVisualStudioInstaller || settings.AcceptedMicrosoftLicence is not null ? StepState.Done : StepState.Waiting,
             settings.UseVisualStudioInstaller ? "Microsoft's installer: it asks for administrator permission once."
@@ -539,7 +539,7 @@ public partial class MainWindow
     // Visual Studio installer route).
     private async Task<bool?> AskLicenceAsync(LauncherHost host, CancellationToken cancellation)
     {
-        if (OperatingSystem.IsMacOS()) return true;
+        if (!OperatingSystem.IsWindows()) return true;
         var settings = host.Settings;
         if (settings.UseVisualStudioInstaller) return false;
         MarkStep(Step.Licence, StepState.Active, "Reading Microsoft's licences.");

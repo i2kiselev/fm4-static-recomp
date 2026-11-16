@@ -10,6 +10,9 @@ namespace Fm4StaticRecomp.Launcher.Tests.Updates;
 
 public class VersionBuilderTests
 {
+    static string SetupScript => OperatingSystem.IsMacOS() ? Path.Combine("tools", "setup-macos.py")
+        : OperatingSystem.IsLinux() ? Path.Combine("linux", "setup-linux.py") : Path.Combine("tools", "setup.ps1");
+
     private sealed class FakeRunner(Func<SetupRequest, int, SetupFailure?> result) : IBuildRunner
     {
         public int Calls { get; private set; }
@@ -26,7 +29,8 @@ public class VersionBuilderTests
     {
         var folder = Path.Combine(temp.Path, name);
         Directory.CreateDirectory(Path.Combine(folder, "tools"));
-        if (withSetup) File.WriteAllText(Path.Combine(folder, "tools", OperatingSystem.IsMacOS() ? "setup-macos.py" : "setup.ps1"), name);
+        Directory.CreateDirectory(Path.Combine(folder, "linux"));
+        if (withSetup) File.WriteAllText(Path.Combine(folder, SetupScript), name);
         else File.WriteAllText(Path.Combine(folder, "tools", "other.ps1"), name);
         ZipFile.CreateFromDirectory(folder, folder + ".zip");
         return folder + ".zip";
@@ -79,7 +83,7 @@ public class VersionBuilderTests
         var runner = new FakeRunner((_, _) => null);
         var failure = await new VersionBuilder(layout, versions, state, runner).BuildVersionAsync(Request("0.1.0"),
             Zip(temp, "a", withSetup: false), new SyncProgress<SetupEvent>(_ => { }), _ => { }, CancellationToken.None);
-        Assert.Contains(OperatingSystem.IsMacOS() ? "setup-macos.py" : "setup.ps1", failure!.Message);
+        Assert.Contains(Path.GetFileName(SetupScript), failure!.Message);
         Assert.Equal(0, runner.Calls);
         Assert.Null(settings.ActiveVersion);
     }

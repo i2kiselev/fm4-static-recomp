@@ -37,7 +37,7 @@ public static class LaunchArguments
             ["user_name"] = profile.Gamertag,
             ["fm4_language"] = settings.Language,
         };
-        if (OperatingSystem.IsMacOS()) options["gpu_backend"] = "vulkan";
+        if (!OperatingSystem.IsWindows()) options["gpu_backend"] = "vulkan";
         if (profile.Xuid is { } xuid) options["user_xuid"] = xuid;
         // The mod's AI is tuned on Xenia, about six physics substeps a tick at its 62 fps.
         if (installGame == ProfileStore.Pfp4) options["fm4_car_min_substeps"] = "6";

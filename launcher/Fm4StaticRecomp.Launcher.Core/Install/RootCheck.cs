@@ -9,7 +9,8 @@ public sealed record RootEnvironment(IReadOnlyList<string> Protected, string Tem
 {
     public static RootEnvironment Current => new(
         OperatingSystem.IsMacOS() ? ["/Applications", "/System", "/Library",
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications")] : new[]
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications")] :
+        OperatingSystem.IsLinux() ? ["/usr", "/etc", "/bin", "/sbin", "/lib", "/lib64", "/opt", "/boot", "/proc", "/sys", "/dev"] : new[]
         {
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
