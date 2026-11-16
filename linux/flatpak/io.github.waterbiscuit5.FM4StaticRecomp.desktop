@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=FM4 Static Recomp
+Comment=Install and play your own Forza Motorsport 4 discs
+Exec=fm4-launcher
+Icon=io.github.waterbiscuit5.FM4StaticRecomp
+Terminal=false
+Categories=Game;

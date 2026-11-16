@@ -1,0 +1,55 @@
+# Flatpak of the Linux launcher, for SteamOS (Steam Deck), Bazzite and other distributions where
+# installing build packages is hard. Built by linux/flatpak/build-flatpak.py; see linux/NOTES.md.
+#
+# The launcher compiles the game on the player's PC from their own discs, so the app runs on the
+# Freedesktop *SDK* (CMake, Ninja, git, Python, headers) instead of the smaller Platform, and carries
+# its own clang (the SDK has none) copied from the LLVM extension.
+id: io.github.waterbiscuit5.FM4StaticRecomp
+runtime: org.freedesktop.Sdk
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.llvm22
+command: fm4-launcher
+finish-args:
+  - --share=network          # downloads the pinned ShiftGlue SDK and build dependencies
+  - --share=ipc
+  - --socket=x11             # the launcher window (Avalonia) is X11; Xwayland on Wayland desktops
+  - --socket=wayland         # the game
+  - --socket=pulseaudio      # game audio (PipeWire answers this too)
+  - --device=all             # GPU and game controllers (Steam Input's virtual pad on the Deck)
+  - --filesystem=home:ro     # read the discs; game data goes to ~/.var/app/<id>/data
+  - --filesystem=/run/media:ro  # SD cards and USB drives (Steam Deck, most desktops)
+  - --filesystem=/media:ro
+  - --filesystem=/mnt:ro
+modules:
+  - name: clang
+    buildsystem: simple
+    build-commands:
+      # Only what compiling and linking need (about 250 MB of the extension's 480 MB). The game
+      # build uses link-time optimisation: the system linker loads LLVMgold.so, and CMake picks
+      # llvm-ar/llvm-ranlib beside clang.
+      - mkdir -p /app/llvm/bin /app/llvm/lib
+      - cp -a /usr/lib/sdk/llvm22/bin/clang /usr/lib/sdk/llvm22/bin/clang++ /usr/lib/sdk/llvm22/bin/clang-22
+          /usr/lib/sdk/llvm22/bin/lld /usr/lib/sdk/llvm22/bin/ld.lld /usr/lib/sdk/llvm22/bin/llvm-ar
+          /usr/lib/sdk/llvm22/bin/llvm-ranlib /usr/lib/sdk/llvm22/bin/llvm-nm /app/llvm/bin/
+      - cp -a /usr/lib/sdk/llvm22/lib/libclang-cpp.so.22.1 /usr/lib/sdk/llvm22/lib/libLLVM.so.22.1
+          /usr/lib/sdk/llvm22/lib/LLVMgold.so /usr/lib/sdk/llvm22/lib/clang /app/llvm/lib/
+
+  - name: launcher
+    buildsystem: simple
+    sources:
+      - type: archive
+        path: ../../out/flatpak/launcher/FM4StaticRecomp-Launcher-linux-x64.tar.gz
+        dest: launcher
+      - type: file
+        path: fm4-launcher.sh
+      - type: file
+        path: io.github.waterbiscuit5.FM4StaticRecomp.desktop
+    build-commands:
+      - mkdir -p /app/launcher && cp -a launcher/. /app/launcher/
+      - install -Dm755 fm4-launcher.sh /app/bin/fm4-launcher
+      - install -Dm644 io.github.waterbiscuit5.FM4StaticRecomp.desktop
+          /app/share/applications/io.github.waterbiscuit5.FM4StaticRecomp.desktop
+      - install -Dm644 launcher/fm4-static-recomp.png
+          /app/share/icons/hicolor/256x256/apps/io.github.waterbiscuit5.FM4StaticRecomp.png

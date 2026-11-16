@@ -123,6 +123,12 @@ public partial class MainWindow : Window
             }
             _dataRoot ??= _dataLocation.DefaultRoot;
         }
+        else if (OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("FLATPAK_ID") is not null)
+        {
+            // Flatpak: the launcher's folder (/app) is read-only; keep game data in the app's own data folder.
+            _dataRoot = Path.Combine(Environment.GetEnvironmentVariable("XDG_DATA_HOME")
+                ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share"), "data");
+        }
         await OpenInstallAsync();
     }
 

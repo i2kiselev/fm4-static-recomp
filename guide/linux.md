@@ -68,10 +68,35 @@ Fedora are untested.
 
 Project Forza Plus 4 has not been tested on Linux yet.
 
+## Flatpak (Steam Deck, Bazzite and other distributions)
+
+The Flatpak brings everything the build needs (clang, CMake, Ninja, Vulkan and OpenSSL), so you
+install no packages. It is meant for systems where installing them is hard, such as SteamOS and
+Bazzite. Only `flatpak` itself is needed (preinstalled on SteamOS, Bazzite and most desktop
+distributions).
+
+1. Download `FM4StaticRecomp.flatpak` and install it (on a Steam Deck, in Desktop Mode):
+
+   ```sh
+   flatpak install --user FM4StaticRecomp.flatpak
+   ```
+
+   The first install also downloads the Freedesktop SDK runtime from Flathub (about 600 MB, shared
+   with other Flatpak apps).
+2. Start **FM4 Static Recomp** from the app menu (or `flatpak run io.github.waterbiscuit5.FM4StaticRecomp`),
+   point it at your Disc 1 and let it install, as above. The first build also downloads the
+   ShiftGlue SDK (about 200 MB); the download step shows no progress bar.
+
+The Flatpak can read your home folder and removable drives (`/run/media`, `/media`, `/mnt`) to
+find your discs; it cannot change them. To remove it with all its data:
+`flatpak uninstall --user --delete-data io.github.waterbiscuit5.FM4StaticRecomp`.
+
+Tested on Fedora 44 only. Untested on the Steam Deck so far, including running it from Game Mode.
+
 ## Where the game data goes
 
 The launcher keeps the game data (the build, settings and profiles) in a `data` folder beside the
-launcher.
+launcher. The Flatpak keeps it in `~/.var/app/io.github.waterbiscuit5.FM4StaticRecomp/data/data`.
 
 ## Updating
 

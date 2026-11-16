@@ -45,6 +45,9 @@ MIN_RAM_GB = 12    # the compile peaked at about 7 GB free-RAM use; leave room f
 MIN_DISK_GB = 20   # SDK + generated code + build: about 11 GB on the Fedora 45 test laptop
 
 
+IN_FLATPAK = Path('/.flatpak-info').exists()
+
+
 def distro():
     """'fedora', 'arch', 'debian' (Ubuntu and its family) or None, from /etc/os-release ID + ID_LIKE."""
     try:
@@ -133,7 +136,8 @@ def check(folder=Path.cwd()):
             problems.append(f'{len(missing)} build package(s) missing: {" ".join(missing)}')
             fixes.append(f'{info["install"]} {" ".join(missing)}')
     else:
-        warnings.append('Unrecognised distribution: the guide lists Fedora, Arch and Ubuntu packages; install the equivalents.')
+        if not IN_FLATPAK:  # the Flatpak brings its own tools (linux/flatpak/)
+            warnings.append('Unrecognised distribution: the guide lists Fedora, Arch and Ubuntu packages; install the equivalents.')
         for tool in ('git', 'clang', 'cmake', 'ninja', 'pkg-config'):
             if not shutil.which(tool):
                 problems.append(f'{tool} is not installed')
@@ -146,7 +150,8 @@ def check(folder=Path.cwd()):
         fixes.append(f'{info["install"]} {info["openssl3"]}' if info else 'install your distribution\'s OpenSSL 3 library')
     gpus = vulkan_gpus()
     if gpus is None:
-        warnings.append('vulkaninfo not found, so the GPU was not checked (it comes with vulkan-tools)')
+        if not IN_FLATPAK:  # no vulkaninfo in the Flatpak; the game finds the GPU itself
+            warnings.append('vulkaninfo not found, so the GPU was not checked (it comes with vulkan-tools)')
     elif not gpus:
         problems.append('no Vulkan GPU found: install your GPU\'s Vulkan driver (Mesa for AMD/Intel; '
                         'on Arch: vulkan-radeon or vulkan-intel)')
