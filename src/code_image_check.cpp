@@ -7,6 +7,8 @@
 #include <bcrypt.h>
 #elif defined(__APPLE__)
 #include <CommonCrypto/CommonDigest.h>
+#elif defined(__linux__)
+#include "../linux/sha256.h"  // Linux port
 #endif
 
 #include <array>
@@ -102,6 +104,8 @@ std::string FileSha256(const std::filesystem::path& path) {
     hex += kHex[byte & 15];
   }
   return hex;
+#elif defined(__linux__)
+  return fm4_linux::Sha256Hex(file);  // Linux port
 #else
   return {};
 #endif
