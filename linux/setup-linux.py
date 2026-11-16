@@ -81,15 +81,17 @@ def run(arguments, log, cwd=ROOT):
         raise RuntimeError(f'{Path(arguments[0]).name} failed (exit {result.returncode}). Full log: {log}')
 
 
-def ninja_step(log):
-    """Last `[done/total]` counter Ninja wrote to `log`, or None (reads only the end of the file)."""
+def ninja_steps(log):
+    """The `[done/total]` counters Ninja wrote near the end of `log`, oldest first (reads only the
+    end of the file). Several builds can share one log: the game build runs the SDK's FidelityFX
+    runtime as a nested build (ExternalProject, 27 steps) whose counters mix with the main ones."""
     try:
         with log.open('rb') as f:
             f.seek(max(0, f.seek(0, 2) - 8192))
             found = re.findall(rb'^\[(\d+)/(\d+)\]', f.read(), re.M)
     except OSError:
-        return None
-    return (int(found[-1][0]), int(found[-1][1])) if found else None
+        return []
+    return [(int(done), int(total)) for done, total in found]
 
 
 class CompileProgress:
@@ -103,10 +105,14 @@ class CompileProgress:
         self.thread = threading.Thread(target=self.watch, daemon=True)
 
     def watch(self):
-        shown = self.low
+        shown, main_total = self.low, 0
         while not self.done.wait(2):
             self.lowest_ram = min(self.lowest_ram, available_ram_gb())
-            step = ninja_step(self.log)
+            steps = ninja_steps(self.log)
+            # Follow the main build (the largest total seen), not a nested build's counter: the
+            # FidelityFX one reached 26 of 27 early and held the bar there (Flatpak test, 2026-11-16).
+            main_total = max([main_total] + [total for _, total in steps])
+            step = next((s for s in reversed(steps) if s[1] == main_total), None)
             if step and step[1]:
                 percent = self.low + (self.high - self.low) * step[0] // step[1]
                 if percent > shown:
@@ -200,7 +206,7 @@ def forget_stale_build(build, setting, expected):
 def stage_sdk(jobs):
     log = LOGS / 'linux-sdk.log'
     log.unlink(missing_ok=True)
-    event('sdk', 15, 'Preparing the pinned ShiftGlue SDK and its translator.')
+    event('sdk', 15, 'Getting the ShiftGlue SDK (a first install downloads about 200 MB; no progress shown).')
     say('Fetching the pinned ShiftGlue SDK (first run clones it with submodules; can take a while).')
     sdk, identity = linux_sdk()
     (LOGS / 'linux-sdk.json').write_text(json.dumps(identity, indent=2) + '\n')
