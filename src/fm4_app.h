@@ -596,6 +596,25 @@ class Fm4App final : public rex::ReXApp {
           *this, *presenter, *immediate_drawer(), *window(),
           static_cast<rex::input::InputSystem*>(runtime()->input_system()), game_data_root(),
           CurrentMenuKeys());
+      // The game's own menu sounds, played through its UI.
+      host_ui_->set_sound([](fm4_static_recomp::hostui::MenuSound sound) {
+        using fm4_static_recomp::hostui::MenuSound;
+        uint32_t id = 0;
+        switch (sound) {
+          case MenuSound::kMove: id = fm4_guest::kUiSoundMove; break;
+          case MenuSound::kChange: id = fm4_guest::kUiSoundSpinner; break;
+          case MenuSound::kEnd: id = fm4_guest::kUiSoundSpinnerEnd; break;
+          case MenuSound::kSlideUp: id = fm4_guest::kUiSoundSliderUp; break;
+          case MenuSound::kSlideDown: id = fm4_guest::kUiSoundSliderDown; break;
+          case MenuSound::kSlideEnd: id = fm4_guest::kUiSoundSliderEnd; break;
+          case MenuSound::kTabLeft: id = fm4_guest::kUiSoundTabLeft; break;
+          case MenuSound::kTabRight: id = fm4_guest::kUiSoundTabRight; break;
+          case MenuSound::kAccept: id = fm4_guest::kUiSoundAccept; break;
+          case MenuSound::kBack: id = fm4_guest::kUiSoundCancel; break;
+          case MenuSound::kError: id = fm4_guest::kUiSoundError; break;
+        }
+        fm4_static_recomp::PlayUiSound(id);
+      });
     }
     fm4_static_recomp::ui::GraphicsPageServices services;
     services.is_fullscreen = [this] {

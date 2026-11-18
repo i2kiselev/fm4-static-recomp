@@ -500,8 +500,8 @@ MenuRow RampRow(const std::shared_ptr<Draft>& draft, const Ramp& ramp) {
   };
   row.adjust = [draft, &ramp](int direction) {
     const double current = draft->Effective().ramp.*ramp.rate;
-    const double next =
-        std::clamp(std::round(current * 100.0 + direction) / 100.0, kRampLow, kRampHigh);
+    const double next = std::clamp(std::round(current * 100.0 + std::clamp(direction, -1, 1)) / 100.0,
+                                   kRampLow, kRampHigh);
     draft->Store(ramp.name, FormatRamp(next), FormatRamp(input::DefaultControls().ramp.*ramp.rate),
                  false);
   };
@@ -516,9 +516,15 @@ MenuRow MouseLookRow(const std::shared_ptr<Draft>& draft) {
       "In a race, hold the right mouse button and move the mouse left or right to look around "
       "the car. Let go and the camera goes back behind it.";
   row.value = [draft] { return std::string(draft->Effective().mouse_look.enabled ? "ON" : "OFF"); };
-  row.adjust = [draft](int) {
-    draft->Store(kMouseLook, OnOffValue(!draft->Effective().mouse_look.enabled),
-                 OnOffValue(input::DefaultControls().mouse_look.enabled), false);
+  // OFF, ON in that order: left and right stop there, accept switches.
+  row.adjust = [draft](int direction) {
+    const bool on = draft->Effective().mouse_look.enabled;
+    const bool next = direction == hostui::kAdjustCycle ? !on : direction > 0;
+    if (next == on) {
+      return;
+    }
+    draft->Store(kMouseLook, OnOffValue(next), OnOffValue(input::DefaultControls().mouse_look.enabled),
+                 false);
   };
   row.unapplied = [draft] { return draft->edits.contains(kMouseLook); };
   return row;
@@ -530,7 +536,7 @@ MenuRow MouseLookSensitivityRow(const std::shared_ptr<Draft>& draft) {
   row.description = "How far the camera turns for a given mouse movement. Higher turns faster.";
   row.value = [draft] { return std::to_string(draft->Effective().mouse_look.sensitivity); };
   row.adjust = [draft](int direction) {
-    const int next = std::clamp(draft->Effective().mouse_look.sensitivity + direction,
+    const int next = std::clamp(draft->Effective().mouse_look.sensitivity + std::clamp(direction, -1, 1),
                                 input::kMouseLookSensitivityMin, input::kMouseLookSensitivityMax);
     draft->Store(kMouseLookSensitivity, std::to_string(next),
                  std::to_string(input::DefaultControls().mouse_look.sensitivity), false);

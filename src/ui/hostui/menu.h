@@ -28,6 +28,21 @@ enum class NavCommand {
   kNextTab,      // RB
 };
 
+// The game's menu sounds the host menu plays (ui4audio.xml's events of the same use).
+enum class MenuSound {
+  kMove,       // the focus moved: NewObjectFocus
+  kChange,     // a value changed: Spinner
+  kEnd,        // left or right at the first or last value: SpinnerEnd
+  kSlideUp,    // a slider stepped: SliderStep_Increment
+  kSlideDown,  // SliderStep_Decrement
+  kSlideEnd,   // a slider at its end: SliderEnd
+  kTabLeft,    // LB: TabLeft
+  kTabRight,   // RB: TabRight
+  kAccept,     // applied, or a key slot picked: Accept
+  kBack,       // left the screen, or a capture cancelled: Cancel
+  kError,      // the screen refused to leave (unapplied changes): PopupError
+};
+
 // The keyboard's keys for the menu's pad buttons, in the keyboard driver's bind syntax
 // ("Up,W", "Y").
 struct MenuKeys {
@@ -48,6 +63,21 @@ struct MenuKeys {
 // with the key; the others act once per press.
 std::optional<NavCommand> KeyCommand(const MenuKeys& keys, rex::ui::VirtualKey key, bool repeat);
 
+// What a command did, as the host saw it around MenuScreen::Handle.
+struct NavOutcome {
+  NavCommand command;
+  bool handled = false;       // Handle returned kChanged
+  bool left_screen = false;   // Handle returned kBack
+  bool focus_moved = false;
+  bool value_changed = false;  // the focused row's value, slider or slot
+  bool slider = false;         // the focused row is a slider
+  bool slots = false;          // the focused row is a row of key slots
+  bool capturing = false;      // a key capture was running
+};
+
+// The sound for a command, or none.
+std::optional<MenuSound> NavSound(const NavOutcome& outcome);
+
 // A whole number in an inclusive range, drawn as the game's tuning slider.
 struct MenuSlider {
   // Drawn at the ends of the slider section's header.
@@ -56,8 +86,18 @@ struct MenuSlider {
   std::function<void(int value)> set;
 };
 
+// The direction `adjust` gets from accept (A, Enter): one step forward, rolling over at the
+// end. Left and right give -1 and +1, which stop at the first and last value, as the game's
+// own menus do. Rows that step a number take it as +1.
+inline constexpr int kAdjustCycle = 2;
+
+// The index `direction` (-1, +1 or kAdjustCycle) steps to among `count` values: left and right
+// stop at the ends, kAdjustCycle rolls over. A current index of -1 (no value matches) goes to
+// the first value, or the last going left.
+int StepIndex(int current, int count, int direction);
+
 // One row of a host menu: a label and a value beside it, changed with
-// `adjust` (-1 or +1), or a slider stepped by one. The focused row's
+// `adjust` (-1, +1 or kAdjustCycle), or a slider stepped by one. The focused row's
 // description, note and badge show in the description panel.
 struct MenuRow {
   std::string label;
@@ -146,7 +186,7 @@ class MenuScreen {
   Result CaptureKey(const std::string& key);
   // Applies a navigation command: up and down move the focus over enabled
   // rows with wrap-around, left and right adjust the focused row (or move
-  // between its slots), accept steps it forward (or picks the slot), back
+  // between its slots), accept steps it forward with kAdjustCycle (or picks the slot), back
   // leaves the screen unless the screen refuses. Only the focus moves while
   // the screen is busy. While capturing, back cancels and nothing else acts.
   Result Handle(NavCommand command);

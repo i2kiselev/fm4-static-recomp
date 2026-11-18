@@ -228,7 +228,12 @@ TEST_CASE("Mouse look flips off and saves a bare false", "[controls_page]") {
   Page page("", 0, Tab::kMouse);
   REQUIRE(page.screen->SetFocus(page.Index("MOUSE LOOK (HOLD RIGHT BUTTON)")));
   CHECK(page.Row("MOUSE LOOK (HOLD RIGHT BUTTON)").value() == "ON");
+  // OFF, ON: right stops at ON, left goes to OFF, accept switches.
   page.screen->Handle(NavCommand::kRight);
+  CHECK(page.Row("MOUSE LOOK (HOLD RIGHT BUTTON)").value() == "ON");
+  page.screen->Handle(NavCommand::kAccept);
+  CHECK(page.Row("MOUSE LOOK (HOLD RIGHT BUTTON)").value() == "OFF");
+  page.screen->Handle(NavCommand::kLeft);
   CHECK(page.Row("MOUSE LOOK (HOLD RIGHT BUTTON)").value() == "OFF");
   page.screen->Handle(NavCommand::kApply);
   CHECK(page.File() == "mouse_look = false\n");

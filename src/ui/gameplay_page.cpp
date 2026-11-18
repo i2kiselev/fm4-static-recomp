@@ -91,7 +91,7 @@ MenuRow LapsRow(const std::shared_ptr<Draft>& draft) {
       "screen may not hold up.";
   row.value = [draft] { return LapsLabel(draft->Laps()); };
   row.adjust = [draft](int direction) {
-    draft->Change(std::clamp(draft->Laps() + direction, 0, kQuickRaceLapsMax));
+    draft->Change(std::clamp(draft->Laps() + std::clamp(direction, -1, 1), 0, kQuickRaceLapsMax));
   };
   row.badge = [] {
     return FromCommandLine() ? std::string("Set by a launch option for this session.")
