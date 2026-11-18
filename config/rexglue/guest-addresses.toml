@@ -17,9 +17,6 @@ kTextAssign = 0x82360E98
 # Where a scene text element's setup resumes after its string's GetText (the string lookup's
 # caller's return address); the element is the caller's r31.
 kTextSetupGetTextReturn = 0x8234FDA4
-# A UI element's PlaySound (this, sound id): the scene element vtable's slot 31; plays one of
-# ui4audio.xml's events through the UI sound manager, for the element's scene.
-kUiPlaySound = 0x8297F1C8
 
 # Guest data the hooks read.
 [data]
@@ -27,6 +24,11 @@ kUiPlaySound = 0x8297F1C8
 kScenarioManagerPointer = 0x82DC3750
 # Each scenario control's offset, indexed by control id.
 kControlOffsetTable = 0x82D59FF0
+# Holds the UI object manager. Its slot 59 (+0xEC) plays one of ui4audio.xml's events:
+# (manager, scene key, sound id), the key only looked up in the scenes' sound overrides, 0 for
+# none. A UI element's PlaySound (the element vtable's slot 31, 0x8297F1C8) calls it with its
+# root's key.
+kUiManagerPointer = 0x82DC36CC
 # The ids of ui4audio.xml's UI sound events, each made from its name by a static initializer:
 # NewObjectFocus, Spinner, SpinnerEnd, SliderStep_Increment, SliderStep_Decrement, SliderEnd,
 # TabLeft, TabRight, Accept, Cancel and PopupError.
