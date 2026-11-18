@@ -189,7 +189,9 @@ public sealed class LauncherHost
         {
             var start = OperatingSystem.IsMacOS()
                 ? new ProcessStartInfo("/usr/bin/open") { ArgumentList = { "-R", file } }
-                : new ProcessStartInfo("explorer.exe", $"/select,\"{file}\"") { UseShellExecute = true };
+                : OperatingSystem.IsLinux()
+                    ? new ProcessStartInfo("xdg-open") { ArgumentList = { Path.GetDirectoryName(file)! } }
+                    : new ProcessStartInfo("explorer.exe", $"/select,\"{file}\"") { UseShellExecute = true };
             Process.Start(start);
         }
         catch (Exception) { }

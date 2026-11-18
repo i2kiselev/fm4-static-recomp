@@ -46,10 +46,10 @@ public sealed record InstallLayout(string Root)
     public string Cache(string version) => Path.Combine(Root, "cache", version);
     public string UiFonts(string version) => Path.Combine(Cache(version), "ui-fonts");
     // Native build outputs are kept per version, beside its extracted source.
-    public string BuildFolder(string version) => Path.Combine(Source(version), "out", "build", OperatingSystem.IsMacOS() ? "mac-arm64-release" : "win-amd64-release");
-    public string GameExecutable(string version) => Path.Combine(BuildFolder(version), OperatingSystem.IsMacOS() ? "fm4_static_recomp" : "fm4_static_recomp.exe");
+    public string BuildFolder(string version) => Path.Combine(Source(version), "out", "build", OperatingSystem.IsMacOS() ? "mac-arm64-release" : OperatingSystem.IsLinux() ? "linux-x64-release" : "win-amd64-release");
+    public string GameExecutable(string version) => Path.Combine(BuildFolder(version), OperatingSystem.IsWindows() ? "fm4_static_recomp.exe" : "fm4_static_recomp");
     public string GraphicsSchema(string version) => Path.Combine(BuildFolder(version), "graphics-settings.json");
-    public string SetupScript(string version) => Path.Combine(Source(version), "tools", OperatingSystem.IsMacOS() ? "setup-macos.py" : "setup.ps1");
+    public string SetupScript(string version) => OperatingSystem.IsMacOS() ? Path.Combine(Source(version), "tools", "setup-macos.py") : OperatingSystem.IsLinux() ? Path.Combine(Source(version), "linux", "setup-linux.py") : Path.Combine(Source(version), "tools", "setup.ps1");
     public string LicencesScript(string version) => Path.Combine(Source(version), "tools", "microsoft-licences.ps1");
     public string CrashReportScript(string version) => Path.Combine(Source(version), "tools", "create-crash-report.ps1");
     public string SetupLogs(string version) => Path.Combine(Source(version), ".local", "logs");

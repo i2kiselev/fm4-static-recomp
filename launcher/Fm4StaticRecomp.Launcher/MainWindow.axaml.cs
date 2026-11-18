@@ -123,6 +123,12 @@ public partial class MainWindow : Window
             }
             _dataRoot ??= _dataLocation.DefaultRoot;
         }
+        else if (OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("FLATPAK_ID") is not null)
+        {
+            // Flatpak: the launcher's folder (/app) is read-only; keep game data in the app's own data folder.
+            _dataRoot = Path.Combine(Environment.GetEnvironmentVariable("XDG_DATA_HOME")
+                ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share"), "data");
+        }
         await OpenInstallAsync();
     }
 
@@ -211,7 +217,7 @@ public partial class MainWindow : Window
         AppendLog($"Release source: {_host.Layout.Source(_host.Payload.Version)}");
         AppendLog($"Install root: {_host.Layout.Root}");
         var host = _host;
-        if (!OperatingSystem.IsMacOS() && _args.Contains(SelfReplace.AfterUpdateSwitch))
+        if (OperatingSystem.IsWindows() && _args.Contains(SelfReplace.AfterUpdateSwitch))
             _ = Task.Run(() => UpdateCoordinator.CleanUp(host.LauncherExecutable, host.LauncherDirectory,
                 UpdateCoordinator.DownloadFolder(host.Layout, System.Version.Parse(Version))));
         try

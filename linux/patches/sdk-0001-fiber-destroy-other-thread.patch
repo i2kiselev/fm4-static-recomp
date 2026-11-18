@@ -1,0 +1,35 @@
+diff --git a/src/core/fiber_posix.cpp b/src/core/fiber_posix.cpp
+index 7994b43..31329b3 100644
+--- a/src/core/fiber_posix.cpp
++++ b/src/core/fiber_posix.cpp
+@@ -21,7 +21,9 @@
+ 
+ #include <rex/thread/fiber.h>
+ 
++#include <atomic>
+ #include <cassert>
++#include <cstdio>
+ 
+ namespace rex::thread {
+ 
+@@ -248,8 +250,19 @@ void Fiber::SwitchTo(Fiber* target) {
+ 
+ void Fiber::Destroy() {
+   // Thread fibers are destroyed from the owning thread itself.
++  // Linux port: not always. ~XThread runs on whichever host thread drops the last reference, so
++  // only clear the current fiber if it is this one; clearing another thread's made its next
++  // SwitchTo save into a null fiber (race-loading crash, see linux/PORTING.md in fm4-static-recomp).
+   if (is_thread_fiber_) {
+-    tls_current_ = nullptr;
++    if (tls_current_ == this) {
++      tls_current_ = nullptr;
++    } else {
++      static std::atomic<bool> reported{false};  // happens on every race load; once per run is enough
++      if (!reported.exchange(true)) {
++        std::fprintf(stderr, "[linux-fiber] thread fiber destroyed from another thread; kept its fiber "
++                             "(normal; reported once)\n");
++      }
++    }
+   } else {
+     assert(this != tls_current_ && "Destroy called on the currently running fiber");
+   }

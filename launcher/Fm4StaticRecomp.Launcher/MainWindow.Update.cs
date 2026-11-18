@@ -41,10 +41,10 @@ public partial class MainWindow
     {
         if (_host is not { } host) return;
         // Windows releases contain an .exe and use Windows self replacement.
-        // Until Mac bundles are published, keep updates manual.
-        if (OperatingSystem.IsMacOS())
+        // Until Mac and Linux bundles are published, keep updates manual.
+        if (!OperatingSystem.IsWindows())
         {
-            UpdateNote.Text = "macOS preview: download updates manually and keep the data folder.";
+            UpdateNote.Text = (OperatingSystem.IsMacOS() ? "macOS" : "Linux") + " preview: download updates manually and keep the data folder.";
             return;
         }
         UpdateNote.Text = "";
