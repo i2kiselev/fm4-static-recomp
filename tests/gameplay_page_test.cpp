@@ -36,7 +36,7 @@ struct Page {
   explicit Page(std::string_view text)
       : path(std::filesystem::temp_directory_path() / "fm4_gameplay_page_test.toml"),
         config(path) {
-    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    ResetFlags();
     std::ofstream(path, std::ios::binary | std::ios::trunc) << text;
     REQUIRE(config.Load());
     screen = ui::CreateGameplayPage(config);
@@ -44,10 +44,20 @@ struct Page {
   }
   ~Page() {
     std::filesystem::remove(path);
-    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    ResetFlags();
   }
 
-  std::string Value() const { return screen->rows()[0].value(); }
+  static void ResetFlags() {
+    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    rex::cvar::SetFlagByName("fm4_mute_narrator", "false");
+  }
+
+  std::string Value(size_t row = 0) const { return screen->rows()[row].value(); }
+  // Moves the focus to `row` and steps its value.
+  void Step(size_t row, NavCommand command) {
+    REQUIRE(screen->SetFocus(row));
+    screen->Handle(command);
+  }
   std::string File() const {
     std::ifstream file(path, std::ios::binary);
     std::ostringstream text;
@@ -121,4 +131,34 @@ TEST_CASE("A saved count out of range is ignored", "[gameplay_page]") {
   Page page("fm4_quick_race_laps = 150\n");
   ui::ApplySavedGameplaySettings(page.config);
   CHECK(QuickRaceLapsSetting() == 0);
+}
+
+TEST_CASE("WORLD TOUR NARRATOR is on by default and MUTED saves and applies", "[gameplay_page]") {
+  Page page("");
+  CHECK(page.screen->rows()[1].label == "WORLD TOUR NARRATOR");
+  CHECK(page.Value(1) == "ON");
+  page.Step(1, NavCommand::kRight);
+  CHECK(page.Value(1) == "MUTED");
+  CHECK(page.screen->rows()[1].unapplied());
+  CHECK(rex::cvar::GetFlagByName("fm4_mute_narrator") == "false");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File() == "fm4_mute_narrator = true\n");
+  CHECK(rex::cvar::GetFlagByName("fm4_mute_narrator") == "true");
+  page.Step(1, NavCommand::kRight);
+  CHECK(page.Value(1) == "ON");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File() == "fm4_mute_narrator = false\n");
+  CHECK(rex::cvar::GetFlagByName("fm4_mute_narrator") == "false");
+}
+
+TEST_CASE("A saved narrator setting is applied at startup, a bad one ignored", "[gameplay_page]") {
+  {
+    Page page("fm4_mute_narrator = true\n");
+    ui::ApplySavedGameplaySettings(page.config);
+    CHECK(rex::cvar::GetFlagByName("fm4_mute_narrator") == "true");
+    CHECK(page.Value(1) == "MUTED");
+  }
+  Page page("fm4_mute_narrator = maybe\n");
+  ui::ApplySavedGameplaySettings(page.config);
+  CHECK(rex::cvar::GetFlagByName("fm4_mute_narrator") == "false");
 }

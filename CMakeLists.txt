@@ -37,6 +37,7 @@ set(FM4_HOST_SOURCES
     src/audio_gain.cpp
     src/custom_music.cpp
     src/mixer_options.cpp
+    src/narrator_mute.cpp
     src/quick_race_laps.cpp
     src/car_dirt.cpp
     src/code_image_check.cpp
@@ -116,6 +117,7 @@ if(FM4_BUILD_TESTS)
         tests/controls_page_test.cpp
         tests/controller_layout_test.cpp
         tests/mixer_options_test.cpp
+        tests/narrator_mute_test.cpp
         tests/gameplay_page_test.cpp
         src/car_dirt.cpp
         src/audio_gain.cpp
@@ -124,6 +126,7 @@ if(FM4_BUILD_TESTS)
         src/shadow_map.cpp
         src/file_open_log.cpp
         src/mixer_options.cpp
+        src/narrator_mute.cpp
         src/quick_race_laps.cpp
         src/game_language.cpp
         src/string_log.cpp

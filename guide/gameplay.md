@@ -7,6 +7,16 @@ Open PC OPTIONS (**F6**, **BACK + START** held together on a controller, or Play
 Profile → Options → PC OPTIONS) and press **RB** (the menu's RB key on the keyboard, **E** by
 default) until **GAMEPLAY** is shown; **LB** goes back, and clicking a tab's name works too.
 
+## World Tour narrator
+
+**WORLD TOUR NARRATOR** set to **MUTED** silences the voice that introduces each World Tour event
+and track in the career menus, in every language. Jeremy Clarkson's Autovista commentary is not
+affected. On by default; SAVE & APPLY switches it at once, no restart needed.
+
+It works on the game's narrator voice bank (`Media\audio\VO\<language>\vo.fsb`) without
+changing the file: each line is cut to a few milliseconds as the game reads the bank, and the
+bank already loaded is changed in memory when you switch it.
+
 ## Quick Race laps (experimental)
 
 **QUICK RACE LAPS** sets the number of laps of every Quick Race, from 1
