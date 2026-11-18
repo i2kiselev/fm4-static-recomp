@@ -557,10 +557,77 @@ struct ScenarioFile {
   TilingGroup group;
   // Indexed by control id; only the ids the file sets.
   std::array<std::optional<uint32_t>, 3> tiling;
+  // A race's start sequence ("*_321_and_PostRace") rather than the race after GO ("*_Race").
+  bool countdown = false;
 };
 
 std::mutex g_scenario_files_mutex;
 std::vector<ScenarioFile> g_scenario_files;
+// The last render scenario pushed is a race one, and that one a start sequence (QUICK RESTART).
+std::atomic<bool> g_race_view{false};
+std::atomic<bool> g_race_countdown{false};
+
+double SteadySeconds() {
+  return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+// QUICK RESTART without the menus. The pause menu's "restart confirmed" handler and the pre-race
+// screen's START RACE are run on the UI thread, from a text element's update, once each screen
+// is up: the scene's name is set after its constructor, so the newest race menu scene is
+// checked by name each time.
+constexpr std::string_view kPauseMenuName = "925_PAUSE_MENU";
+constexpr std::string_view kPreRaceName = "4_C_INI_PRERACE";
+constexpr uint32_t kSceneName = 16;  // the scene's name
+// The scene's "going to another screen" flag (set when the screen manager takes a request; a
+// scene still opening refuses it, so the restart is asked again).
+constexpr uint32_t kSceneNavigating = 272;
+std::atomic<uint32_t> g_last_race_scene{0};
+std::atomic<double> g_last_race_scene_time{0};
+std::atomic<int> g_pause_restart{0};  // 0 off, 1 requested, 2 taken
+std::atomic<bool> g_prerace_start{false};
+uint32_t g_prerace_called_scene = 0;
+double g_prerace_called_at = 0;
+int g_prerace_calls = 0;
+
+bool SceneIs(const uint8_t* base, uint32_t scene, std::string_view name) {
+  return scene &&
+         std::string_view(reinterpret_cast<const char*>(base + scene + kSceneName), name.size()) == name;
+}
+
+void RunQuickRestartRequests(PPCContext& ctx, uint8_t* base, uint32_t stack) {
+  // Text elements update many times a frame: one look per 30 ms is plenty.
+  static double last_look = 0;
+  const double now = SteadySeconds();
+  if (now - last_look < 0.03) return;
+  last_look = now;
+  const uint32_t scene = g_last_race_scene.load(std::memory_order_relaxed);
+  if (g_prerace_start.load(std::memory_order_relaxed) && SceneIs(base, scene, kPreRaceName)) {
+    // Once, and again only if the screen is still there a while later (a call it ignored).
+    if (scene != g_prerace_called_scene) {
+      g_prerace_called_scene = scene;
+      g_prerace_calls = 0;
+    }
+    if (g_prerace_calls == 0 || (g_prerace_calls < 3 && now - g_prerace_called_at > 0.4)) {
+      ++g_prerace_calls;
+      g_prerace_called_at = now;
+      REXLOG_INFO("Quick restart: START RACE on the pre-race screen {:08X}", scene);
+      CallGuest(ctx, base, stack, fm4_guest::kPreRaceStartRace, {scene});
+    }
+  }
+  if (g_pause_restart.load(std::memory_order_relaxed) != 1 || !SceneIs(base, scene, kPauseMenuName)) {
+    return;
+  }
+  static int tries = 0;
+  CallGuest(ctx, base, stack, fm4_guest::kPauseMenuRestartConfirmed, {scene});
+  if (base[scene + kSceneNavigating]) {
+    REXLOG_INFO("Quick restart: RESTART on the pause menu {:08X}", scene);
+    g_pause_restart.store(2, std::memory_order_relaxed);
+    tries = 0;
+  } else if (++tries >= 8) {
+    g_pause_restart.store(0, std::memory_order_relaxed);  // QuickRestart closes the menu again
+    tries = 0;
+  }
+}
 
 constexpr uint32_t kScenarioFileMaskOffset = 0x24;
 constexpr uint32_t kTilingIds[] = {kTilingScenario, kUITilingScenario};
@@ -968,6 +1035,7 @@ void Fm4ScenarioFileLoaded(PPCRegister& r1, PPCRegister& r31) {
     return;
   }
   ScenarioFile file{r31.u32, *group, {}};
+  file.countdown = name.find("321") != std::string_view::npos;
   const uint32_t mask = LoadGuestWord(membase + r31.u32 + kScenarioFileMaskOffset);
   for (const uint32_t id : kTilingIds) {
     if (mask & (1u << id)) {
@@ -990,6 +1058,9 @@ void Fm4ScenarioPush(PPCRegister& r4) {
   const std::lock_guard lock(g_scenario_files_mutex);
   for (const ScenarioFile& file : g_scenario_files) {
     if (file.address == address) {
+      g_race_view.store(file.group == TilingGroup::kRace, std::memory_order_relaxed);
+      g_race_countdown.store(file.group == TilingGroup::kRace && file.countdown,
+                             std::memory_order_relaxed);
       ApplyScenarioFileTiling(membase, file);
       if (file.tiling[kTilingScenario]) {
         REXLOG_INFO("Render scenario {:08X} pushed: {} MSAA, tiling {}{}", address,
@@ -1215,6 +1286,8 @@ void Fm4MainLoopSession(PPCRegister& r11) {
 
 void Fm4RaceMenuSceneCreated(PPCRegister& r3) {
   FM4_HOOK_CENSUS();
+  g_last_race_scene.store(r3.u32, std::memory_order_relaxed);
+  g_last_race_scene_time.store(SteadySeconds(), std::memory_order_relaxed);
   fm4_static_recomp::input::GameInputContext().RaceMenuSceneCreated(r3.u32);
   REXLOG_INFO("Race menu scene created {:08X}", r3.u32);
 }
@@ -1227,6 +1300,8 @@ void Fm4RaceSubmenuSceneCreated(PPCRegister& r3) {
 
 void Fm4RaceMenuSceneDestroyed(PPCRegister& r3) {
   FM4_HOOK_CENSUS();
+  uint32_t scene = r3.u32;
+  g_last_race_scene.compare_exchange_strong(scene, 0, std::memory_order_relaxed);
   fm4_static_recomp::input::GameInputContext().RaceMenuSceneDestroyed(r3.u32);
   REXLOG_INFO("Race menu scene destroyed {:08X}", r3.u32);
 }
@@ -1356,6 +1431,111 @@ void SetGraphicsPageOpener(std::function<void()> opener) {
   g_graphics_page_opener = std::move(opener);
 }
 
+bool PreRaceScreenStuck() {
+  uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
+  const uint32_t scene = g_last_race_scene.load(std::memory_order_relaxed);
+  return SceneIs(base, scene, kPreRaceName) &&
+         SteadySeconds() - g_last_race_scene_time.load(std::memory_order_relaxed) >= 0.7;
+}
+
+bool PreRaceScreenUp() {
+  const uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
+  return SceneIs(base, g_last_race_scene.load(std::memory_order_relaxed), kPreRaceName);
+}
+
+void RequestPauseMenuRestart(bool on) {
+  g_pause_restart.store(on ? 1 : 0, std::memory_order_relaxed);
+}
+
+bool PauseMenuRestartDone() {
+  return g_pause_restart.load(std::memory_order_relaxed) == 2;
+}
+
+void RequestPreRaceStart(bool on) {
+  if (on) g_prerace_called_scene = 0;  // a new restart: the screen may reuse the last address
+  g_prerace_start.store(on, std::memory_order_relaxed);
+}
+
+bool RaceViewActive() {
+  return g_race_view.load(std::memory_order_relaxed);
+}
+
+bool RaceCountdownActive() {
+  return g_race_countdown.load(std::memory_order_relaxed);
+}
+
+namespace {
+
+float LoadGuestFloat(const uint8_t* base, uint32_t address) {
+  const uint32_t word = LoadGuestWord(base, address);
+  float value;
+  std::memcpy(&value, &word, sizeof(value));
+  return value;
+}
+
+void StoreGuestFloat(uint8_t* base, uint32_t address, float value) {
+  uint32_t word;
+  std::memcpy(&word, &value, sizeof(word));
+  word = std::byteswap(word);
+  std::memcpy(base + address, &word, sizeof(word));
+}
+
+struct StartValue {
+  uint32_t address;
+  float original;
+  float quick;
+};
+
+std::mutex g_quick_start_mutex;
+std::vector<StartValue> g_quick_start_applied;
+
+}  // namespace
+
+bool SetQuickStartSequence(bool on) {
+  uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
+  const std::lock_guard lock(g_quick_start_mutex);
+  if (!on) {
+    for (const StartValue& value : g_quick_start_applied) {
+      StoreGuestFloat(base, value.address, value.original);
+    }
+    g_quick_start_applied.clear();
+    return true;
+  }
+  if (!g_quick_start_applied.empty()) return true;
+  const uint32_t controller = LoadGuestWord(base, fm4_guest::kStartControllerSlot);
+  const uint32_t ai = LoadGuestWord(base, fm4_guest::kAiRevKeyframes);
+  const uint32_t human = LoadGuestWord(base, fm4_guest::kHumanRevKeyframes);
+  const uint32_t cams = LoadGuestWord(base, fm4_guest::kStartCams);
+  if (!controller || !ai || !human || !cams) return false;  // no race has loaded them yet
+  // 3.3 s instead of 8.5: the first camera's own 1.75 s fade in without the black hold before
+  // it, short dips between the cameras, and the 3 coming up as the picture does. The rev
+  // keyframes come forward with it.
+  constexpr uint32_t kCamera = 0x1B0;
+  const StartValue values[] = {
+      {fm4_guest::kStartDuration, 8.5f, 3.3f},
+      {controller + 8, 9.5f, 4.3f},
+      {fm4_guest::kPreRaceCamsFade, 1.0f, 0.1f},
+      {ai, 5.4f, 1.4f},
+      {ai + 4, 0.5f, 0.2f},
+      {human, 4.8f, 0.8f},
+      {cams + 0x14, 0.75f, 0.0f},
+      {cams + 0x30, 0.8f, 0.2f},
+      {cams + kCamera + 0x30, 0.8f, 0.2f},
+      {cams + 2 * kCamera + 0x10, 1.0f, 0.25f},
+      {cams + 2 * kCamera + 0x30, 1.549999f, 0.2f},
+  };
+  // Every value must be the disc's, or nothing is touched (a modded 321Tuning.xml or
+  // 321Cams.xml, or a mode whose start differs).
+  for (const StartValue& value : values) {
+    if (std::fabs(LoadGuestFloat(base, value.address) - value.original) > 0.001f) return false;
+  }
+  for (const StartValue& value : values) {
+    StoreGuestFloat(base, value.address, value.quick);
+    g_quick_start_applied.push_back(value);
+  }
+  return true;
+}
+
 void NoteGuestFileOpen(std::string_view guest_path) {
   constexpr std::string_view kThumbnailFile = "\\thumbnails\\thumbnail_";
   // The garage opens saved thumbnails to show them too.
@@ -1460,6 +1640,7 @@ bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCR
 // is live here; one that no longer shows the text it was given is another element now.
 void Fm4TextElementUpdate(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r30) {
   FM4_HOOK_CENSUS();
+  RunQuickRestartRequests(ctx, base, r1.u32);
   const uint32_t element = r30.u32;
   LivePromptText live;
   {

@@ -38,4 +38,25 @@ void InstallAudioCompatibility();
 // thumbnail ends the readback hold its render began.
 void NoteGuestFileOpen(std::string_view guest_path);
 
+// True while the race render scenario is the last one pushed: the race itself, not the
+// pre-race screen or the intro camera.
+bool RaceViewActive();
+// The race view is the start sequence (3, 2, 1), not yet the race after GO.
+bool RaceCountdownActive();
+
+// QUICK RESTART: asks the UI thread to run the pause menu's "restart confirmed" handler as soon
+// as the pause menu is up; false cancels a request still waiting.
+void RequestPauseMenuRestart(bool on);
+bool PauseMenuRestartDone();
+// Likewise START RACE on the pre-race screen as soon as it is up.
+void RequestPreRaceStart(bool on);
+// The pre-race screen has been up a while despite RequestPreRaceStart (A is pressed then).
+bool PreRaceScreenStuck();
+// The newest race menu screen is the pre-race screen (up, or left behind by its START RACE).
+bool PreRaceScreenUp();
+
+// QUICK RESTART's short start sequence (in the parsed 321Tuning/321Cams values); false puts the
+// game's own back. False when they are not the disc's values (nothing changed).
+bool SetQuickStartSequence(bool on);
+
 }  // namespace fm4_static_recomp

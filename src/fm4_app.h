@@ -48,6 +48,7 @@
 #include "input/prompt_strings.h"
 #include "input/prompt_swap.h"
 #include "mixer_options.h"
+#include "quick_restart.h"
 #include "scripted_input.h"
 #include "shader_cache/cache_writer.h"
 #include "shader_cache/disc_shaders.h"
@@ -58,6 +59,7 @@
 #include "ui/guest_frame_stats.h"
 #include "ui/hostui/host_ui.h"
 #include "ui/hostui/ui_fonts.h"
+#include "ui/quick_restart_screen.h"
 
 REXCVAR_DECLARE(std::string, fm4_config_root);
 REXCVAR_DECLARE(std::string, fm4_write_graphics_schema);
@@ -353,6 +355,7 @@ class Fm4App final : public rex::ReXApp {
       input_system->SetKeyboardStateFilter(nullptr);
       input_system->SetPadStateFilter(nullptr);
     }
+    quick_restart_screen_.reset();
     host_ui_.reset();
     fullscreen_toggle_.reset();
     key_log_.reset();
@@ -442,12 +445,116 @@ class Fm4App final : public rex::ReXApp {
                      rex::input::mnk::IsHoldLookEngaged());
         });
     // D-PAD STEERING: the game leaves the pad's D-pad up/down unused while driving; the
-    // telemetry they are kept on (Fm4DpadSteeringTelemetry) is for the keyboard alone.
-    input_system->SetPadStateFilter([](uint32_t user_index, rex::input::X_INPUT_GAMEPAD& pad) {
-      if (user_index == 0 && input::DpadSteering() &&
-          input::CurrentInputContext() == input::InputContext::kDriving) {
-        pad.buttons = uint16_t(pad.buttons & ~(rex::input::X_INPUT_GAMEPAD_DPAD_UP |
-                                               rex::input::X_INPUT_GAMEPAD_DPAD_DOWN));
+    // telemetry they are kept on (Fm4DpadSteeringTelemetry) is for the keyboard alone. And
+    // QUICK RESTART, which reads its button from the pad and presses through it.
+    input_system->SetPadStateFilter(
+        [this, quick = QuickRestartState()](uint32_t user_index,
+                                            rex::input::X_INPUT_GAMEPAD& pad) mutable {
+          if (user_index != 0) {
+            return;
+          }
+          const bool driving = input::CurrentInputContext() == input::InputContext::kDriving;
+          if (input::DpadSteering() && driving) {
+            pad.buttons = uint16_t(pad.buttons & ~(rex::input::X_INPUT_GAMEPAD_DPAD_UP |
+                                                   rex::input::X_INPUT_GAMEPAD_DPAD_DOWN));
+          }
+          UpdateQuickRestart(quick, driving, pad);
+        });
+  }
+
+  struct QuickRestartState {
+    fm4_static_recomp::QuickRestart machine;
+    bool direct = false;         // RequestPauseMenuRestart asked
+    bool start = false;          // RequestPreRaceStart asked
+    bool short_start = false;    // the short start sequence is set (SetQuickStartSequence)
+    double trigger_seen = -1e9;  // the button last seen down, on any of the player's pads
+  };
+
+  // QUICK RESTART, on each read of one of the player's pads (the filter runs once per pad): the
+  // button (D-pad left or right) is read from them, and START, B or A pressed into them. The
+  // GAMEPLAY page can switch it, change its button or its trigger at any time.
+  void UpdateQuickRestart(QuickRestartState& state, bool driving, rex::input::X_INPUT_GAMEPAD& pad) {
+    fm4_static_recomp::QuickRestart& quick = state.machine;
+    const uint16_t trigger = fm4_static_recomp::ConfiguredQuickRestartButton();
+    quick.set_trigger(trigger);
+    quick.set_tap(fm4_static_recomp::QuickRestartTap());
+    const double seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    // The full intro again for normal starts: put back at the next pre-race screen, before its
+    // START RACE, never during the restarted race. Put back once that race's start sequence has
+    // ended on the short values, the game never lets START pause it again.
+    if (state.short_start && !quick.running() && !fm4_static_recomp::RaceViewActive() &&
+        fm4_static_recomp::PreRaceScreenUp()) {
+      state.short_start = false;
+      fm4_static_recomp::SetQuickStartSequence(false);
+    }
+    if (!quick.enabled() && !quick.running()) {
+      return;
+    }
+    // Held on any pad: a second pad of the player's, read in turn, does not let go of it.
+    if (pad.buttons & trigger) state.trigger_seen = seconds;
+    const uint16_t held = seconds - state.trigger_seen < 0.05 ? trigger : 0;
+    // Only the race itself: not under the PC OPTIONS page.
+    const bool racing = driving && !(host_ui_ && host_ui_->is_open());
+    const bool was_running = quick.running();
+    const bool was_holding = quick.holding();
+    pad.buttons = uint16_t(pad.buttons | quick.Update({
+                                             seconds,
+                                             racing,
+                                             fm4_static_recomp::RaceViewActive(),
+                                             fm4_static_recomp::RaceCountdownActive(),
+                                             held,
+                                             fm4_static_recomp::PauseMenuRestartDone(),
+                                             fm4_static_recomp::PreRaceScreenStuck(),
+                                         }));
+    if (quick.wants_start() != state.start) {
+      state.start = quick.wants_start();
+      fm4_static_recomp::RequestPreRaceStart(state.start);
+    }
+    if (quick.wants_direct() != state.direct) {
+      state.direct = quick.wants_direct();
+      fm4_static_recomp::RequestPauseMenuRestart(state.direct);
+    }
+    // The screen fades to black over the hold, so it is black before the pause menu opens; let
+    // go early (HOLD) and it fades straight back.
+    if (quick.holding() && !was_holding) SetQuickRestartScreen(true, 0.3);
+    if (was_holding && !quick.holding() && !quick.running()) SetQuickRestartScreen(false);
+    if (quick.running() == was_running) {
+      return;
+    }
+    REXLOG_INFO("Quick restart {}", quick.running() ? "started" : "finished");
+    // The restart gets the short start sequence; normal starts keep the full intro (see above).
+    if (quick.running()) {
+      SetQuickRestartScreen(true, 0.25, true);
+      state.short_start = fm4_static_recomp::SetQuickStartSequence(true);
+      if (!state.short_start) {
+        REXLOG_WARN("Quick restart: start sequence values are not the disc's; full intro kept");
+      }
+    } else {
+      SetQuickRestartScreen(false);
+    }
+  }
+
+  // QUICK RESTART's screen: black fading in over fade seconds, and with loading the game's
+  // loading screen fading in over it; off, it fades out quickly as the race comes back.
+  void SetQuickRestartScreen(bool on, double fade = 0.0, bool loading = false) {
+    rex::ui::Window* const window = this->window();
+    if (!window) return;
+    window->app_context().CallInUIThreadDeferred([this, on, fade, loading] {
+      if (!quick_restart_screen_) {
+        rex::ui::Presenter* const presenter =
+            runtime() && runtime()->graphics_system() ? runtime()->graphics_system()->presenter()
+                                                      : nullptr;
+        if (!presenter || !immediate_drawer()) return;
+        quick_restart_screen_ = std::make_unique<fm4_static_recomp::ui::QuickRestartScreen>(
+            *presenter, *immediate_drawer(), game_data_root());
+      }
+      if (!on) {
+        quick_restart_screen_->Hide(0.0, 0.15);
+      } else if (loading) {
+        quick_restart_screen_->ShowLoading(fade);
+      } else {
+        quick_restart_screen_->Show(fade);
       }
     });
   }
@@ -659,6 +766,7 @@ class Fm4App final : public rex::ReXApp {
   std::unique_ptr<fm4_static_recomp::input::PromptSwap> prompt_swap_;
   std::atomic<bool> keyboard_prompts_{false};
   std::unique_ptr<fm4_static_recomp::hostui::HostUi> host_ui_;
+  std::unique_ptr<fm4_static_recomp::ui::QuickRestartScreen> quick_restart_screen_;
   std::unique_ptr<FullscreenToggle> fullscreen_toggle_;
   std::unique_ptr<KeyLog> key_log_;
 };

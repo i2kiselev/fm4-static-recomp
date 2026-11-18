@@ -13,6 +13,7 @@
 
 #include "config/host_config.h"
 #include "quick_race_laps.h"
+#include "quick_restart.h"
 #include "ui/gameplay_page.h"
 #include "ui/hostui/menu.h"
 
@@ -22,7 +23,9 @@ namespace config = fm4_static_recomp::config;
 namespace ui = fm4_static_recomp::ui;
 using fm4_static_recomp::QuickRaceLaps;
 using fm4_static_recomp::QuickRaceLapsQuery;
+using fm4_static_recomp::ConfiguredQuickRestartButton;
 using fm4_static_recomp::QuickRaceLapsSetting;
+using fm4_static_recomp::QuickRestartTap;
 using fm4_static_recomp::hostui::MenuScreen;
 using fm4_static_recomp::hostui::NavCommand;
 
@@ -36,7 +39,7 @@ struct Page {
   explicit Page(std::string_view text)
       : path(std::filesystem::temp_directory_path() / "fm4_gameplay_page_test.toml"),
         config(path) {
-    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    ResetFlags();
     std::ofstream(path, std::ios::binary | std::ios::trunc) << text;
     REQUIRE(config.Load());
     screen = ui::CreateGameplayPage(config);
@@ -44,10 +47,21 @@ struct Page {
   }
   ~Page() {
     std::filesystem::remove(path);
-    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    ResetFlags();
   }
 
-  std::string Value() const { return screen->rows()[0].value(); }
+  static void ResetFlags() {
+    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    rex::cvar::SetFlagByName("fm4_quick_restart", "off");
+    rex::cvar::SetFlagByName("fm4_quick_restart_trigger", "hold");
+  }
+
+  std::string Value(size_t row = 0) const { return screen->rows()[row].value(); }
+  // Moves the focus to `row` and steps its value.
+  void Step(size_t row, NavCommand command) {
+    REQUIRE(screen->SetFocus(row));
+    screen->Handle(command);
+  }
   std::string File() const {
     std::ifstream file(path, std::ios::binary);
     std::ostringstream text;
@@ -121,4 +135,57 @@ TEST_CASE("A saved count out of range is ignored", "[gameplay_page]") {
   Page page("fm4_quick_race_laps = 150\n");
   ui::ApplySavedGameplaySettings(page.config);
   CHECK(QuickRaceLapsSetting() == 0);
+}
+
+TEST_CASE("QUICK RESTART is off by default, its button and trigger greyed out", "[gameplay_page]") {
+  Page page("");
+  const auto& rows = page.screen->rows();
+  CHECK(rows[1].label == "QUICK RESTART");
+  CHECK(rows[2].label == "QUICK RESTART BUTTON");
+  CHECK(rows[3].label == "QUICK RESTART TRIGGER");
+  CHECK(page.Value(1) == "OFF");
+  CHECK(page.Value(2) == "D-PAD LEFT");
+  CHECK(page.Value(3) == "HOLD");
+  CHECK_FALSE(rows[2].is_enabled());
+  CHECK_FALSE(rows[3].is_enabled());
+  CHECK(ConfiguredQuickRestartButton() == 0);
+}
+
+TEST_CASE("QUICK RESTART switched on saves its button and applies at once", "[gameplay_page]") {
+  Page page("");
+  page.Step(1, NavCommand::kRight);
+  CHECK(page.Value(1) == "ON");
+  CHECK(page.screen->rows()[1].unapplied());
+  CHECK(ConfiguredQuickRestartButton() == 0);
+  page.Step(2, NavCommand::kRight);
+  CHECK(page.Value(2) == "D-PAD RIGHT");
+  page.Step(2, NavCommand::kRight);
+  CHECK(page.Value(2) == "D-PAD LEFT");
+  page.Step(3, NavCommand::kRight);
+  CHECK(page.Value(3) == "TAP");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File() == "fm4_quick_restart = \"dpad_left\"\nfm4_quick_restart_trigger = \"tap\"\n");
+  CHECK(ConfiguredQuickRestartButton() == 0x0004);
+  CHECK(QuickRestartTap());
+}
+
+TEST_CASE("QUICK RESTART switched off keeps the button for next time", "[gameplay_page]") {
+  Page page("fm4_quick_restart = \"dpad_right\"\n");
+  ui::ApplySavedGameplaySettings(page.config);
+  CHECK(ConfiguredQuickRestartButton() == 0x0008);
+  CHECK(page.Value(1) == "ON");
+  page.Step(1, NavCommand::kRight);
+  CHECK(page.Value(1) == "OFF");
+  CHECK(page.Value(2) == "D-PAD RIGHT");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(ConfiguredQuickRestartButton() == 0);
+  page.Step(1, NavCommand::kRight);
+  CHECK(page.Value(2) == "D-PAD RIGHT");
+}
+
+TEST_CASE("A saved QUICK RESTART button other than the D-pad sides is ignored", "[gameplay_page]") {
+  Page page("fm4_quick_restart = \"x\"\n");
+  ui::ApplySavedGameplaySettings(page.config);
+  CHECK(ConfiguredQuickRestartButton() == 0);
+  CHECK(page.Value(1) == "OFF");
 }

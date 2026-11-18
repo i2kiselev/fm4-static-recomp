@@ -18,9 +18,30 @@ kTextAssign = 0x82360E98
 # caller's return address); the element is the caller's r31.
 kTextSetupGetTextReturn = 0x8234FDA4
 
+# QUICK RESTART: the pause menu's "restart confirmed" handler (this = the pause menu), what
+# its RESTART box's YES button calls back.
+kPauseMenuRestartConfirmed = 0x825A9C40
+# QUICK RESTART: the pre-race screen's START RACE (this = the screen), its press handler's
+# item 7: sets the race going and asks the screen manager for the race.
+kPreRaceStartRace = 0x825C1630
+
 # Guest data the hooks read.
 [data]
 # Holds the render scenario manager.
 kScenarioManagerPointer = 0x82DC3750
 # Each scenario control's offset, indexed by control id.
 kControlOffsetTable = 0x82D59FF0
+# QUICK RESTART's short start, the parsed 321Tuning.xml and 321Cams.xml (read as the first race
+# loads): OverrideRevsDuration (a float), and before it the slot of the start sequence's
+# controller, which keeps the duration plus one second at +8.
+kStartDuration = 0x82DDB130
+kStartControllerSlot = 0x82DDB12C
+# PreRaceCamsFadeOut's Duration (a float).
+kPreRaceCamsFade = 0x82DDB1D0
+# The AI's and the player's rev keyframes: vectors (begin pointer first) of
+# {average, deviation, throttle, target, timeout} floats.
+kAiRevKeyframes = 0x82DDB1A4
+kHumanRevKeyframes = 0x82DDB24C
+# The start cameras (321Cams.xml): a pointer to them, 0x1B0 bytes each, with each camera's
+# fade in {duration, hold} at +0x10 and fade out duration at +0x30.
+kStartCams = 0x82DDF344
