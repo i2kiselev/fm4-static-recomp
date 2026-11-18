@@ -166,8 +166,15 @@ public partial class MainWindow
         UpdateActions();
     }
 
-    private static long FreeBytes(string root) =>
-        new DriveInfo(Path.GetPathRoot(Path.GetFullPath(root))!).AvailableFreeSpace;
+    private static long FreeBytes(string root)
+    {
+        var path = Path.GetFullPath(root);
+        if (OperatingSystem.IsWindows()) return new DriveInfo(Path.GetPathRoot(path)!).AvailableFreeSpace;
+        // Linux/macOS: measure the filesystem the folder is on, not "/" (in a Flatpak "/" is a small tmpfs).
+        // The folder may not exist yet, so use its nearest existing parent.
+        while (!Directory.Exists(path)) path = Path.GetDirectoryName(path) ?? "/";
+        return new DriveInfo(path).AvailableFreeSpace;
+    }
 
     private static string DisplayName(string path) => Path.GetFileName(Path.TrimEndingDirectorySeparator(path));
 
