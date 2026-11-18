@@ -254,6 +254,46 @@ name = "Fm4TextElementUpdate"
 context = true
 registers = ["r1", "r30"]
 
+# Menu items that need Xbox LIVE or the Forza servers, skipped while fm4_hide_online_items is
+# set: their menu's AddItem (menu, label, action, 1, poster) call is jumped over, and the hook
+# releases the label AddItem would have kept. On the main menu (builder 0x825E3FC8) the
+# COMMUNITY and MARKETPLACE tiles; in the career menu (builder 0x825833F8) RIVALS, BUY TUNING
+# SETUPS and BUY DESIGNS.
+[[midasm_hook]]
+address = 0x825E409C
+name = "Fm4MainMenuCommunityItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x825E40A0
+
+[[midasm_hook]]
+address = 0x825E41A4
+name = "Fm4MainMenuMarketplaceItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x825E41A8
+
+[[midasm_hook]]
+address = 0x825838C0
+name = "Fm4CareerRivalsItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x825838C4
+
+[[midasm_hook]]
+address = 0x82583B1C
+name = "Fm4CareerBuyTuningItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x82583B20
+
+[[midasm_hook]]
+address = 0x82583DCC
+name = "Fm4CareerBuyDesignsItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x82583DD0
+
 # The Options dispatcher (this, action): action 23 opens the host page. The
 # game ignores actions it has no scene for, so nothing else changes.
 [[midasm_hook]]

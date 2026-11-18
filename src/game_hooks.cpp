@@ -75,6 +75,9 @@ REXCVAR_DEFINE_INT32(fm4_menu_vblank_hz, 0, "Forza Motorsport 4",
                      "Diagnostics: vblanks per second the game's main loop sees outside races, "
                      "the nearest whole fraction of the guest vblank (0 = every vblank)");
 
+// The GAMEPLAY page defines it, with its other settings.
+REXCVAR_DECLARE(bool, fm4_hide_online_items);
+
 REXCVAR_DEFINE_BOOL(fm4_console_rate, false, "Forza Motorsport 4",
                     "Diagnostics: the console's pacing, a 60 Hz guest vblank everywhere (races "
                     "at 60 fps, the showroom and other half-rate scenes at 30); overrides "
@@ -1507,6 +1510,53 @@ void Fm4TextElementUpdate(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRe
   const std::lock_guard lock(g_live_prompt_mutex);
   g_live_prompts[element].shown = wanted;
   g_live_prompts[element].relayout = true;
+}
+
+// Menu items that need Xbox LIVE or the Forza servers (they only say the service is
+// unavailable), skipped while fm4_hide_online_items is set. The label the menu's builder made
+// for the item, on its stack, is released as AddItem would have taken it over.
+namespace {
+
+bool SkipOnlineItem(PPCContext& ctx, uint8_t* base, uint32_t stack, uint32_t label_offset) {
+  if (!REXCVAR_GET(fm4_hide_online_items)) {
+    return false;
+  }
+  if (const uint32_t object = LoadGuestWord(base, stack + label_offset)) {
+    const uint32_t release = LoadGuestWord(base, LoadGuestWord(base, object) + 8);
+    CallGuest(ctx, base, stack, release, {object});
+  }
+  return true;
+}
+
+// Where each builder keeps the item's label.
+constexpr uint32_t kMainMenuLabel = 0x78;
+constexpr uint32_t kCareerMenuLabel = 0xC0;
+
+}  // namespace
+
+bool Fm4MainMenuCommunityItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return SkipOnlineItem(ctx, base, r1.u32, kMainMenuLabel);
+}
+
+bool Fm4MainMenuMarketplaceItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return SkipOnlineItem(ctx, base, r1.u32, kMainMenuLabel);
+}
+
+bool Fm4CareerRivalsItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return SkipOnlineItem(ctx, base, r1.u32, kCareerMenuLabel);
+}
+
+bool Fm4CareerBuyTuningItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return SkipOnlineItem(ctx, base, r1.u32, kCareerMenuLabel);
+}
+
+bool Fm4CareerBuyDesignsItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return SkipOnlineItem(ctx, base, r1.u32, kCareerMenuLabel);
 }
 
 // The Options dispatcher (this, action): PC OPTIONS opens the host page; the
