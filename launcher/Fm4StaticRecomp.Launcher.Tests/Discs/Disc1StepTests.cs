@@ -83,15 +83,18 @@ public class Disc1StepTests
     }
 
     [Fact]
-    public async Task Refuses_an_unknown_media_id()
+    public async Task Refuses_an_unknown_media_id_and_lists_supported_releases()
     {
         using var f = new Fixture();
+        var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../config/supported-discs.json"));
+        var manifest = DiscManifest.Load(real);
         var input = f.Iso(PalWith("default.xex", TestDiscs.Xex(0x12345678)));
-        var outcome = await Disc1Step.InstallAsync(input, f.Manifest, f.Game, Never, null, CancellationToken.None);
+        var outcome = await Disc1Step.InstallAsync(input, manifest, f.Game, Never, null, CancellationToken.None);
         var check = Assert.IsType<Disc1Outcome.Refused>(outcome).Check;
         Assert.Null(check.Release);
         Assert.Equal("12345678", check.MediaId);
         Assert.Null(check.ExpectedSha256);
+        Assert.Contains("1.0 Asia", Disc1Step.RefusalText(check, manifest));
     }
 
     [Fact]

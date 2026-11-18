@@ -133,10 +133,9 @@ More than twice Xenia's frame rate at every scale on the same PC
 | DLC | Optional: Marketplace packages for title `4D530910` |
 | Mod | Optional: [Project Forza Plus 4](guide/project-forza-plus.md) 1.3 over any Disc 1 above, only in a new install of its own: a vanilla install cannot be switched to it |
 
-The two 1.0 releases carry the same code, and so do the two Rev 1 releases; only their
-executables' headers differ. Setup recognises the release from `default.xex` and translates
-that release's code, so the game folder must keep code of the disc it was set up from: the game
-refuses to start on a folder of the other code (1.0 or Rev 1) and asks to run setup again. Any
+The three 1.0 releases share one code image, and the two Rev 1 releases share another.
+Setup recognises the release from `default.xex` and translates that release's code. If you swap
+in a game folder with the other code image (1.0 or Rev 1), the game asks you to run setup again. Any
 other version of `default.xex` will not work (except Project Forza Plus 4 1.3's, which is the 1.0
 code), because the translation is made for exact code; title updates are not applied. Other
 releases are untested. `config/supported-discs.json` lists every Disc 1

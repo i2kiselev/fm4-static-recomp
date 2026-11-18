@@ -7,8 +7,9 @@
 - Offline modes: World Tour (played up to the Professional Division), Event List (about 70 races
   without an issue), Free Play (Quick Race, Hot Lap), Test Drive, Autovista and photo mode.
 - The garage (upgrades, tuning presets, paint and decals), replays and saving.
-- All four Disc 1 releases (1.0 PAL and USA, Rev 1 Europe and USA), and
+- Disc 1 releases 1.0 PAL and USA and Rev 1 Europe and USA, plus
   [Project Forza Plus 4](project-forza-plus-internals.md#testing) on 1.0 and Rev 1 discs.
+- 1.0 Asia: built and tested in a career race on macOS ([PR #103](https://github.com/i2kiselev/fm4-static-recomp/pull/103)).
 - Careers imported from Xenia Canary, liveries made in Xenia included.
 - Playing in a window: every upscaler in a window, and window sizes from 200x113 to fullscreen.
 - Not tested: Xbox LIVE modes, split screen, racing wheels, and most AMD and Intel GPUs.

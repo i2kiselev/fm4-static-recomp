@@ -10,10 +10,10 @@ needed to play.
 ## The code is 1.0
 
 The mod ships its own `Main Game Changes\default.xex`. Its header says version 0.0.0.11 and media
-ID `633772A0`, which matches no retail Disc 1, but unpacked, its code and data are byte for byte
-the 1.0 retail executable's except 6 bytes: in the resource that lists the game's checked files
-(below), the name `gamedb` became `potato`. So the mod is built on the October 2011 launch code,
-the 1.0 of the PAL and USA discs, with no title update in it.
+ID `633772A0`, the same as the retail 1.0 Asia Disc 1. Setup uses the executable's SHA-256 hash to
+tell them apart. Once unpacked, the mod's code and data match the 1.0 retail executable except for
+six bytes: in the resource that lists the game's checked files (below), the name `gamedb` became
+`potato`. The mod uses the 1.0 launch code, with no title update.
 
 For the port that means:
 

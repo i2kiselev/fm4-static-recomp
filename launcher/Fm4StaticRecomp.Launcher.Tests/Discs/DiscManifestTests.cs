@@ -55,6 +55,7 @@ public class DiscManifestTests
         var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../config/supported-discs.json"));
         var manifest = DiscManifest.Load(real);
         Assert.Equal("Project Forza Plus 4 1.3", manifest.ModRelease.Name);
+        Assert.Equal("633772A0", manifest.ModRelease.MediaId);
         Assert.Equal("FEA11E87FF8434E51ED8E683023EA17281DEC02A5ED8FA226B1C73726CF15128",
             manifest.ModRelease.Files.Single(f => f.Path == "default.xex").Sha256);
         Assert.DoesNotContain(manifest.DiscReleases, r => r.Mod);
@@ -65,21 +66,40 @@ public class DiscManifestTests
             asia.Files.Single(f => f.Path == "default.xex").Sha256);
     }
 
-    [Fact]
-    public void A_disc_1_with_the_mod_over_it_is_refused_as_such()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Disc_1_setup_distinguishes_retail_Asia_from_the_mod(bool modded)
     {
         var real = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../config/supported-discs.json"));
         var manifest = DiscManifest.Load(real);
-        var modXex = manifest.ModRelease.Files.Single(f => f.Path == "default.xex").Sha256;
-        var pal = manifest.Release("61D62D9F")!;
         var asia = manifest.Release("633772A0")!;
-        foreach (var check in new[]
-                 {
-                     new RequiredCheck(null, "633772A0", modXex, null),
-                     new RequiredCheck(pal, "61D62D9F", modXex, pal.Files.Single(f => f.Path == "default.xex").Sha256),
-                     new RequiredCheck(asia, "633772A0", modXex, asia.Files.Single(f => f.Path == "default.xex").Sha256),
-                 })
-            Assert.Contains("Project Forza Plus 4", Disc1Step.RefusalText(check, manifest));
-        Assert.Contains("supports", Disc1Step.RefusalText(new RequiredCheck(null, "", "", null), manifest));
+        var mod = manifest.ModRelease;
+        var retailXex = TestDiscs.Xex(0x633772A0);
+        var modXex = TestDiscs.Xex(0x633772A0, extra: 1);
+        ManifestFile Entry(byte[] data) => new("default.xex", data.LongLength, TestDiscs.Sha(data));
+        var fixture = manifest with
+        {
+            Disc1 = new Disc1Manifest([mod with { Files = [Entry(modXex)] }, asia with { Files = [Entry(retailXex)] }], []),
+        };
+        using var temp = new TempDir();
+        temp.File("disc/default.xex", modded ? modXex : retailXex);
+        var input = DiscInput.Detect(Path.Combine(temp.Path, "disc"))!;
+        var game = Path.Combine(temp.Path, "game");
+        var outcome = await Disc1Step.InstallAsync(input, fixture, game, _ => Task.FromResult(false), null,
+            CancellationToken.None);
+
+        if (modded)
+        {
+            var refused = Assert.IsType<Disc1Outcome.Refused>(outcome);
+            Assert.Equal("633772A0", refused.Check.MediaId);
+            Assert.Contains("Project Forza Plus 4", Disc1Step.RefusalText(refused.Check, fixture));
+            Assert.False(Directory.Exists(game));
+        }
+        else
+        {
+            Assert.Equal(new Disc1Outcome.Installed("1.0 Asia", 0), outcome);
+            Assert.Equal(retailXex, File.ReadAllBytes(Path.Combine(game, "default.xex")));
+        }
     }
 }
