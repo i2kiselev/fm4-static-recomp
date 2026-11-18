@@ -212,3 +212,64 @@ TEST_CASE("The button stays off the game until it is let go after a restart", "[
   race.Run(0.05);
   CHECK_FALSE(race.quick.releasing());
 }
+
+TEST_CASE("A dirty lap restarts with no button when AUTO RESTART is on", "[quick_restart]") {
+  Race race;
+  race.quick.set_auto(true);
+  race.frame.dirty_lap = true;
+  race.Run(0.03);
+  CHECK(race.quick.holding());
+  // Committed as TAP is: no button held, the fade goes on.
+  CHECK(race.Run(QuickRestart::kTapFade - 0.08) == 0);
+  CHECK(race.quick.holding());
+  PauseAndReload(race);
+  CHECK_FALSE(race.quick.running());
+  // The restarted lap is clean again: nothing more.
+  race.frame.dirty_lap = false;
+  race.frame.countdown = false;
+  CHECK(race.Run(QuickRestart::kGoOnScreen + 1.0) == 0);
+  CHECK_FALSE(race.quick.holding());
+}
+
+TEST_CASE("A dirty lap does nothing with AUTO RESTART off, in a countdown or off the track",
+          "[quick_restart]") {
+  Race race;
+  race.frame.dirty_lap = true;
+  CHECK(race.Run(2.0) == 0);
+  CHECK_FALSE(race.quick.holding());
+
+  // AUTO RESTART goes with QUICK RESTART: with no trigger set, nothing.
+  Race no_quick;
+  no_quick.quick.set_trigger(0);
+  no_quick.quick.set_auto(true);
+  no_quick.frame.dirty_lap = true;
+  CHECK_FALSE(no_quick.quick.enabled());
+  CHECK(no_quick.Run(2.0) == 0);
+  CHECK_FALSE(no_quick.quick.holding());
+
+  Race countdown;
+  countdown.quick.set_auto(true);
+  countdown.frame.dirty_lap = true;
+  countdown.frame.countdown = true;
+  CHECK(countdown.Run(2.0) == 0);
+  CHECK_FALSE(countdown.quick.holding());
+
+  Race menu;
+  menu.quick.set_auto(true);
+  menu.frame.dirty_lap = true;
+  menu.frame.driving = false;
+  CHECK(menu.Run(2.0) == 0);
+  CHECK_FALSE(menu.quick.holding());
+}
+
+TEST_CASE("The button still works with AUTO RESTART on", "[quick_restart]") {
+  Race race;
+  race.quick.set_auto(true);
+  race.frame.pad = kLeft;
+  race.Run(0.2);
+  CHECK(race.quick.holding());
+  race.frame.pad = 0;  // HOLD let go: cancelled, as without AUTO RESTART
+  race.Run(0.5);
+  CHECK_FALSE(race.quick.holding());
+  CHECK_FALSE(race.quick.running());
+}

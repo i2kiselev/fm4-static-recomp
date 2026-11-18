@@ -23,6 +23,8 @@ namespace config = fm4_static_recomp::config;
 namespace ui = fm4_static_recomp::ui;
 using fm4_static_recomp::QuickRaceLaps;
 using fm4_static_recomp::QuickRaceLapsQuery;
+using fm4_static_recomp::AutoRestart;
+using fm4_static_recomp::ConfiguredAutoRestart;
 using fm4_static_recomp::ConfiguredQuickRestartButton;
 using fm4_static_recomp::QuickRaceLapsSetting;
 using fm4_static_recomp::QuickRestartTap;
@@ -54,6 +56,7 @@ struct Page {
     rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
     rex::cvar::SetFlagByName("fm4_quick_restart", "off");
     rex::cvar::SetFlagByName("fm4_quick_restart_trigger", "hold");
+    rex::cvar::SetFlagByName("fm4_auto_restart_dirty_lap", "off");
   }
 
   std::string Value(size_t row = 0) const { return screen->rows()[row].value(); }
@@ -188,4 +191,55 @@ TEST_CASE("A saved QUICK RESTART button other than the D-pad sides is ignored", 
   ui::ApplySavedGameplaySettings(page.config);
   CHECK(ConfiguredQuickRestartButton() == 0);
   CHECK(page.Value(1) == "OFF");
+}
+
+TEST_CASE("AUTO RESTART ON DIRTY LAP is off by default and greyed out until QUICK RESTART is on",
+          "[gameplay_page]") {
+  Page page("");
+  const auto& rows = page.screen->rows();
+  CHECK(rows[4].label == "AUTO RESTART ON DIRTY LAP");
+  CHECK(page.Value(4) == "OFF");
+  CHECK_FALSE(rows[4].is_enabled());
+  CHECK_FALSE(page.screen->SetFocus(4));  // greyed out: it can't be selected
+  page.Step(1, NavCommand::kRight);  // QUICK RESTART on
+  CHECK(rows[4].is_enabled());
+  page.Step(4, NavCommand::kRight);
+  CHECK(page.Value(4) == "HOT LAP");
+  CHECK(rows[4].unapplied());
+  CHECK(ConfiguredAutoRestart() == AutoRestart::kOff);
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File() ==
+        "fm4_auto_restart_dirty_lap = \"hot_lap\"\nfm4_quick_restart = \"dpad_left\"\n");
+  CHECK(ConfiguredAutoRestart() == AutoRestart::kHotLap);
+  page.Step(1, NavCommand::kRight);  // QUICK RESTART off again: greyed out, its value kept
+  CHECK_FALSE(rows[4].is_enabled());
+  CHECK(page.Value(4) == "HOT LAP");
+}
+
+TEST_CASE("AUTO RESTART ON DIRTY LAP goes through HOT LAP, RACES and both", "[gameplay_page]") {
+  Page page("fm4_quick_restart = \"dpad_left\"\n");
+  ui::ApplySavedGameplaySettings(page.config);
+  page.Step(4, NavCommand::kRight);
+  CHECK(page.Value(4) == "HOT LAP");
+  page.Step(4, NavCommand::kRight);
+  CHECK(page.Value(4) == "RACES");
+  page.Step(4, NavCommand::kRight);
+  CHECK(page.Value(4) == "HOT LAP + RACES");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(ConfiguredAutoRestart() == AutoRestart::kAll);
+  page.Step(4, NavCommand::kLeft);
+  CHECK(page.Value(4) == "RACES");
+}
+
+TEST_CASE("A saved AUTO RESTART is applied at startup, a bad one ignored", "[gameplay_page]") {
+  {
+    Page page("fm4_auto_restart_dirty_lap = \"races\"\n");
+    ui::ApplySavedGameplaySettings(page.config);
+    CHECK(ConfiguredAutoRestart() == AutoRestart::kRaces);
+    CHECK(page.Value(4) == "RACES");
+  }
+  Page page("fm4_auto_restart_dirty_lap = \"often\"\n");
+  ui::ApplySavedGameplaySettings(page.config);
+  CHECK(ConfiguredAutoRestart() == AutoRestart::kOff);
+  CHECK(page.Value(4) == "OFF");
 }

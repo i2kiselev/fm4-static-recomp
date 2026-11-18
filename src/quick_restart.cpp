@@ -12,6 +12,11 @@ REXCVAR_DEFINE_STRING(fm4_quick_restart, "off", "Forza Motorsport 4",
                       "QUICK RESTART while driving: off, dpad_left or dpad_right (the D-pad sides no "
                       "controller layout uses while driving)");
 
+REXCVAR_DEFINE_STRING(fm4_auto_restart_dirty_lap, "off", "Forza Motorsport 4",
+                      "AUTO RESTART ON DIRTY LAP, with QUICK RESTART on: off, hot_lap (alone on "
+                      "track), races (against AI cars) or all; a lap the game marks dirty restarts "
+                      "at once");
+
 REXCVAR_DEFINE_STRING(fm4_quick_restart_trigger, "hold", "Forza Motorsport 4",
                       "QUICK RESTART: hold (hold the button through the fade; let go to cancel) or tap "
                       "(one press restarts)");
@@ -36,6 +41,9 @@ constexpr double kTapEvery = 0.6, kLoadTimeout = 30.0, kNoRestart = 8.0;
 void QuickRestart::Go(Step step, double now) {
   step_ = step;
   step_start_ = now;
+  if (step == Step::kIdle) {
+    by_dirty_lap_ = false;
+  }
 }
 
 uint16_t QuickRestart::Update(const Frame& f) {
@@ -46,16 +54,24 @@ uint16_t QuickRestart::Update(const Frame& f) {
   const bool locked = f.now - last_countdown_ < kGoOnScreen;
   switch (step_) {
     case Step::kIdle:
-      if (trigger_ && f.driving && !locked && (f.pad & trigger_)) Go(Step::kHolding, f.now);
+      if (!f.driving || locked) return 0;
+      if (trigger_ && (f.pad & trigger_)) {
+        Go(Step::kHolding, f.now);
+      } else if (trigger_ && auto_ && f.dirty_lap) {
+        Go(Step::kHolding, f.now);
+        by_dirty_lap_ = true;
+      }
       return 0;
-    case Step::kHolding:
-      // HOLD: let go (or the race view goes) and it is off; TAP: once pressed it goes on.
-      if ((!tap_ && !(f.pad & trigger_)) || !f.driving || locked) {
+    case Step::kHolding: {
+      // HOLD: let go (or the race view goes) and it is off; TAP and a dirty lap go on.
+      const bool committed = tap_ || by_dirty_lap_;
+      if ((!committed && !(f.pad & trigger_)) || !f.driving || locked) {
         Go(Step::kIdle, f.now);
-      } else if (t >= (tap_ ? kTapFade : kHoldSeconds)) {
+      } else if (t >= (committed ? kTapFade : kHoldSeconds)) {
         Go(Step::kPause, f.now);
       }
       return 0;
+    }
     case Step::kPause:
       if (t >= kPress && !f.driving) {
         Go(Step::kDirect, f.now);
@@ -107,6 +123,18 @@ uint16_t QuickRestartButton(std::string_view name) {
 
 uint16_t ConfiguredQuickRestartButton() {
   return QuickRestartButton(REXCVAR_GET(fm4_quick_restart));
+}
+
+std::optional<AutoRestart> ParseAutoRestart(std::string_view name) {
+  if (name == "off") return AutoRestart::kOff;
+  if (name == "hot_lap") return AutoRestart::kHotLap;
+  if (name == "races") return AutoRestart::kRaces;
+  if (name == "all") return AutoRestart::kAll;
+  return std::nullopt;
+}
+
+AutoRestart ConfiguredAutoRestart() {
+  return ParseAutoRestart(REXCVAR_GET(fm4_auto_restart_dirty_lap)).value_or(AutoRestart::kOff);
 }
 
 bool QuickRestartTap() {

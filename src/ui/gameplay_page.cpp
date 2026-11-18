@@ -16,6 +16,7 @@
 #include <rex/logging.h>
 
 #include "quick_race_laps.h"
+#include "quick_restart.h"
 
 namespace fm4_static_recomp::ui {
 namespace {
@@ -26,6 +27,7 @@ using hostui::MenuScreen;
 constexpr const char* kLaps = "fm4_quick_race_laps";
 constexpr const char* kQuickRestart = "fm4_quick_restart";
 constexpr const char* kRestartTrigger = "fm4_quick_restart_trigger";
+constexpr const char* kAutoRestart = "fm4_auto_restart_dirty_lap";
 
 // The pad buttons QUICK RESTART can use, as fm4_quick_restart names them, and as shown: the
 // D-pad's left and right, which every controller layout leaves unused while driving, so the
@@ -35,6 +37,21 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 2> kButtons 
     {"dpad_right", "D-PAD RIGHT"},
 }};
 constexpr std::string_view kDefaultButton = "dpad_left";
+
+// AUTO RESTART ON DIRTY LAP's settings, as fm4_auto_restart_dirty_lap names them, and as shown.
+constexpr std::array<std::pair<std::string_view, std::string_view>, 4> kAutoRestarts = {{
+    {"off", "OFF"},
+    {"hot_lap", "HOT LAP"},
+    {"races", "RACES"},
+    {"all", "HOT LAP + RACES"},
+}};
+
+int AutoRestartIndex(std::string_view name) {
+  for (size_t i = 0; i < kAutoRestarts.size(); ++i) {
+    if (kAutoRestarts[i].first == name) return int(i);
+  }
+  return 0;
+}
 
 int ButtonIndex(std::string_view name) {
   for (size_t i = 0; i < kButtons.size(); ++i) {
@@ -117,6 +134,8 @@ struct Draft {
         config.Set(kQuickRestart, "\"" + value + "\"");
       } else if (name == kRestartTrigger) {
         config.Set(kRestartTrigger, "\"" + value + "\"");
+      } else if (name == kAutoRestart) {
+        config.Set(kAutoRestart, "\"" + value + "\"");
       }
     }
     if (!config.Save()) {
@@ -214,6 +233,27 @@ MenuRow RestartTriggerRow(const std::shared_ptr<Draft>& draft) {
   return row;
 }
 
+MenuRow AutoRestartRow(const std::shared_ptr<Draft>& draft) {
+  MenuRow row;
+  row.label = "AUTO RESTART ON DIRTY LAP";
+  row.description =
+      "A lap the game marks dirty (off the track, into a wall or contact: the warning by the lap "
+      "time) restarts at once, as QUICK RESTART does. HOT LAP: alone on track. RACES: in races "
+      "against AI cars, in Free Play and the career; the whole race restarts. Needs QUICK RESTART on.";
+  row.value = [draft] {
+    return std::string(kAutoRestarts[size_t(AutoRestartIndex(draft->Value(kAutoRestart)))].second);
+  };
+  row.adjust = [draft](int direction) {
+    const int count = int(kAutoRestarts.size());
+    const int index = (AutoRestartIndex(draft->Value(kAutoRestart)) + direction + count) % count;
+    draft->Change(kAutoRestart, std::string(kAutoRestarts[size_t(index)].first));
+  };
+  row.enabled = [draft] { return draft->RestartOn(); };
+  row.badge = [] { return LaunchOptionBadge(kAutoRestart); };
+  row.unapplied = [draft] { return draft->pending.contains(kAutoRestart); };
+  return row;
+}
+
 }  // namespace
 
 std::unique_ptr<MenuScreen> CreateGameplayPage(config::HostConfig& config) {
@@ -223,6 +263,7 @@ std::unique_ptr<MenuScreen> CreateGameplayPage(config::HostConfig& config) {
   rows.push_back(QuickRestartRow(draft));
   rows.push_back(QuickRestartButtonRow(draft));
   rows.push_back(RestartTriggerRow(draft));
+  rows.push_back(AutoRestartRow(draft));
   auto screen = std::make_unique<MenuScreen>("GAMEPLAY", std::move(rows));
   screen->set_apply([draft] { draft->SaveAndApply(); });
   screen->set_leave([draft] {
@@ -274,6 +315,14 @@ void ApplySavedGameplaySettings(const config::HostConfig& config) {
   }
   if (const auto value = config.Get(kRestartTrigger); value && !FromCommandLine(kRestartTrigger)) {
     rex::cvar::SetFlagByName(kRestartTrigger, *value == "tap" ? "tap" : "hold");
+  }
+  if (const auto value = config.Get(kAutoRestart); value && !FromCommandLine(kAutoRestart)) {
+    if (ParseAutoRestart(*value)) {
+      rex::cvar::SetFlagByName(kAutoRestart, *value);
+      REXLOG_INFO("Gameplay settings: {} = {}", kAutoRestart, *value);
+    } else {
+      REXLOG_WARN("Gameplay settings: ignored {} = {}", kAutoRestart, *value);
+    }
   }
 }
 

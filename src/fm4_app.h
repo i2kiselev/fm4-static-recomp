@@ -478,6 +478,11 @@ class Fm4App final : public rex::ReXApp {
     const uint16_t trigger = fm4_static_recomp::ConfiguredQuickRestartButton();
     quick.set_trigger(trigger);
     quick.set_tap(fm4_static_recomp::QuickRestartTap());
+    // AUTO RESTART ON DIRTY LAP goes with QUICK RESTART: only while it is on.
+    using fm4_static_recomp::AutoRestart;
+    const AutoRestart auto_restart =
+        trigger != 0 ? fm4_static_recomp::ConfiguredAutoRestart() : AutoRestart::kOff;
+    quick.set_auto(auto_restart != AutoRestart::kOff);
     const double seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
     // The full intro again for normal starts: put back at the next pre-race screen, before its
@@ -508,6 +513,10 @@ class Fm4App final : public rex::ReXApp {
                                              fm4_static_recomp::PauseMenuRestartDone(),
                                              fm4_static_recomp::PreRaceScreenStuck(),
                                              fm4_static_recomp::RaceMenuWaiting(),
+                                             auto_restart != AutoRestart::kOff && driving &&
+                                                 fm4_static_recomp::PlayerLapDirty(
+                                                     auto_restart != AutoRestart::kRaces,
+                                                     auto_restart != AutoRestart::kHotLap),
                                          }));
     // While it runs (and until let go), the button is not the game's: held into the pause menu or the pre-race
     // screen it would move their focus.

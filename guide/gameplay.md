@@ -26,6 +26,23 @@ It only works while driving: not in menus, replays or photo mode, and not during
 sequence until GO has left the screen. Races started from the menus, and restarts from the
 pause menu, keep the game's full intro. The keyboard has no quick restart key.
 
+### Auto restart on a dirty lap
+
+**AUTO RESTART ON DIRTY LAP**, under QUICK RESTART's rows, restarts as soon as the game marks
+your lap dirty: off the track, into a wall or contact, the moment the warning shows by the lap
+time. It restarts as QUICK RESTART does (loading screen, short start sequence), with no button
+pressed. Choose where:
+
+| Setting | Restarts |
+|---|---|
+| OFF (default) | Never |
+| HOT LAP | When you are alone on track: Hot Lap |
+| RACES | In races against AI cars, in Free Play and the career: the whole race restarts |
+| HOT LAP + RACES | Both |
+
+It needs QUICK RESTART on: with QUICK RESTART off the row is greyed out and nothing restarts.
+SAVE & APPLY switches it at once.
+
 ## Quick Race laps (experimental)
 
 **QUICK RACE LAPS** sets the number of laps of every Quick Race, from 1

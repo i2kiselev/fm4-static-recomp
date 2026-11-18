@@ -1496,6 +1496,61 @@ bool RaceCountdownActive() {
   return g_race_countdown.load(std::memory_order_relaxed);
 }
 
+bool PlayerLapDirty(bool alone, bool against_ai) {
+  constexpr uint32_t kDrivers = 0x310;   // vector of driver pointers: begin, end
+  constexpr uint32_t kMaxDrivers = 32;
+  constexpr uint32_t kLapState = 0x10;   // a driver's lap state
+  constexpr uint32_t kController = 0x20;  // a driver's controller: the player's, or the AI's
+  constexpr uint32_t kOffTrack = 0x392E;  // the three reasons the lap is dirty
+  constexpr uint32_t kWall = 0x3931;
+  constexpr uint32_t kContact = 0x3932;
+  rex::memory::Memory* const memory = rex::system::kernel_state()->memory();
+  const uint8_t* const base = memory->virtual_membase();
+  // Read on the input thread while the game may be tearing the race down: each pointer is
+  // followed only into committed, readable guest pages.
+  const auto readable = [memory](uint32_t address, uint32_t size) {
+    for (const uint32_t at : {address, address + size - 1}) {
+      if (at < address) return false;  // wrapped past 4 GB
+      auto* const heap = memory->LookupHeap(at);
+      uint32_t protect = 0;
+      if (!heap || !heap->QueryProtect(at, &protect) ||
+          !(protect & rex::memory::kMemoryProtectRead)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  const uint32_t owner = LoadGuestWord(base, fm4_guest::kRaceDriversOwner);
+  if (!owner || !readable(owner + kDrivers, 8)) return false;
+  const uint32_t begin = LoadGuestWord(base, owner + kDrivers);
+  const uint32_t end = LoadGuestWord(base, owner + kDrivers + 4);
+  if (!begin || end <= begin || (end - begin) % 4 || (end - begin) / 4 > kMaxDrivers ||
+      !readable(begin, end - begin)) {
+    return false;  // no race
+  }
+  // The drivers are in race order: the player is found by their controller.
+  bool dirty = false;
+  bool player = false;
+  bool ai = false;
+  for (uint32_t at = begin; at < end; at += 4) {
+    const uint32_t driver = LoadGuestWord(base, at);
+    if (!driver || !readable(driver + kLapState, 4) || !readable(driver + kController, 4)) {
+      return false;
+    }
+    const uint32_t controller = LoadGuestWord(base, driver + kController);
+    if (!controller || !readable(controller, 4)) return false;
+    if (LoadGuestWord(base, controller) != fm4_guest::kPlayerControllerVtable) {
+      ai = true;
+      continue;
+    }
+    player = true;
+    const uint32_t lap = LoadGuestWord(base, driver + kLapState);
+    if (!lap || !readable(lap + kOffTrack, kContact - kOffTrack + 1)) return false;
+    dirty = dirty || base[lap + kOffTrack] || base[lap + kWall] || base[lap + kContact];
+  }
+  return player && dirty && (ai ? against_ai : alone);
+}
+
 namespace {
 
 float LoadGuestFloat(const uint8_t* base, uint32_t address) {

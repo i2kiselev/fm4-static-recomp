@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
 
 namespace fm4_static_recomp {
@@ -23,6 +24,7 @@ class QuickRestart {
     bool direct_done = false;    // the pause menu's restart handler has run (wants_direct)
     bool prerace_stuck = false;  // the pre-race screen is still up a while after START RACE
     bool menu_waiting = false;   // another race menu is up, waiting on the player
+    bool dirty_lap = false;      // AUTO RESTART: the player's lap is dirty, in a session it covers
   };
 
   // HOLD: held this long while the screen fades out; letting go before cancels.
@@ -38,6 +40,9 @@ class QuickRestart {
   // The button that triggers it (X_INPUT_GAMEPAD_*), 0 for off; a restart going on finishes.
   void set_trigger(uint16_t trigger) { trigger_ = trigger; }
   void set_tap(bool tap) { tap_ = tap; }
+  // AUTO RESTART: while QUICK RESTART is on (a trigger is set), a dirty lap
+  // (Frame::dirty_lap) restarts as a TAP would, with no button pressed.
+  void set_auto(bool on) { auto_ = on; }
   bool enabled() const { return trigger_ != 0; }
 
   // Armed: HOLD's button held, or TAP's fade, before START is pressed.
@@ -60,6 +65,9 @@ class QuickRestart {
 
   uint16_t trigger_ = 0;
   bool tap_ = false;
+  bool auto_ = false;
+  // This restart was started by a dirty lap: it fades as TAP does and needs no button.
+  bool by_dirty_lap_ = false;
   Step step_ = Step::kIdle;
   double step_start_ = 0;
   bool left_race_view_ = false;
@@ -72,5 +80,10 @@ uint16_t QuickRestartButton(std::string_view name);
 // The button fm4_quick_restart sets now, and whether fm4_quick_restart_trigger is "tap".
 uint16_t ConfiguredQuickRestartButton();
 bool QuickRestartTap();
+// AUTO RESTART ON DIRTY LAP (fm4_auto_restart_dirty_lap): in which sessions a dirty lap restarts.
+// HOT LAP: alone on track (no AI cars). RACES: against AI cars. ALL: both.
+enum class AutoRestart { kOff, kHotLap, kRaces, kAll };
+std::optional<AutoRestart> ParseAutoRestart(std::string_view name);  // off, hot_lap, races, all
+AutoRestart ConfiguredAutoRestart();
 
 }  // namespace fm4_static_recomp

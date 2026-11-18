@@ -45,3 +45,10 @@ kHumanRevKeyframes = 0x82DDB24C
 # The start cameras (321Cams.xml): a pointer to them, 0x1B0 bytes each, with each camera's
 # fade in {duration, hold} at +0x10 and fade out duration at +0x30.
 kStartCams = 0x82DDF344
+# AUTO RESTART ON DIRTY LAP: holds the race's owner, with the race's drivers at +0x310 (a vector
+# of driver pointers: begin, end, in race order). A driver's lap state is at its +0x10; the lap is
+# dirty while +0x392E, +0x3931 or +0x3932 is set, as the driver's IsLapClean (its vtable's slot 6,
+# 0x824A5BD8) tests. The lap timer's warning icon shows the same.
+kRaceDriversOwner = 0x82DC3704
+# The vtable of a player's controller (a driver's +0x20); an AI driver's is 0x8200254C.
+kPlayerControllerVtable = 0x8200265C
