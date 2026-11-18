@@ -39,6 +39,7 @@
 #include "disc2_install.h"
 #include "file_open_log.h"
 #include "game_hooks.h"
+#include "hardcore.h"
 #include "game_language.h"
 #include "guest_addresses.h"
 #include "input/controller_layout.h"
@@ -251,6 +252,7 @@ class Fm4App final : public rex::ReXApp {
     }
     if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kNone) {
       fm4_static_recomp::InstallMixerOptions(paths.game_data_root);
+      fm4_static_recomp::InstallHardcoreOptions(paths.game_data_root);
     }
     if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kShaderCache) {
       return RunShaderCacheTool();
