@@ -466,7 +466,7 @@ class Fm4App final : public rex::ReXApp {
     fm4_static_recomp::QuickRestart machine;
     bool direct = false;         // RequestPauseMenuRestart asked
     bool start = false;          // RequestPreRaceStart asked
-    double restore_at = 0.0;     // when the full start sequence goes back
+    bool short_start = false;    // the short start sequence is set (SetQuickStartSequence)
     double trigger_seen = -1e9;  // the button last seen down, on any of the player's pads
   };
 
@@ -480,9 +480,13 @@ class Fm4App final : public rex::ReXApp {
     quick.set_tap(fm4_static_recomp::QuickRestartTap());
     const double seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-    if (state.restore_at > 0 && seconds >= state.restore_at) {
-      state.restore_at = 0;
-      fm4_static_recomp::SetQuickStartSequence(false);  // the full intro again for normal starts
+    // The full intro again for normal starts: put back at the next pre-race screen, before its
+    // START RACE, never during the restarted race. Put back once that race's start sequence has
+    // ended on the short values, the game never lets START pause it again.
+    if (state.short_start && !quick.running() && !fm4_static_recomp::RaceViewActive() &&
+        fm4_static_recomp::PreRaceScreenUp()) {
+      state.short_start = false;
+      fm4_static_recomp::SetQuickStartSequence(false);
     }
     if (!quick.enabled() && !quick.running()) {
       return;
@@ -519,17 +523,15 @@ class Fm4App final : public rex::ReXApp {
       return;
     }
     REXLOG_INFO("Quick restart {}", quick.running() ? "started" : "finished");
-    // The restart gets the short start sequence; normal starts keep the full intro, so it goes
-    // back once the restarted race is under way.
+    // The restart gets the short start sequence; normal starts keep the full intro (see above).
     if (quick.running()) {
       SetQuickRestartScreen(true, 0.25, true);
-      state.restore_at = 0;
-      if (!fm4_static_recomp::SetQuickStartSequence(true)) {
+      state.short_start = fm4_static_recomp::SetQuickStartSequence(true);
+      if (!state.short_start) {
         REXLOG_WARN("Quick restart: start sequence values are not the disc's; full intro kept");
       }
     } else {
       SetQuickRestartScreen(false);
-      state.restore_at = seconds + 5.0;
     }
   }
 

@@ -1438,6 +1438,11 @@ bool PreRaceScreenStuck() {
          SteadySeconds() - g_last_race_scene_time.load(std::memory_order_relaxed) >= 0.7;
 }
 
+bool PreRaceScreenUp() {
+  const uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
+  return SceneIs(base, g_last_race_scene.load(std::memory_order_relaxed), kPreRaceName);
+}
+
 void RequestPauseMenuRestart(bool on) {
   g_pause_restart.store(on ? 1 : 0, std::memory_order_relaxed);
 }
