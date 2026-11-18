@@ -38,6 +38,8 @@ set(FM4_HOST_SOURCES
     src/custom_music.cpp
     src/mixer_options.cpp
     src/quick_race_laps.cpp
+    src/custom_decals.cpp
+    src/custom_decals_install.cpp
     src/car_dirt.cpp
     src/code_image_check.cpp
     src/shadow_map.cpp
@@ -58,6 +60,7 @@ set(FM4_HOST_SOURCES
     src/input/prompt_swap.cpp
     src/ui/controls_page.cpp
     src/ui/gameplay_page.cpp
+    src/ui/folder_dialog.cpp
     src/ui/graphics_page.cpp
     src/ui/hostui/glyph_atlas.cpp
     src/ui/hostui/host_ui.cpp
@@ -95,6 +98,7 @@ if(FM4_BUILD_TESTS)
     add_executable(fm4_unit_tests EXCLUDE_FROM_ALL
         tests/audio_gain_test.cpp
         tests/music_state_test.cpp
+        tests/custom_decals_test.cpp
         tests/controls_test.cpp
         tests/dlc_licenses_test.cpp
         tests/keyboard_ramp_test.cpp
@@ -125,6 +129,7 @@ if(FM4_BUILD_TESTS)
         src/file_open_log.cpp
         src/mixer_options.cpp
         src/quick_race_laps.cpp
+        src/custom_decals.cpp
         src/game_language.cpp
         src/string_log.cpp
         src/config/host_config.cpp

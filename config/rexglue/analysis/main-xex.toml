@@ -237,6 +237,36 @@ name = "Fm4AddGraphicsOption"
 context = true
 registers = ["r1", "r30", "r31"]
 
+# The game database's query (out, database, sql): before the livery system reads the decals'
+# files, CUSTOM DECALS brings its rows up to date with the same query (src/custom_decals.h).
+[[midasm_hook]]
+address = 0x82856880
+name = "Fm4DatabaseQuery"
+context = true
+registers = ["r1", "r4", "r5"]
+
+# The livery editor's layer menus (CREATE LAYER, EDIT LAYER), where both ways past their
+# manufacturer decal item meet (r31 = the layer screen, r30 = the strings' owner): CUSTOM DECALS
+# adds APPLY A / CHANGE CUSTOM DECAL there as the game adds its items.
+[[midasm_hook]]
+address = 0x82522698
+name = "Fm4CreateLayerMenu"
+context = true
+registers = ["r1", "r30", "r31"]
+
+[[midasm_hook]]
+address = 0x825234F4
+name = "Fm4EditLayerMenu"
+context = true
+registers = ["r1", "r30", "r31"]
+
+# A menu list's choice (r3 = the chosen item's action, just read): a custom decal item's becomes
+# the game's decal action, with the decal picker in custom mode.
+[[midasm_hook]]
+address = 0x825C0730
+name = "Fm4MenuItemChosen"
+registers = ["r3"]
+
 # The string table lookup (table, key) answers the entry's key itself, and
 # rewrites the strings that name pad buttons while the keyboard is in use.
 [[midasm_hook]]

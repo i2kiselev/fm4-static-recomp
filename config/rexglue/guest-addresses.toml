@@ -18,6 +18,14 @@ kTextAssign = 0x82360E98
 # caller's return address); the element is the caller's r31.
 kTextSetupGetTextReturn = 0x8234FDA4
 
+# The game database's query (out, database, sql): `out` gets a counted reference to the result,
+# released through its vtable's third entry (Fm4DatabaseQuery hooks its entry).
+kDatabaseQuery = 0x82856880
+
+# Adds an item to a menu list (list, action, label, 0, -1, -, 1; f1 = the item's height), as the
+# livery editor's layer menus add theirs.
+kListAddItem = 0x82672C40
+
 # Guest data the hooks read.
 [data]
 # Holds the render scenario manager.
