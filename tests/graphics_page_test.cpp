@@ -114,7 +114,7 @@ struct CvarsRestored {
 // Steps the row until it shows `label`.
 void Choose(const MenuRow& row, const std::string& label) {
   for (int i = 0; i < 16 && row.value() != label; ++i) {
-    row.adjust(+1);
+    row.adjust(fm4_static_recomp::hostui::kAdjustCycle);
   }
   REQUIRE(row.value() == label);
 }
@@ -194,10 +194,13 @@ TEST_CASE("FULLSCREEN reflects actual window state and does not save to graphics
   const MenuRow* row = Find(*page, "FULLSCREEN");
   REQUIRE(row);
   CHECK(row->value() == "ON");
+  // OFF, ON: right stops at ON, left goes to OFF, accept switches.
   row->adjust(+1);
+  CHECK(fullscreen_state == true);
+  row->adjust(-1);
   CHECK(fullscreen_state == false);
   CHECK(row->value() == "OFF");
-  row->adjust(-1);
+  row->adjust(fm4_static_recomp::hostui::kAdjustCycle);
   CHECK(fullscreen_state == true);
   CHECK(row->value() == "ON");
 
@@ -220,10 +223,14 @@ TEST_CASE("UPSCALER steps past an upscaler the GPU cannot run", "[graphics_page]
   CHECK(row.value() == "FSR 2");
   row.adjust(+1);
   CHECK(row.value() == "FSR 3");
+  // DLSS cannot run here, so FSR 3 is the last: right stops, accept rolls over to OFF.
   row.adjust(+1);
+  CHECK(row.value() == "FSR 3");
+  row.adjust(fm4_static_recomp::hostui::kAdjustCycle);
   CHECK(row.value() == "OFF");
   row.adjust(-1);
-  CHECK(row.value() == "FSR 3");
+  CHECK(row.value() == "OFF");
+  Choose(row, "FSR 3");
   CHECK(rex::cvar::GetFlagByName("present_effect") == "bilinear");
   page->Handle(NavCommand::kApply);
   CHECK(config.Get("present_effect").value_or("") == "fsr3");
@@ -330,8 +337,7 @@ TEST_CASE("A drafted upscaler already takes over the anti-aliasing rows", "[grap
   config::HostConfig config(TempFile("drafted_upscaler.toml"));
   const Upscaling upscaling("bilinear", false);
   const auto page = ui::CreateGraphicsPage(config, Services());
-  Find(*page, "UPSCALER")->adjust(-1);
-  CHECK(Find(*page, "UPSCALER")->value() == "FSR 3");
+  Choose(*Find(*page, "UPSCALER"), "FSR 3");
   CHECK(Find(*page, "POST AA")->value() == "OFF (FSR 3)");
   CHECK_FALSE(Find(*page, "RACE MSAA")->is_enabled());
   CHECK(Find(*page, "SHARPNESS")->is_enabled());
@@ -648,16 +654,20 @@ TEST_CASE("With an upscaler chosen, RESOLUTION SCALE offers only the scales that
     // Without an upscaler every scale, supersampling included.
     const Upscaling upscaling("bilinear", false);
     const auto page = ui::CreateGraphicsPage(config, services);
-    CHECK(steps(*Find(*page, "RESOLUTION SCALE"), +1, 4) ==
-          std::vector<std::string>{"4X", "1X", "2X", "3X"});
+    CHECK(steps(*Find(*page, "RESOLUTION SCALE"), +1, 2) ==
+          std::vector<std::string>{"4X", "4X"});
+    CHECK(steps(*Find(*page, "RESOLUTION SCALE"), -1, 4) ==
+          std::vector<std::string>{"3X", "2X", "1X", "1X"});
   }
   {
-    // A saved 3x under DLSS steps into the fitting 1x and 2x and stays there.
+    // A saved 3x under DLSS steps down into the fitting 1x and 2x and stays there: nothing
+    // above fits, so right stops.
     const Upscaling upscaling("dlss", false);
     const auto page = ui::CreateGraphicsPage(config, services);
     const MenuRow& scale = *Find(*page, "RESOLUTION SCALE");
-    CHECK(steps(scale, +1, 3) == std::vector<std::string>{"1X", "2X", "1X"});
-    CHECK(steps(scale, -1, 2) == std::vector<std::string>{"2X", "1X"});
+    CHECK(steps(scale, +1, 1) == std::vector<std::string>{"3X"});
+    CHECK(steps(scale, -1, 3) == std::vector<std::string>{"2X", "1X", "1X"});
+    CHECK(steps(scale, +1, 2) == std::vector<std::string>{"2X", "2X"});
     CHECK(Find(*page, "UPSCALER")->value() == "DLSS");
   }
   {
@@ -666,15 +676,18 @@ TEST_CASE("With an upscaler chosen, RESOLUTION SCALE offers only the scales that
     auto uhd = services;
     uhd.output_size = [] { return std::optional(std::pair{3840u, 2160u}); };
     const auto page = ui::CreateGraphicsPage(config, uhd);
+    CHECK(steps(*Find(*page, "RESOLUTION SCALE"), -1, 3) ==
+          std::vector<std::string>{"2X", "1X", "1X"});
     CHECK(steps(*Find(*page, "RESOLUTION SCALE"), +1, 3) ==
-          std::vector<std::string>{"1X", "2X", "3X"});
+          std::vector<std::string>{"2X", "3X", "3X"});
   }
 }
 
 TEST_CASE("Choosing an upscaler over a scale above the screen drafts the scale down and says so",
           "[graphics_page]") {
   config::HostConfig config(TempFile("lowered_scale.toml"));
-  const Upscaling upscaling("bilinear", false);
+  // FSR 3 saved, not running: DLSS is one step on.
+  const Upscaling upscaling("fsr3", false);
   const CvarsRestored restored({"resolution_scale"});
   rex::cvar::SetFlagByName("resolution_scale", "4");
   auto services = NvidiaServices();
@@ -682,7 +695,8 @@ TEST_CASE("Choosing an upscaler over a scale above the screen drafts the scale d
   const auto page = ui::CreateGraphicsPage(config, services);
   const MenuRow& upscaler = *Find(*page, "UPSCALER");
   const MenuRow& scale = *Find(*page, "RESOLUTION SCALE");
-  upscaler.adjust(-1);
+  CHECK(upscaler.value() == "FSR 3 (OFF AT 4X)");
+  upscaler.adjust(+1);
   CHECK(upscaler.value() == "DLSS");
   CHECK(scale.value() == "2X");
   CHECK(scale.unapplied());
@@ -692,7 +706,7 @@ TEST_CASE("Choosing an upscaler over a scale above the screen drafts the scale d
   CHECK(Find(*page, "POST AA")->value() == "OFF (DLSS)");
   CHECK(rex::cvar::GetFlagByName("resolution_scale") == "4");
   // The next change drops the note; turning the upscaler off keeps the lowered scale.
-  upscaler.adjust(+1);
+  upscaler.adjust(fm4_static_recomp::hostui::kAdjustCycle);
   CHECK(upscaler.value() == "OFF");
   CHECK(scale.value() == "2X");
   CHECK(upscaler.note().empty());

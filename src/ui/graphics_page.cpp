@@ -340,8 +340,26 @@ int Find(const Setting& setting, std::string_view value) {
 }
 
 int Step(const Setting& setting, int current, int direction) {
+  return hostui::StepIndex(current, int(setting.choices.size()), direction);
+}
+
+// Steps over the choices `usable` refuses; where none is left that way (left and right stop at
+// the ends), the current one stays.
+template <typename Usable>
+int StepUsable(const Setting& setting, int current, int direction, Usable usable) {
   const int count = int(setting.choices.size());
-  return current < 0 ? 0 : (current + direction + count) % count;
+  int index = current;
+  for (int tries = 0; tries < count; ++tries) {
+    const int next = Step(setting, index, direction);
+    if (next == index) {
+      break;
+    }
+    index = next;
+    if (usable(index)) {
+      return index;
+    }
+  }
+  return current >= 0 ? current : index;
 }
 
 std::string Label(const Setting& setting, int index) {
@@ -698,10 +716,10 @@ MenuRow AntiAliasingRow(const char* label, const Setting& setting,
 MenuRow UpscalerRow(const std::shared_ptr<Draft>& draft, const GraphicsPageServices& services) {
   MenuRow row = Row("UPSCALER", kUpscaler, draft);
   row.adjust = [draft, services](int direction) {
-    int index = Find(kUpscaler, draft->Value(kUpscaler));
-    do {
-      index = Step(kUpscaler, index, direction);
-    } while (UpscalerProblem(services, kUpscaler.choices[size_t(index)].value));
+    const int index =
+        StepUsable(kUpscaler, Find(kUpscaler, draft->Value(kUpscaler)), direction, [&](int i) {
+          return !UpscalerProblem(services, kUpscaler.choices[size_t(i)].value);
+        });
     draft->Change(kUpscaler, kUpscaler.choices[size_t(index)].value);
     // An upscaler only upscales: a scale rendering larger than the screen
     // comes down to the largest that fits, drafted like any change.
@@ -852,9 +870,14 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
   fullscreen.value = [services] {
     return services.is_fullscreen && services.is_fullscreen() ? "ON" : "OFF";
   };
-  fullscreen.adjust = [services](int) {
+  // OFF, ON in that order, as VSYNC's choices.
+  fullscreen.adjust = [services](int direction) {
     if (services.set_fullscreen && services.is_fullscreen) {
-      services.set_fullscreen(!services.is_fullscreen());
+      const bool on = services.is_fullscreen();
+      const bool next = direction == hostui::kAdjustCycle ? !on : direction > 0;
+      if (next != on) {
+        services.set_fullscreen(next);
+      }
     }
   };
   rows.push_back(std::move(fullscreen));
@@ -867,10 +890,9 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
   scale.adjust = [draft, services](int direction) {
     const auto largest = LargestFittingScale(services);
     const bool limited = UpscalerChosen(*draft, services) && largest && *largest;
-    int index = Find(kScale, draft->Value(kScale));
-    do {
-      index = Step(kScale, index, direction);
-    } while (limited && uint32_t(std::atoi(kScale.choices[size_t(index)].value)) > *largest);
+    const int index = StepUsable(kScale, Find(kScale, draft->Value(kScale)), direction, [&](int i) {
+      return !limited || uint32_t(std::atoi(kScale.choices[size_t(i)].value)) <= *largest;
+    });
     draft->Change(kScale, kScale.choices[size_t(index)].value);
   };
   scale.note = [draft, services] {
@@ -893,8 +915,7 @@ std::unique_ptr<MenuScreen> CreateGraphicsPage(config::HostConfig& config,
   };
   preset.adjust = [draft](int direction) {
     const int current = DraftedPreset(*draft);
-    const int next = current < 0 ? (direction > 0 ? 0 : kPresetCount - 1)
-                                 : (current + direction + kPresetCount) % kPresetCount;
+    const int next = hostui::StepIndex(current, kPresetCount, direction);
     for (size_t j = 0; j < kPresetSettingCount; ++j) {
       draft->Change(*kPresetSettings[j], kPresets[next].values[j]);
     }

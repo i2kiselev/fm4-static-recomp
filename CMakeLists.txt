@@ -117,6 +117,7 @@ if(FM4_BUILD_TESTS)
         tests/controller_layout_test.cpp
         tests/mixer_options_test.cpp
         tests/gameplay_page_test.cpp
+        tests/menu_test.cpp
         src/car_dirt.cpp
         src/audio_gain.cpp
         src/dlc_licenses.cpp

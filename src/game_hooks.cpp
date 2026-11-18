@@ -1455,11 +1455,71 @@ bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCR
   return true;
 }
 
+namespace {
+
+// PlayUiSound's queue: a few sounds at most, the same sound not twice within 40 ms (a held
+// direction or the stick repeat would stack them). A sound not played within 150 ms (no text
+// updating) is dropped rather than played late.
+struct QueuedUiSound {
+  uint32_t id_address;
+  std::chrono::steady_clock::time_point queued;
+};
+std::mutex g_ui_sound_mutex;
+std::vector<QueuedUiSound> g_ui_sounds;
+std::unordered_map<uint32_t, std::chrono::steady_clock::time_point> g_ui_sound_last;
+
+// The UI object manager's play-sound slot (+0xEC): (manager, scene key, sound id).
+constexpr uint32_t kUiManagerPlaySound = 0xEC;
+
+// Plays the queue on the UI thread through the manager, with no scene key: the game's own
+// PlaySound looks its element's scene up first, for the scenes' sound overrides; the host menu
+// is no scene, so it takes the defaults.
+void PlayQueuedUiSounds(PPCContext& ctx, uint8_t* base, uint32_t stack) {
+  std::vector<QueuedUiSound> sounds;
+  {
+    const std::lock_guard lock(g_ui_sound_mutex);
+    if (g_ui_sounds.empty()) {
+      return;
+    }
+    sounds.swap(g_ui_sounds);
+  }
+  const uint32_t manager = LoadGuestWord(base, fm4_guest::kUiManagerPointer);
+  const uint32_t vtable = manager ? LoadGuestWord(base, manager) : 0;
+  const uint32_t play = vtable ? LoadGuestWord(base, vtable + kUiManagerPlaySound) : 0;
+  if (!play) {
+    return;
+  }
+  const auto now = std::chrono::steady_clock::now();
+  for (const QueuedUiSound& sound : sounds) {
+    if (now - sound.queued > std::chrono::milliseconds(150)) {
+      continue;
+    }
+    if (const uint32_t id = LoadGuestWord(base, sound.id_address)) {
+      CallGuest(ctx, base, stack, play, {manager, 0, id});
+    }
+  }
+}
+
+}  // namespace
+
+void fm4_static_recomp::PlayUiSound(uint32_t id_address) {
+  const auto now = std::chrono::steady_clock::now();
+  const std::lock_guard lock(g_ui_sound_mutex);
+  auto& last = g_ui_sound_last[id_address];
+  if (now - last < std::chrono::milliseconds(40) || g_ui_sounds.size() >= 4) {
+    return;
+  }
+  last = now;
+  g_ui_sounds.push_back({id_address, now});
+}
+
 // A text element's update, before it checks whether to lay its text out again: a prompt
 // text built for the other device is rewritten, as the game's SetText would. The element
 // is live here; one that no longer shows the text it was given is another element now.
+// The UI thread also plays PlayUiSound's queue here.
 void Fm4TextElementUpdate(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r30) {
   FM4_HOOK_CENSUS();
+  PlayQueuedUiSounds(ctx, base, r1.u32);
   const uint32_t element = r30.u32;
   LivePromptText live;
   {

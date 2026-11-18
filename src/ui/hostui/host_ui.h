@@ -65,6 +65,8 @@ class HostUi final : public rex::ui::UIDrawer, public rex::ui::WindowInputListen
   // back would. Fails (and logs) when the title's UI assets cannot be loaded.
   bool Open(std::vector<MenuTab> tabs, size_t tab);
   void SetMenuKeys(MenuKeys keys);
+  // Plays the game's menu sounds for what the menu does; null plays none.
+  void set_sound(std::function<void(MenuSound)> sound) { sound_ = std::move(sound); }
   // The guest gets its input back only once no pad button or key is held,
   // so the press that closed the menu does not also reach the title.
   void Close();
@@ -104,7 +106,21 @@ class HostUi final : public rex::ui::UIDrawer, public rex::ui::WindowInputListen
 
   bool LoadAssets();
   void LoadKeycaps();
-  void SwitchTab(size_t tab);
+  // False when the shown screen refused to leave; nullopt when nothing was to switch.
+  std::optional<bool> SwitchTab(size_t tab);
+  void SwitchTabWithSound(size_t tab, MenuSound sound);
+  void PlaySound(std::optional<MenuSound> sound);
+  // The focused row's value, slider value and slot, to tell what a command changed.
+  struct RowState {
+    size_t focus = 0;
+    std::string value;
+    int slider = 0;
+    size_t slot = 0;
+    bool operator==(const RowState&) const = default;
+  };
+  RowState FocusedState() const;
+  // A slider stepped by the stick or the pointer: its sound, the end once per stop.
+  void PlaySlideSound(int direction, bool changed);
   void DrawMenu(rex::ui::UIDrawContext& context);
   void DrawTabs();
   // The game's tuning slider section above the list, for a slider first row.
@@ -154,7 +170,9 @@ class HostUi final : public rex::ui::UIDrawer, public rex::ui::WindowInputListen
   rex::input::InputSystem* input_system_;
   std::filesystem::path game_data_root_;
   MenuKeys keys_;
-
+  std::function<void(MenuSound)> sound_;
+  // The stick has the focused slider against its end: its sound has played.
+  bool slide_at_end_ = false;
   std::vector<MenuTab> tabs_;
   size_t tab_ = 0;
   std::unique_ptr<MenuScreen> screen_;

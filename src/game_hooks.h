@@ -38,4 +38,9 @@ void InstallAudioCompatibility();
 // thumbnail ends the readback hold its render began.
 void NoteGuestFileOpen(std::string_view guest_path);
 
+// Plays one of the game's UI sounds: `id_address` is the guest global holding its id
+// (fm4_guest::kUiSound*). Queued from any thread; the UI thread plays it on its next text
+// update, through a UI element of the scene up then.
+void PlayUiSound(uint32_t id_address);
+
 }  // namespace fm4_static_recomp

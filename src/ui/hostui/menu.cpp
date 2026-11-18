@@ -35,6 +35,65 @@ bool BindHasKey(std::string_view bind, rex::ui::VirtualKey key) {
 
 }  // namespace
 
+int StepIndex(int current, int count, int direction) {
+  if (count <= 0) {
+    return -1;
+  }
+  if (current < 0 || current >= count) {
+    return direction < 0 ? count - 1 : 0;
+  }
+  if (direction == kAdjustCycle) {
+    return (current + 1) % count;
+  }
+  return std::clamp(current + (direction < 0 ? -1 : 1), 0, count - 1);
+}
+
+std::optional<MenuSound> NavSound(const NavOutcome& o) {
+  if (o.capturing) {
+    return o.command == NavCommand::kBack && o.handled ? std::optional(MenuSound::kBack)
+                                                        : std::nullopt;
+  }
+  switch (o.command) {
+    case NavCommand::kUp:
+    case NavCommand::kDown:
+      return o.focus_moved ? std::optional(MenuSound::kMove) : std::nullopt;
+    case NavCommand::kLeft:
+    case NavCommand::kRight:
+      if (o.slider) {
+        if (!o.value_changed) {
+          return MenuSound::kSlideEnd;
+        }
+        return o.command == NavCommand::kLeft ? MenuSound::kSlideDown : MenuSound::kSlideUp;
+      }
+      if (o.slots) {
+        return o.value_changed ? MenuSound::kMove : MenuSound::kEnd;
+      }
+      return o.value_changed ? MenuSound::kChange : MenuSound::kEnd;
+    case NavCommand::kAccept:
+      if (o.slots) {
+        return o.handled ? std::optional(MenuSound::kAccept) : std::nullopt;
+      }
+      if (o.slider) {
+        return o.value_changed ? MenuSound::kSlideUp : MenuSound::kSlideEnd;
+      }
+      return o.value_changed ? std::optional(MenuSound::kChange) : std::nullopt;
+    case NavCommand::kApply:
+      return o.handled ? std::optional(MenuSound::kAccept) : std::nullopt;
+    case NavCommand::kClear:
+      return o.value_changed ? std::optional(MenuSound::kChange) : std::nullopt;
+    case NavCommand::kBack:
+    case NavCommand::kClose:
+      if (o.left_screen) {
+        return MenuSound::kBack;
+      }
+      return o.handled ? std::optional(MenuSound::kError) : std::nullopt;
+    case NavCommand::kPreviousTab:
+    case NavCommand::kNextTab:
+      return std::nullopt;  // the host plays these, after switching
+  }
+  return std::nullopt;
+}
+
 std::optional<NavCommand> KeyCommand(const MenuKeys& keys, rex::ui::VirtualKey key, bool repeat) {
   using rex::ui::VirtualKey;
   std::optional<NavCommand> direction;
@@ -193,9 +252,11 @@ MenuScreen::Result MenuScreen::Handle(NavCommand command) {
   if (command == NavCommand::kClear) {
     return Result::kNone;
   }
-  const int direction = command == NavCommand::kLeft ? -1 : 1;
+  const int direction = command == NavCommand::kLeft    ? -1
+                        : command == NavCommand::kRight ? 1
+                                                        : kAdjustCycle;
   if (rows_[focus_].slider) {
-    return Slide(direction);
+    return Slide(direction < 0 ? -1 : 1);
   }
   MenuRow& row = rows_[focus_];
   if (!row.is_enabled() || !row.adjust) {
