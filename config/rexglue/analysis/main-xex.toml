@@ -272,6 +272,50 @@ address = 0x824B9D84
 name = "Fm4ShowroomCameraStep"
 registers = ["f1"]
 
+# FAST POST-RACE (src/game_hooks.cpp). The World Tour screen (200_WORLD_TOUR, vtable
+# 0x8204CBDC) starts its globe's intro through 0x826564F0 (map, quick: the scene's QUICK_INTRO
+# or INTRO), on entering World Tour from a menu and on coming back to it from a race; the hooks
+# run just before each call. The screen's scene event handler (vtable slot 28, 0x826351C8)
+# receives r4 = the hash of the event's name (READY_FOR_EVENT_SELECT once the intro is over).
+[[midasm_hook]]
+address = 0x8261D8A8
+name = "Fm4WorldTourIntroEnter"
+
+[[midasm_hook]]
+address = 0x826355BC
+name = "Fm4WorldTourIntroPostRace"
+
+# Back from a finished race (0x82635398, the race's result not yet shown: +0x315 of the career
+# state clear), the screen sends its scene POST_RACE_ANIMATE (the zoom out from the track, the
+# spin and the zoom to the next event) instead of an intro; the hook runs just before.
+[[midasm_hook]]
+address = 0x8263544C
+name = "Fm4WorldTourPostRaceAnimate"
+
+[[midasm_hook]]
+address = 0x826351D4
+name = "Fm4WorldTourSceneEvent"
+registers = ["r4"]
+
+# The post-race XP screen (909_LEVEL_PROGRESS, vtable 0x8202C2D4): its factory (0x824D8D38)
+# has constructed it (r3); its update (slot 2, 0x82538A58) moves its bars by its stopwatch
+# (+0x350, 4 s then 2 s for the bonuses) through phases (+0x3A8); both ways to the last phase
+# (3, which adds CONTINUE) meet here, r31 the screen; its deleting destructor (slot 1).
+[[midasm_hook]]
+address = 0x824D8D70
+name = "Fm4XpScreenCreated"
+registers = ["r3"]
+
+[[midasm_hook]]
+address = 0x82537E8C
+name = "Fm4XpBarsDone"
+registers = ["r31"]
+
+[[midasm_hook]]
+address = 0x824D88C8
+name = "Fm4XpScreenDestroyed"
+registers = ["r3"]
+
 # The in-game UI's loading screen opens (this+0x2c, the "LoadingScreen" scene of
 # UIInGame/UI): once per race load, right after GO RACE. A race load advances
 # partly once per main loop tick, so the hook runs the guest vblank at 480 Hz
