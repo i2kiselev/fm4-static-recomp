@@ -7,6 +7,14 @@ Open PC OPTIONS (**F6**, **BACK + START** held together on a controller, or Play
 Profile → Options → PC OPTIONS) and press **RB** (the menu's RB key on the keyboard, **E** by
 default) until **GAMEPLAY** is shown; **LB** goes back, and clicking a tab's name works too.
 
+## Online menu items
+
+Some menu items need Xbox LIVE or the Forza servers, so here they only say the service is
+unavailable: COMMUNITY and MARKETPLACE on the main menu, RIVALS under GO RACE, BUY TUNING SETUPS
+under UPGRADE and BUY DESIGNS under PAINT. **ONLINE MENU ITEMS** set to **HIDDEN** leaves them
+off: the main menu then shows PLAY CAREER, AUTOVISTA and FREE PLAY. Off (SHOWN) by default; each
+menu shows the change the next time it opens.
+
 ## Quick Race laps (experimental)
 
 **QUICK RACE LAPS** sets the number of laps of every Quick Race, from 1
