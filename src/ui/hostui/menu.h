@@ -56,6 +56,15 @@ struct MenuSlider {
   std::function<void(int value)> set;
 };
 
+// A picture the description panel shows above the row's text (a preview), with a caption
+// under it. The pixels are shared, so the same picture keeps its texture between frames.
+struct MenuPicture {
+  std::shared_ptr<const std::vector<uint8_t>> rgba;  // width * height * 4
+  uint32_t width = 0;
+  uint32_t height = 0;
+  std::string caption;
+};
+
 // One row of a host menu: a label and a value beside it, changed with
 // `adjust` (-1 or +1), or a slider stepped by one. The focused row's
 // description, note and badge show in the description panel.
@@ -84,6 +93,8 @@ struct MenuRow {
   std::function<void(size_t slot)> clear;
   // What clear does to the slot, for the button help; empty when it does nothing there.
   std::function<std::string(size_t slot)> clear_label;
+  // Pictures for the description panel (previews), or none.
+  std::function<std::vector<MenuPicture>()> pictures;
 
   bool is_enabled() const { return !heading && (!enabled || enabled()); }
 };
@@ -129,6 +140,10 @@ class MenuScreen {
   size_t focus() const { return focus_; }
   // Moves the focus to `index` if that row is enabled.
   bool SetFocus(size_t index);
+  // Swaps the screen's rows for others (a page that opens a list in place, as a track's boards),
+  // focusing `focus` or the first enabled row. Rows may call it from their own actions: the swap
+  // waits until the command that called it has finished.
+  void ReplaceRows(std::vector<MenuRow> rows, size_t focus = SIZE_MAX);
   // The focused slot of a row of slots; the same column on every row.
   size_t slot() const { return slot_; }
   void SetSlot(size_t slot) { slot_ = slot; }
@@ -166,6 +181,9 @@ class MenuScreen {
   std::vector<std::string> headers_;
   size_t focus_ = 0;
   size_t slot_ = 0;
+  std::optional<std::pair<std::vector<MenuRow>, size_t>> pending_rows_;
+  Result HandleNow(NavCommand command);
+  void ApplyPendingRows();
 };
 
 // Turns polled pad state into navigation commands with the usual menu key

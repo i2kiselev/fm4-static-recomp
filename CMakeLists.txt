@@ -39,7 +39,7 @@ set(FM4_HOST_SOURCES
     src/mixer_options.cpp
     src/quick_race_laps.cpp
     src/track_signage.cpp
-    src/track_signage_watch.cpp
+    src/track_signage_runtime.cpp
     src/car_dirt.cpp
     src/code_image_check.cpp
     src/shadow_map.cpp
@@ -60,6 +60,7 @@ set(FM4_HOST_SOURCES
     src/input/prompt_swap.cpp
     src/ui/controls_page.cpp
     src/ui/gameplay_page.cpp
+    src/ui/signage_page.cpp
     src/ui/graphics_page.cpp
     src/ui/hostui/glyph_atlas.cpp
     src/ui/hostui/host_ui.cpp
@@ -120,6 +121,7 @@ if(FM4_BUILD_TESTS)
         tests/mixer_options_test.cpp
         tests/gameplay_page_test.cpp
         tests/track_signage_test.cpp
+        tests/signage_page_test.cpp
         src/car_dirt.cpp
         src/audio_gain.cpp
         src/dlc_licenses.cpp
@@ -129,6 +131,7 @@ if(FM4_BUILD_TESTS)
         src/mixer_options.cpp
         src/quick_race_laps.cpp
         src/track_signage.cpp
+        src/track_signage_runtime.cpp
         src/game_language.cpp
         src/string_log.cpp
         src/config/host_config.cpp
@@ -146,6 +149,7 @@ if(FM4_BUILD_TESTS)
         src/ui/hostui/menu.cpp
         src/ui/controls_page.cpp
         src/ui/gameplay_page.cpp
+        src/ui/signage_page.cpp
         src/ui/graphics_page.cpp
     )
     # Away from the game's staged runtime, which is only as new as the last game build;
@@ -157,7 +161,7 @@ if(FM4_BUILD_TESTS)
         FM4_TEST_GAME_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../extracted/fm4"
         FM4_TEST_STRINGS="${CMAKE_CURRENT_SOURCE_DIR}/../frontend-settings/data/raw/strings/EN.tsv")
     if(WIN32)
-        target_link_libraries(fm4_unit_tests PRIVATE Catch2::Catch2WithMain rexruntime bcrypt)
+        target_link_libraries(fm4_unit_tests PRIVATE Catch2::Catch2WithMain rexruntime bcrypt shell32)
     else()
         target_link_libraries(fm4_unit_tests PRIVATE Catch2::Catch2WithMain rexruntime)
     endif()
