@@ -19,6 +19,21 @@ endif()
 
 include(cmake/Fm4RexGlue.cmake)
 
+# SQLite (public domain), for the HARDCORE options: they edit a copy of the game's database
+# (Media\db\gamedb.slt) in memory before the game opens it. The official amalgamation,
+# checked against sqlite.org's published SHA3-256.
+include(FetchContent)
+FetchContent_Declare(fm4_sqlite
+    URL https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip
+    URL_HASH SHA3_256=92281c86e2957f9b9305890f9ac04204caa7b677cc868dc326d942689df28e30
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(fm4_sqlite)
+add_library(fm4_sqlite STATIC "${fm4_sqlite_SOURCE_DIR}/sqlite3.c")
+target_include_directories(fm4_sqlite PUBLIC "${fm4_sqlite_SOURCE_DIR}")
+# Used on one thread at startup; no extensions.
+target_compile_definitions(fm4_sqlite PRIVATE SQLITE_THREADSAFE=0 SQLITE_OMIT_LOAD_EXTENSION
+    SQLITE_DEFAULT_MEMSTATUS=0 SQLITE_DQS=0)
+
 option(FM4_REQUIRE_TEMPORAL_UPSCALERS "Require the FSR 2/3 provider and staged runtime" OFF)
 if(FM4_REQUIRE_TEMPORAL_UPSCALERS AND APPLE)
     if(NOT REXGLUE_FFX_API_INCLUDE_DIR OR NOT REXGLUE_FFX_API_LOADER OR NOT REXGLUE_FIDELITYFX_RUNTIME)
@@ -38,6 +53,7 @@ set(FM4_HOST_SOURCES
     src/custom_music.cpp
     src/mixer_options.cpp
     src/quick_race_laps.cpp
+    src/hardcore.cpp
     src/car_dirt.cpp
     src/code_image_check.cpp
     src/shadow_map.cpp
@@ -77,13 +93,13 @@ if(WIN32)
         src/fm4_static_recomp.rc
     )
     fm4_static_recomp_attach_rexglue(fm4_static_recomp)
-    target_link_libraries(fm4_static_recomp PRIVATE bcrypt d3d12 dxgi rex::gpu-fh1 renderdoc)
+    target_link_libraries(fm4_static_recomp PRIVATE bcrypt d3d12 dxgi rex::gpu-fh1 renderdoc fm4_sqlite)
 else()
     add_executable(fm4_static_recomp
         ${FM4_HOST_SOURCES}
     )
     fm4_static_recomp_attach_rexglue(fm4_static_recomp)
-    target_link_libraries(fm4_static_recomp PRIVATE rex::gpu-fh1)
+    target_link_libraries(fm4_static_recomp PRIVATE rex::gpu-fh1 fm4_sqlite)
 endif()
 
 endif() # NOT FM4_TESTS_ONLY
@@ -117,6 +133,7 @@ if(FM4_BUILD_TESTS)
         tests/controller_layout_test.cpp
         tests/mixer_options_test.cpp
         tests/gameplay_page_test.cpp
+        tests/hardcore_test.cpp
         src/car_dirt.cpp
         src/audio_gain.cpp
         src/dlc_licenses.cpp
@@ -125,6 +142,7 @@ if(FM4_BUILD_TESTS)
         src/file_open_log.cpp
         src/mixer_options.cpp
         src/quick_race_laps.cpp
+        src/hardcore.cpp
         src/game_language.cpp
         src/string_log.cpp
         src/config/host_config.cpp
@@ -153,9 +171,9 @@ if(FM4_BUILD_TESTS)
         FM4_TEST_GAME_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../extracted/fm4"
         FM4_TEST_STRINGS="${CMAKE_CURRENT_SOURCE_DIR}/../frontend-settings/data/raw/strings/EN.tsv")
     if(WIN32)
-        target_link_libraries(fm4_unit_tests PRIVATE Catch2::Catch2WithMain rexruntime bcrypt)
+        target_link_libraries(fm4_unit_tests PRIVATE Catch2::Catch2WithMain rexruntime bcrypt fm4_sqlite)
     else()
-        target_link_libraries(fm4_unit_tests PRIVATE Catch2::Catch2WithMain rexruntime)
+        target_link_libraries(fm4_unit_tests PRIVATE Catch2::Catch2WithMain rexruntime fm4_sqlite)
     endif()
 endif()
 

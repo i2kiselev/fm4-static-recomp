@@ -12,6 +12,7 @@
 #include <rex/cvar.h>
 
 #include "config/host_config.h"
+#include "hardcore.h"
 #include "quick_race_laps.h"
 #include "ui/gameplay_page.h"
 #include "ui/hostui/menu.h"
@@ -36,7 +37,7 @@ struct Page {
   explicit Page(std::string_view text)
       : path(std::filesystem::temp_directory_path() / "fm4_gameplay_page_test.toml"),
         config(path) {
-    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    ResetFlags();
     std::ofstream(path, std::ios::binary | std::ios::trunc) << text;
     REQUIRE(config.Load());
     screen = ui::CreateGameplayPage(config);
@@ -44,10 +45,22 @@ struct Page {
   }
   ~Page() {
     std::filesystem::remove(path);
-    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    ResetFlags();
   }
 
-  std::string Value() const { return screen->rows()[0].value(); }
+  static void ResetFlags() {
+    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    for (const char* name : {"fm4_race_payouts", "fm4_repair_costs", "fm4_resale_value"}) {
+      rex::cvar::SetFlagByName(name, "100");
+    }
+  }
+
+  std::string Value(size_t row = 0) const { return screen->rows()[row].value(); }
+  // Moves the focus to `row` and steps its value.
+  void Step(size_t row, NavCommand command) {
+    REQUIRE(screen->SetFocus(row));
+    screen->Handle(command);
+  }
   std::string File() const {
     std::ifstream file(path, std::ios::binary);
     std::ostringstream text;
@@ -121,4 +134,62 @@ TEST_CASE("A saved count out of range is ignored", "[gameplay_page]") {
   Page page("fm4_quick_race_laps = 150\n");
   ui::ApplySavedGameplaySettings(page.config);
   CHECK(QuickRaceLapsSetting() == 0);
+}
+
+TEST_CASE("HARDCORE has its three settings, each the game's own by default", "[gameplay_page]") {
+  Page page("");
+  fm4_static_recomp::InstallHardcoreOptions({});  // the game started with them all off
+  const auto& rows = page.screen->rows();
+  CHECK(rows[1].label == "HARDCORE");
+  CHECK_FALSE(rows[1].is_enabled());  // a heading
+  CHECK(rows[2].label == "RACE PAYOUTS");
+  CHECK(rows[3].label == "REPAIR COSTS");
+  CHECK(rows[4].label == "RESALE VALUE");
+  CHECK(rows.size() == 5);
+  for (size_t row = 2; row <= 4; ++row) {
+    CHECK(page.Value(row) == "GAME'S");
+    CHECK(rows[row].note() == "");
+  }
+}
+
+TEST_CASE("HARDCORE settings step through their choices and save for the next start",
+          "[gameplay_page]") {
+  Page page("");
+  fm4_static_recomp::InstallHardcoreOptions({});
+  const auto& rows = page.screen->rows();
+  page.Step(2, NavCommand::kRight);
+  CHECK(page.Value(2) == "-25%");
+  page.Step(2, NavCommand::kRight);
+  CHECK(page.Value(2) == "-50%");
+  page.Step(3, NavCommand::kRight);
+  CHECK(page.Value(3) == "X2");
+  page.Step(4, NavCommand::kLeft);  // rolls over to the last
+  CHECK(page.Value(4) == "-50%");
+  CHECK(rows[2].unapplied());
+  CHECK(rows[2].note() == "From the next start.");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File() ==
+        "fm4_race_payouts = 50\nfm4_repair_costs = 200\nfm4_resale_value = 50\n");
+  CHECK(rex::cvar::GetFlagByName("fm4_race_payouts") == "50");
+  // The game started with the game's own: until the next start, the rows say so.
+  CHECK(rows[2].note() == "From the next start.");
+  page.Step(2, NavCommand::kRight);  // back round to the game's own
+  CHECK(page.Value(2) == "GAME'S");
+  CHECK(rows[2].note() == "");
+}
+
+TEST_CASE("Saved HARDCORE settings are applied at startup, ones out of range ignored",
+          "[gameplay_page]") {
+  {
+    Page page("fm4_race_payouts = 75\nfm4_resale_value = 50\n");
+    ui::ApplySavedGameplaySettings(page.config);
+    CHECK(rex::cvar::GetFlagByName("fm4_race_payouts") == "75");
+    CHECK(rex::cvar::GetFlagByName("fm4_resale_value") == "50");
+    CHECK(page.Value(2) == "-25%");
+    CHECK(page.Value(4) == "-50%");
+  }
+  Page page("fm4_race_payouts = 10\nfm4_repair_costs = 1000\n");
+  ui::ApplySavedGameplaySettings(page.config);
+  CHECK(rex::cvar::GetFlagByName("fm4_race_payouts") == "100");
+  CHECK(rex::cvar::GetFlagByName("fm4_repair_costs") == "100");
 }
