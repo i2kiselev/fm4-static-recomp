@@ -25,3 +25,17 @@ memory use; the AI races the whole distance. What to expect on a long race:
 - The replay does not cover the whole race: in a 55-lap race it ended at lap 27.
 - Rewinding more than about 25 laps back shows a loading screen instead of rewinding on
   screen; it still takes you back.
+
+## Fast post-race
+
+**FAST POST-RACE** plays two of the waits around a World Tour race fast, without skipping
+anything: each still plays to its normal end.
+
+- **GLOBE**: the World Tour globe, which spins to the next event and zooms down to its track,
+  takes about a second on opening World Tour (instead of about 9) and about two after a
+  finished event (instead of about 12).
+- **GLOBE + XP BARS**: the post-race XP and car affinity bars also fill in under a second
+  (instead of about 6).
+
+Level-up rewards, the championship result, gift cars and every other screen are unchanged.
+Off by default; a change applies at once.

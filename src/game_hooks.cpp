@@ -19,10 +19,12 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include <rex/chrono/clock.h>
 #include <rex/cvar.h>
 #include <rex/input/mnk/mnk_input_driver.h>
 #include <rex/logging.h>
@@ -108,6 +110,8 @@ REXCVAR_DEFINE_BOOL(fm4_skip_intro, false, "Forza Motorsport 4",
 
 REXCVAR_DEFINE_DOUBLE(fm4_ui_speed, 1.0, "Forza Motorsport 4",
                       "Speed of the menus' animations against real time (1 = the console's)");
+
+REXCVAR_DECLARE(std::string, fm4_fast_post_race);  // src/ui/gameplay_page.cpp
 
 REXCVAR_DEFINE_BOOL(fm4_hook_census, false, "Forza Motorsport 4",
                     "Diagnostics: log each midasm hook's first hit (Hook census: <name>), for "
@@ -802,6 +806,111 @@ void Fm4UiSceneStep(PPCRegister& f31) {
   EndFastLoad("menu", true);
   const uint32_t ms = g_ui_pending_ms.exchange(0, std::memory_order_relaxed);
   f31.f64 = std::min(ms, 100u) / 1000.0 * REXCVAR_GET(fm4_ui_speed);
+}
+
+namespace {
+
+// FAST POST-RACE fast-forwards an animation the player only waits through by running the guest
+// clock kFastForwardScale times as fast from its start to its end, so it plays through to its
+// normal end state in a fraction of the time:
+// - the World Tour globe's intro (the spin to the next event and the zoom down to its track),
+//   on opening World Tour and, longer, after a finished race (POST_RACE_ANIMATE: the zoom out
+//   from the track first): the scene's own animation, ended by the scene sending
+//   READY_FOR_EVENT_SELECT to the screen. (After a race it sends READY_FOR_TROPHY partway,
+//   before the spin, so that is not an end.) "globe" and "all".
+// - the post-race XP bars (909_LEVEL_PROGRESS): 4 s, then 2 s for the bonuses, ended by the
+//   screen's own last phase (3, which adds CONTINUE) or the screen closing. "all" only.
+// One runs at a time; a watchdog puts the clock back if the end never comes.
+constexpr double kFastForwardScale = 8.0;
+constexpr auto kFastForwardWatchdog = std::chrono::seconds(3);
+constexpr uint32_t kReadyForEventSelect = 0x2871B20D;  // hash of "READY_FOR_EVENT_SELECT"
+
+enum class FastForward { kNone, kGlobe, kXpBars };
+
+std::mutex g_fast_forward_mutex;
+FastForward g_fast_forward = FastForward::kNone;
+uint64_t g_fast_forward_generation = 0;
+uint32_t g_fast_forward_screen = 0;  // the XP screen fast-forwarded
+std::chrono::steady_clock::time_point g_fast_forward_started;
+
+const char* FastForwardName(FastForward kind) {
+  return kind == FastForward::kGlobe ? "World Tour intro" : "XP bars";
+}
+
+bool FastForwardWanted(FastForward kind) {
+  const std::string mode = REXCVAR_GET(fm4_fast_post_race);
+  return mode == "all" || (mode == "globe" && kind == FastForward::kGlobe);
+}
+
+void EndFastForward(FastForward kind, const char* why, uint32_t screen = 0) {
+  std::lock_guard lock(g_fast_forward_mutex);
+  if (g_fast_forward != kind) return;
+  if (screen && screen != g_fast_forward_screen) return;
+  g_fast_forward = FastForward::kNone;
+  rex::chrono::Clock::set_guest_time_scalar(1.0);
+  const double real =
+      std::chrono::duration<double>(std::chrono::steady_clock::now() - g_fast_forward_started).count();
+  REXLOG_INFO("Fast post-race: {} done in {:.2f} s ({})", FastForwardName(kind), real, why);
+}
+
+void StartFastForward(FastForward kind, uint32_t screen = 0) {
+  if (!FastForwardWanted(kind)) return;
+  uint64_t generation;
+  {
+    std::lock_guard lock(g_fast_forward_mutex);
+    if (g_fast_forward != FastForward::kNone) return;
+    g_fast_forward = kind;
+    g_fast_forward_screen = screen;
+    generation = ++g_fast_forward_generation;
+    g_fast_forward_started = std::chrono::steady_clock::now();
+    rex::chrono::Clock::set_guest_time_scalar(kFastForwardScale);
+  }
+  REXLOG_INFO("Fast post-race: {} at {}x", FastForwardName(kind), kFastForwardScale);
+  std::thread([kind, generation] {
+    std::this_thread::sleep_for(kFastForwardWatchdog);
+    {
+      std::lock_guard lock(g_fast_forward_mutex);
+      if (g_fast_forward_generation != generation) return;
+    }
+    EndFastForward(kind, "watchdog");
+  }).detach();
+}
+
+}  // namespace
+
+void Fm4WorldTourSceneEvent(PPCRegister& r4) {
+  FM4_HOOK_CENSUS();
+  if (r4.u32 == kReadyForEventSelect) EndFastForward(FastForward::kGlobe, "ready");
+}
+
+void Fm4WorldTourIntroEnter() {
+  FM4_HOOK_CENSUS();
+  StartFastForward(FastForward::kGlobe);
+}
+
+void Fm4WorldTourIntroPostRace() {
+  FM4_HOOK_CENSUS();
+  StartFastForward(FastForward::kGlobe);
+}
+
+void Fm4WorldTourPostRaceAnimate() {
+  FM4_HOOK_CENSUS();
+  StartFastForward(FastForward::kGlobe);
+}
+
+void Fm4XpScreenCreated(PPCRegister& r3) {
+  FM4_HOOK_CENSUS();
+  if (r3.u32) StartFastForward(FastForward::kXpBars, r3.u32);
+}
+
+void Fm4XpBarsDone(PPCRegister& r31) {
+  FM4_HOOK_CENSUS();
+  EndFastForward(FastForward::kXpBars, "bars filled", r31.u32);
+}
+
+void Fm4XpScreenDestroyed(PPCRegister& r3) {
+  FM4_HOOK_CENSUS();
+  EndFastForward(FastForward::kXpBars, "screen closed", r3.u32);
 }
 
 void Fm4ShowroomCameraStep(PPCRegister& f1) {
