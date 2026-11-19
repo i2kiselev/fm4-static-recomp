@@ -4,8 +4,16 @@
 
 Put your own pictures on the trackside boards: a PNG named after a board goes in the **signage**
 folder, and races show it on that board. It changes within a few seconds, even mid-race; delete
-the file and the game's board comes back. There is no setting: a file in the folder is what turns
-its board on.
+the file and the game's board comes back.
+
+## The setting
+
+In PC OPTIONS (**F6**), the **GAMEPLAY** tab has a **TRACK SIGNAGE** section:
+
+| Row | What it does |
+|---|---|
+| **TRACK SIGNAGE** | ON (default) shows your pictures; OFF shows the game's boards. It applies at once with SAVE & APPLY, mid-race too. Its note says how many boards show your pictures. |
+| **SIGNAGE FOLDER** | OPEN (A or Enter) opens the signage folder in Explorer. Its note shows where the folder is. |
 
 ## Where
 
@@ -40,8 +48,8 @@ The first boards are Hockenheim's. Name the file exactly as below (capitals don'
 
 ## Turning it off
 
-`--fm4_track_signage=false` (a [launch option](launch-options.md)) leaves every board as the
-game's, whatever is in the folder.
+**TRACK SIGNAGE: OFF** in GAMEPLAY, or `--fm4_track_signage=false` (a
+[launch option](launch-options.md)), leaves every board as the game's, whatever is in the folder.
 
 ## How it works
 

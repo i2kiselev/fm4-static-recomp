@@ -37,6 +37,7 @@ struct Page {
       : path(std::filesystem::temp_directory_path() / "fm4_gameplay_page_test.toml"),
         config(path) {
     rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    rex::cvar::SetFlagByName("fm4_track_signage", "true");
     std::ofstream(path, std::ios::binary | std::ios::trunc) << text;
     REQUIRE(config.Load());
     screen = ui::CreateGameplayPage(config);
@@ -45,6 +46,7 @@ struct Page {
   ~Page() {
     std::filesystem::remove(path);
     rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    rex::cvar::SetFlagByName("fm4_track_signage", "true");
   }
 
   std::string Value() const { return screen->rows()[0].value(); }
@@ -121,4 +123,55 @@ TEST_CASE("A saved count out of range is ignored", "[gameplay_page]") {
   Page page("fm4_quick_race_laps = 150\n");
   ui::ApplySavedGameplaySettings(page.config);
   CHECK(QuickRaceLapsSetting() == 0);
+}
+
+TEST_CASE("TRACK SIGNAGE has its own rows: ON by default, and the folder", "[gameplay_page]") {
+  Page page("");
+  const auto& rows = page.screen->rows();
+  REQUIRE(rows.size() == 4);
+  CHECK(rows[1].label == "TRACK SIGNAGE");
+  CHECK_FALSE(rows[1].is_enabled());  // a heading
+  CHECK(rows[2].label == "TRACK SIGNAGE");
+  CHECK(rows[2].value() == "ON");
+  CHECK(rows[2].note() == "No pictures in the signage folder yet.");
+  CHECK(rows[3].label == "SIGNAGE FOLDER");
+  CHECK(rows[3].value() == "OPEN");
+}
+
+TEST_CASE("TRACK SIGNAGE OFF saves, applies at once, and ON removes it again", "[gameplay_page]") {
+  Page page("");
+  REQUIRE(page.screen->SetFocus(2));
+  page.screen->Handle(NavCommand::kRight);
+  CHECK(page.screen->rows()[2].value() == "OFF");
+  CHECK(page.screen->rows()[2].unapplied());
+  CHECK(rex::cvar::GetFlagByName("fm4_track_signage") == "true");  // not until applied
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File() == "fm4_track_signage = false\n");
+  CHECK(rex::cvar::GetFlagByName("fm4_track_signage") == "false");
+  CHECK_FALSE(page.screen->rows()[2].unapplied());
+  page.screen->Handle(NavCommand::kAccept);  // A toggles too
+  CHECK(page.screen->rows()[2].value() == "ON");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File().find("fm4_track_signage") == std::string::npos);
+  CHECK(rex::cvar::GetFlagByName("fm4_track_signage") == "true");
+}
+
+TEST_CASE("A saved TRACK SIGNAGE is applied at startup, a bad one ignored", "[gameplay_page]") {
+  {
+    Page page("fm4_track_signage = false\n");
+    ui::ApplySavedGameplaySettings(page.config);
+    CHECK(rex::cvar::GetFlagByName("fm4_track_signage") == "false");
+    CHECK(page.screen->rows()[2].value() == "OFF");
+  }
+  Page page("fm4_track_signage = maybe\n");
+  ui::ApplySavedGameplaySettings(page.config);
+  CHECK(rex::cvar::GetFlagByName("fm4_track_signage") == "true");
+}
+
+TEST_CASE("SIGNAGE FOLDER does nothing before the folder is known", "[gameplay_page]") {
+  Page page("");
+  REQUIRE(page.screen->SetFocus(3));
+  page.screen->Handle(NavCommand::kAccept);  // no folder, no browser: no crash, nothing to apply
+  CHECK_FALSE(page.screen->rows()[3].unapplied);
+  CHECK(page.screen->status().text.empty());
 }

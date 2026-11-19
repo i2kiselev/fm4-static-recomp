@@ -6,7 +6,9 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <functional>
 #include <map>
+#include <mutex>
 
 #include <rex/cvar.h>
 #include <rex/filesystem.h>
@@ -15,8 +17,9 @@
 #include "input/bc3_encoder.h"
 
 REXCVAR_DEFINE_BOOL(fm4_track_signage, true, "Forza Motorsport 4",
-                    "TRACK SIGNAGE: show the PNGs of the signage folder (beside the config folder) on "
-                    "the trackside boards they are named after; false leaves every board as the game's");
+                    "TRACK SIGNAGE (PC OPTIONS > GAMEPLAY): show the PNGs of the signage folder (beside "
+                    "the config folder) on the trackside boards they are named after; false leaves every "
+                    "board as the game's");
 
 namespace fm4_static_recomp::signage {
 namespace {
@@ -40,6 +43,9 @@ constexpr std::array kBoards = {
 };
 
 std::atomic<size_t> g_shown = 0;
+std::mutex g_folder_mutex;
+std::filesystem::path g_folder;
+std::function<bool(const std::filesystem::path&)> g_opener;
 
 char Lower(char c) { return c >= 'A' && c <= 'Z' ? char(c - 'A' + 'a') : c; }
 
@@ -159,7 +165,8 @@ std::string Readme() {
       "within a few seconds, even mid-race). Delete it to get the game's board back.\r\n"
       "The image is stretched to the board's shape: best at the size given, or 2x or 4x it\r\n"
       "for a sharper board. Transparent parts let the board's background show through as dark.\r\n"
-      "--fm4_track_signage=false (a launch option) turns them all off.\r\n"
+      "PC OPTIONS (F6) > GAMEPLAY > TRACK SIGNAGE turns them all off and on, and SIGNAGE\r\n"
+      "FOLDER opens this folder. --fm4_track_signage=false (a launch option) turns them off too.\r\n"
       "\r\n";
   for (const Board& board : kBoards) {
     text += std::string(board.file) + ".png  (" + std::to_string(board.width) + " x " +
@@ -171,5 +178,30 @@ std::string Readme() {
 size_t ShownCount() { return g_shown; }
 
 void SetShownCount(size_t count) { g_shown = count; }  // from the watcher
+
+void SetFolder(const std::filesystem::path& folder, std::function<bool(const std::filesystem::path&)> opener) {
+  std::lock_guard lock(g_folder_mutex);
+  g_folder = folder;
+  g_opener = std::move(opener);
+}
+
+std::filesystem::path Folder() {
+  std::lock_guard lock(g_folder_mutex);
+  return g_folder;
+}
+
+bool OpenFolder() {
+  std::filesystem::path folder;
+  std::function<bool(const std::filesystem::path&)> opener;
+  {
+    std::lock_guard lock(g_folder_mutex);
+    folder = g_folder;
+    opener = g_opener;
+  }
+  if (folder.empty() || !opener) return false;
+  std::error_code ec;
+  std::filesystem::create_directories(folder, ec);
+  return opener(folder);
+}
 
 }  // namespace fm4_static_recomp::signage

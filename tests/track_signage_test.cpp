@@ -113,5 +113,6 @@ TEST_CASE("README.txt names every board with its size", "[signage]") {
     CHECK(readme.find(std::string(board.file) + ".png  (" + std::to_string(board.width) + " x " +
                       std::to_string(board.height) + ")") != std::string::npos);
   }
+  CHECK(readme.find("GAMEPLAY > TRACK SIGNAGE") != std::string::npos);
   CHECK(readme.find("--fm4_track_signage=false") != std::string::npos);
 }

@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <span>
 #include <string>
@@ -15,8 +16,8 @@
 namespace fm4_static_recomp::signage {
 
 // Track signage: a PNG in the signage folder named after a trackside board (README.txt there lists
-// them) is shown on that board in races, live. No setting: a file there is what turns a board on;
-// --fm4_track_signage=false leaves every board as the game's.
+// them) is shown on that board in races, live. PC OPTIONS > GAMEPLAY > TRACK SIGNAGE turns it off
+// and on (fm4_track_signage, live) and opens the folder.
 //
 // A board is a texture of the track, matched by the hash the SDK's texture replacement uses
 // (rex::graphics::texture_replacement::SetRuntimeReplacement). The image is stretched to the
@@ -52,7 +53,13 @@ std::string Readme();
 void Start(const std::filesystem::path& folder);
 // The boards showing a PNG now.
 size_t ShownCount();
+// The folder Start watches (empty before it).
+std::filesystem::path Folder();
+// Opens the folder in the system's file browser (Explorer on Windows).
+bool OpenFolder();
 // The watcher keeps ShownCount up to date.
 void SetShownCount(size_t count);
+// Start records the folder and how to open it (the system's file browser).
+void SetFolder(const std::filesystem::path& folder, std::function<bool(const std::filesystem::path&)> opener);
 
 }  // namespace fm4_static_recomp::signage

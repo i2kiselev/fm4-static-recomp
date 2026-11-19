@@ -79,7 +79,7 @@ if(WIN32)
         src/fm4_static_recomp.rc
     )
     fm4_static_recomp_attach_rexglue(fm4_static_recomp)
-    target_link_libraries(fm4_static_recomp PRIVATE bcrypt d3d12 dxgi rex::gpu-fh1 renderdoc)
+    target_link_libraries(fm4_static_recomp PRIVATE bcrypt d3d12 dxgi shell32 rex::gpu-fh1 renderdoc)
 else()
     add_executable(fm4_static_recomp
         ${FM4_HOST_SOURCES}

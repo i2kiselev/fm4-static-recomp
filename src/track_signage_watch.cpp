@@ -12,6 +12,16 @@
 #include <optional>
 #include <thread>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <shellapi.h>
+#else
+#include <cstdlib>
+#endif
+
 #include <rex/cvar.h>
 #include <rex/filesystem.h>
 #include <rex/logging.h>
@@ -25,6 +35,9 @@ namespace {
 
 using rex::graphics::texture_replacement::SetRuntimeReplacement;
 
+bool OpenInBrowser(const std::filesystem::path& folder);
+
+
 char Lower(char c) { return c >= 'A' && c <= 'Z' ? char(c - 'A' + 'a') : c; }
 
 std::optional<std::vector<uint8_t>> ReadFile(const std::filesystem::path& path) {
@@ -36,6 +49,7 @@ std::optional<std::vector<uint8_t>> ReadFile(const std::filesystem::path& path) 
 }  // namespace
 
 void Start(const std::filesystem::path& folder) {
+  SetFolder(folder, OpenInBrowser);
   std::error_code ec;
   std::filesystem::create_directories(folder, ec);
   {
@@ -110,5 +124,29 @@ void Start(const std::filesystem::path& folder) {
   }).detach();
   REXLOG_INFO("Track signage: watching {}", rex::path_to_utf8(folder));
 }
+
+namespace {
+
+// Opens the folder in the system's file browser (Explorer on Windows).
+bool OpenInBrowser(const std::filesystem::path& folder) {
+  if (folder.empty()) return false;
+  std::error_code ec;
+  std::filesystem::create_directories(folder, ec);
+#ifdef _WIN32
+  const auto result = ShellExecuteW(nullptr, L"open", folder.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+  const bool ok = reinterpret_cast<INT_PTR>(result) > 32;
+#else
+#ifdef __APPLE__
+  const std::string command = "open \"" + rex::path_to_utf8(folder) + "\" &";
+#else
+  const std::string command = "xdg-open \"" + rex::path_to_utf8(folder) + "\" &";
+#endif
+  const bool ok = std::system(command.c_str()) == 0;
+#endif
+  REXLOG_INFO("Track signage: {} the folder {}", ok ? "opened" : "could not open", rex::path_to_utf8(folder));
+  return ok;
+}
+
+}  // namespace
 
 }  // namespace fm4_static_recomp::signage
