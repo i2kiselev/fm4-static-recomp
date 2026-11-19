@@ -86,6 +86,7 @@ the command line? See the [manual install](guide/manual-install.md).
 | [Upscalers](guide/upscalers.md) | DLSS, FSR 2, FSR 3, FSR 4 and FSR 1: what to pick, how the port feeds them, known limits |
 | [High frame rates](guide/high-frame-rate.md) | Picking a frame rate, how the game runs at up to 240 fps at real speed, limits |
 | [Gameplay settings](guide/gameplay.md) | The in-game GAMEPLAY tab: Quick Race laps (experimental) |
+| [Track signage](guide/track-signage.md) | Your own pictures on the trackside boards: a folder of PNG files, live |
 | [Keyboard and mouse](guide/controls.md) | Key layout for driving and menus, rebinding, looking around with the mouse (the KEYBOARD and MOUSE tabs of PC OPTIONS) |
 | [Launch options](guide/launch-options.md) | Command-line options, languages, `-Compat`, frame generation, setting options, logs and crash reports |
 | [Debug options](DEBUG_OPTIONS.md) | Debug views, A/B switches of rendering fixes and diagnostics |

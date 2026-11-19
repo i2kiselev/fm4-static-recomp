@@ -38,6 +38,8 @@ set(FM4_HOST_SOURCES
     src/custom_music.cpp
     src/mixer_options.cpp
     src/quick_race_laps.cpp
+    src/track_signage.cpp
+    src/track_signage_watch.cpp
     src/car_dirt.cpp
     src/code_image_check.cpp
     src/shadow_map.cpp
@@ -117,6 +119,7 @@ if(FM4_BUILD_TESTS)
         tests/controller_layout_test.cpp
         tests/mixer_options_test.cpp
         tests/gameplay_page_test.cpp
+        tests/track_signage_test.cpp
         src/car_dirt.cpp
         src/audio_gain.cpp
         src/dlc_licenses.cpp
@@ -125,6 +128,7 @@ if(FM4_BUILD_TESTS)
         src/file_open_log.cpp
         src/mixer_options.cpp
         src/quick_race_laps.cpp
+        src/track_signage.cpp
         src/game_language.cpp
         src/string_log.cpp
         src/config/host_config.cpp

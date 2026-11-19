@@ -48,6 +48,7 @@
 #include "input/prompt_strings.h"
 #include "input/prompt_swap.h"
 #include "mixer_options.h"
+#include "track_signage.h"
 #include "scripted_input.h"
 #include "shader_cache/cache_writer.h"
 #include "shader_cache/disc_shaders.h"
@@ -207,6 +208,8 @@ class Fm4App final : public rex::ReXApp {
     }
     if (gameplay_config_->Load()) {
       fm4_static_recomp::ui::ApplySavedGameplaySettings(*gameplay_config_);
+      // Track signage: the PNGs of <state>\signage, beside the config folder, on trackside boards.
+      fm4_static_recomp::signage::Start(gameplay_config_->path().parent_path().parent_path() / "signage");
     } else {
       REXLOG_ERROR("Gameplay settings: cannot read {}", gameplay_config_->path().string());
     }
