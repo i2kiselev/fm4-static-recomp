@@ -1509,8 +1509,6 @@ void Fm4DatabaseQuery(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegist
   if (std::strncmp(sql, kDecalFiles.data(), kDecalFiles.size()) != 0) {
     return;
   }
-  // The paint editor is opening: its decal lists are the game's until a custom item is chosen.
-  fm4_static_recomp::decals::SetCustomPicker(false);
   thread_local bool nested = false;
   if (nested) {
     return;
@@ -1570,16 +1568,21 @@ void AddCustomDecalItem(PPCContext& ctx, uint8_t* base, uint32_t stack, uint32_t
   }
 }
 
-// CREATE LAYER: APPLY A CUSTOM DECAL after APPLY A MANUFACTURER DECAL.
+// CREATE LAYER: APPLY A CUSTOM DECAL after APPLY A MANUFACTURER DECAL. A layer menu is where every
+// visit to the decal picker starts: the picker lists the game's decals until a custom item is chosen,
+// and keeps the custom ones while that visit lasts (a cancelled placement reopens the picker, and
+// the livery work after it runs the decal-file query).
 void Fm4CreateLayerMenu(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r30, PPCRegister& r31) {
   FM4_HOOK_CENSUS();
+  fm4_static_recomp::decals::SetCustomPicker(false);
   AddCustomDecalItem(ctx, base, r1.u32, r30.u32, r31.u32, 240, 100,
                      fm4_static_recomp::decals::CurrentStatus().apply_key);
 }
 
-// EDIT LAYER: CHANGE CUSTOM DECAL after CHANGE MANUFACTURER DECAL.
+// EDIT LAYER: CHANGE CUSTOM DECAL after CHANGE MANUFACTURER DECAL (a picker visit starts here too).
 void Fm4EditLayerMenu(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r30, PPCRegister& r31) {
   FM4_HOOK_CENSUS();
+  fm4_static_recomp::decals::SetCustomPicker(false);
   AddCustomDecalItem(ctx, base, r1.u32, r30.u32, r31.u32, 316, 168,
                      fm4_static_recomp::decals::CurrentStatus().change_key);
 }
