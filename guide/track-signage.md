@@ -2,58 +2,86 @@
 
 [← Back to the README](../README.md)
 
-Put your own pictures on the trackside boards: a PNG named after a board goes in the **signage**
-folder, and races show it on that board. It changes within a few seconds, even mid-race; delete
-the file and the game's board comes back.
+Put your own pictures on the track's boards: banners, barrier boards, logos painted on the run-off,
+flags and signs. Choose a picture for each board in PC OPTIONS and it shows on track at once, even
+mid-race. The game's files are not changed.
 
-## The setting
+## The SIGNAGE page
 
-In PC OPTIONS (**F6**), the **GAMEPLAY** tab has a **TRACK SIGNAGE** section:
+In PC OPTIONS (**F6**), the **SIGNAGE** tab:
 
 | Row | What it does |
 |---|---|
-| **TRACK SIGNAGE** | ON (default) shows your pictures; OFF shows the game's boards. It applies at once with SAVE & APPLY, mid-race too. Its note says how many boards show your pictures. |
-| **SIGNAGE FOLDER** | OPEN (A or Enter) opens the signage folder in Explorer. Its note shows where the folder is. |
+| **TRACK SIGNAGE** | ON (default) shows your pictures; OFF shows the game's boards everywhere and keeps your choices for later. |
+| **HOCKENHEIMRING** | Opens the track's boards (below). Its note says how many boards have a picture of yours. |
+| **SIGNAGE FOLDER** | OPEN (A or Enter) opens the folder your pictures come from. Its note says how many pictures are in it, and where it is. |
 
-## Where
+On a track's boards:
 
-The `signage` folder sits beside the game's `config` folder:
+- **LEFT / RIGHT** choose the picture a board shows: **GAME'S**, or any PNG in the signage folder.
+- The description shows **the game's board** and **yours** side by side, the board's size, and the size
+  your picture is shown at.
+- **RESET ALL BOARDS** puts every board of the track back to the game's.
+- **B** goes back to the tracks; **SAVE & APPLY** (Y) shows the choices on track straight away.
 
-- a launcher install: `data\signage`
-- a manual install: `.local\state\signage` (or `signage` in the folder you passed as `-StateRoot`)
+## Pictures
 
-The game makes the folder at startup, with a `README.txt` that lists every board.
-
-## The boards
-
-The first boards are Hockenheim's. Name the file exactly as below (capitals don't matter):
-
-| File | Size | Board |
-|---|---|---|
-| `hockenheim-santander-wall.png` | 1024 × 128 | The red wall along the start straight |
-| `hockenheim-mobil1.png` | 1024 × 256 | The Mobil 1 boards |
-| `hockenheim-allianz-grey.png` | 1024 × 256 | The grey Allianz boards |
-| `hockenheim-allianz-blue.png` | 1024 × 256 | The blue Allianz boards |
-| `hockenheim-hotel.png` | 1024 × 128 | The HOTEL RESTAURANT TERRASSE sign |
-| `hockenheim-ring-logo.png` | 256 × 64 | The HOCKENHEIMRING logo boards |
-| `hockenheim-ring-name.png` | 512 × 64 | The hockenheimring name boards |
-| `hockenheim-bw-center.png` | 1024 × 128 | The Baden-Württemberg Center banner |
-| `hockenheim-sponsors.png` | 1024 × 512 | The sponsor banners (four strips, top to bottom) |
-
-- The picture is stretched to the board's shape. It looks best at the size given, or at 2× or 4×
+- Any PNG in the signage folder, named as you like. Every board can use any picture, and one picture
+  can go on several boards.
+- The picture is stretched to the board's shape. It looks best at the board's size or at 2× or 4×
   it: a bigger picture gives a sharper board (up to 4×).
-- Its transparency is used as the board uses its own. On the Santander wall the alpha is where
-  the wall shines; elsewhere a picture without transparency is the safe choice.
-- A board is matched by its texture, so a track that uses the same texture shows the picture too.
+- A picture you change in the folder changes on track within a second or two.
+- Transparency is kept: the board uses it as it uses its own.
+
+The folder sits beside the game's `config` folder (a launcher install: `data\signage`; a manual
+install: `.local\state\signage`). The choices are saved in `config\signage.toml`.
+
+## Hockenheimring
+
+Named by what each board is and where it is on the circuit. Many are painted on the run-off or are
+barriers and flags.
+
+| Board | Size |
+|---|---|
+| SANTANDER WALL, START STRAIGHT | 1024 × 128 |
+| SANTANDER SIGN, PIT BUILDING | 512 × 64 |
+| SANTANDER LOGO ON THE RUN-OFF | 1024 × 256 |
+| SANTANDER BANNER, START GANTRY | 256 × 256 |
+| ALLIANZ BARRIER BOARDS | 1024 × 256 |
+| ALLIANZ LOGO ON THE TRACK | 1024 × 256 |
+| ALLIANZ BOARD, GREY (not seen on the track yet) | 1024 × 256 |
+| MOBIL 1 BOARD (not seen on the track yet) | 1024 × 256 |
+| MOBIL 1 BILLBOARD, TRACKSIDE | 1024 × 256 |
+| MOBIL 1 LOGO ON THE RUN-OFF | 1024 × 512 |
+| KAERCHER / ENI, GRANDSTAND | 1024 × 256 |
+| HOCKENHEIMRING LOGO BOARDS | 1024 × 128 |
+| HOCKENHEIMRING NAME WALL | 512 × 64 |
+| HOCKENHEIMRING LOGO, PIT ROOF | 256 × 64 |
+| MORE THAN RACING, STAND ROOF | 1024 × 256 |
+| HOCKENHEIMRING TOWER SIGN | 256 × 128 |
+| SACHS KURVE BARRIER | 1024 × 128 |
+| DUNLOP FLAGS | 128 × 256 |
+| KIOSK SIGN, INFIELD | 128 × 64 |
+| PANASONIC LOGO ON THE RUN-OFF | 1024 × 256 |
+| AGIP BOARD (not seen on the track yet) | 512 × 256 |
+| MERCEDES-BENZ, STAND ROOF | 1024 × 128 |
+| BRIDGESTONE, ON THE RUN-OFF | 1024 × 256 |
+| RICO ANTHES, ON THE ROAD | 512 × 128 |
+| BETONSCHUTZWAND BARRIER | 1024 × 128 |
+| HOTEL TERRASSE, GRANDSTAND | 1024 × 128 |
+| BADEN-WUERTTEMBERG TOWER | 1024 × 128 |
+| SPONSOR BANNERS, STAND ROOF | 1024 × 512 |
+| ADAC BANNERS ON THE FENCE | 256 × 128 |
+| INFO BOARD ON A POLE | 128 × 64 |
+| AUSFAHRT SIGN, PIT EXIT | 256 × 64 |
 
 ## Turning it off
 
-**TRACK SIGNAGE: OFF** in GAMEPLAY, or `--fm4_track_signage=false` (a
-[launch option](launch-options.md)), leaves every board as the game's, whatever is in the folder.
+**TRACK SIGNAGE: OFF** on the page, or `--fm4_track_signage=false` (a
+[launch option](launch-options.md)), leaves every board as the game's.
 
 ## How it works
 
-Each board is one of the track's textures, found by the hash the game's texture replacement
-uses. The recomp converts the picture to that texture's format (DXT5) at the chosen size, with
-every smaller level, and hands it to the renderer as a run-time replacement; the game's files
-are not changed.
+Each board is one of the track's textures, found by the hash the game's texture replacement uses.
+The recomp converts your picture to that texture's format (DXT5) at the chosen size, with every
+smaller level, and hands it to the renderer as a run-time replacement.
