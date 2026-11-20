@@ -39,7 +39,7 @@ TEST_CASE("SIGNAGE lists the switch, the tracks and the folder", "[signage_page]
   CHECK_FALSE(rows[1].is_enabled());
   CHECK(rows[2].label == "HOCKENHEIMRING");
   CHECK(rows[2].value() == "31 BOARDS");
-  CHECK(rows[2].note() == "Every board is the game's.");
+  CHECK(rows[2].note() == "Every board shows its default.");
   CHECK(rows[3].label == "PICTURES");
   CHECK(rows[4].label == "SIGNAGE FOLDER");
   CHECK(rows[4].value() == "OPEN");
@@ -55,13 +55,13 @@ TEST_CASE("A track opens its boards, and B comes back to it", "[signage_page]") 
   CHECK(rows[0].label == "HOCKENHEIMRING");
   CHECK_FALSE(rows[0].is_enabled());
   CHECK(page.screen->focus() == 1);  // the first board
-  CHECK(rows[1].value() == "GAME'S");
-  CHECK(rows[1].note() == "Shows the game's board.");
+  CHECK(rows[1].value() == "DEFAULT");
+  CHECK(rows[1].note() == "Shows the default board.");
   CHECK(rows.back().label == "RESET ALL BOARDS");
   CHECK_FALSE(rows.back().is_enabled());  // nothing to reset
-  // No pictures in the folder: GAME'S is the only choice.
+  // No pictures in the folder: DEFAULT is the only choice.
   page.screen->Handle(NavCommand::kRight);
-  CHECK(rows[1].value() == "GAME'S");
+  CHECK(rows[1].value() == "DEFAULT");
   CHECK(page.screen->Handle(NavCommand::kBack) == MenuScreen::Result::kChanged);  // stays open
   REQUIRE(page.Rows().size() == 5);
   CHECK(page.screen->focus() == 2);  // on the track again

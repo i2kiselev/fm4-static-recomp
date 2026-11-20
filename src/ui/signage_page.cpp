@@ -88,7 +88,7 @@ struct Draft {
   }
 };
 
-// The pictures a board can take: GAME'S (empty) first, then the folder's, by name.
+// The pictures a board can take: DEFAULT (empty) first, then the folder's, by name.
 std::vector<std::string> Options() {
   std::vector<std::string> options{std::string()};
   for (const signage::Picture& picture : signage::Pictures()) options.push_back(picture.file);
@@ -131,7 +131,7 @@ MenuRow EnabledRow(const std::shared_ptr<Draft>& draft) {
   row.label = "TRACK SIGNAGE";
   row.description =
       "Your own pictures on the track's boards. Choose a track below, then a picture for each of "
-      "its boards; SAVE & APPLY shows them, even mid-race. OFF shows the game's boards everywhere and "
+      "its boards; SAVE & APPLY shows them, even mid-race. OFF shows the default boards everywhere and "
       "keeps your choices for later.";
   row.value = [draft] { return std::string(draft->enabled ? "ON" : "OFF"); };
   row.adjust = [draft](int) {
@@ -152,13 +152,13 @@ MenuRow EnabledRow(const std::shared_ptr<Draft>& draft) {
 MenuRow TrackRow(const std::shared_ptr<Draft>& draft, const Track& track) {
   MenuRow row;
   row.label = std::string(track.name);
-  row.description = "Opens the track's boards: each can show a picture of yours or the game's. B comes back here.";
+  row.description = "Opens the track's boards: each can show a picture of yours or its default. B comes back here.";
   row.value = [&track] { return Count(track.boards.size(), "BOARD", "BOARDS"); };
   row.adjust = [draft, &track](int) { Open(draft, &track); };
   row.note = [draft, &track] {
     const size_t chosen = draft->ChosenOn(track);
     return chosen ? Count(chosen, "board has a picture of yours.", "boards have pictures of yours.")
-                  : std::string("Every board is the game's.");
+                  : std::string("Every board shows its default.");
   };
   row.unapplied = [draft, &track] {
     for (const Board& board : track.boards) {
@@ -194,12 +194,12 @@ MenuRow FolderRow() {
 MenuRow BoardRow(const std::shared_ptr<Draft>& draft, const Track& track, const Board& board) {
   MenuRow row;
   row.label = std::string(board.name);
-  row.description = "LEFT and RIGHT choose the picture this board shows: GAME'S, or one of the signage folder. "
+  row.description = "LEFT and RIGHT choose the picture this board shows: DEFAULT, or one of the signage folder. "
                     "It is " + std::to_string(board.width) + " x " + std::to_string(board.height) +
                     "; a picture of that shape fits best, and 2x or 4x its size is sharper.";
   row.value = [draft, &track, &board] {
     const std::string file = draft->Choice(track, board);
-    return file.empty() ? std::string("GAME'S") : file;
+    return file.empty() ? std::string("DEFAULT") : file;
   };
   row.adjust = [draft, &track, &board](int direction) {
     const std::vector<std::string> options = Options();
@@ -213,17 +213,17 @@ MenuRow BoardRow(const std::shared_ptr<Draft>& draft, const Track& track, const 
   };
   row.note = [draft, &track, &board] {
     const std::string file = draft->Choice(track, board);
-    if (file.empty()) return std::string("Shows the game's board.");
+    if (file.empty()) return std::string("Shows the default board.");
     const auto pictures = signage::Pictures();
     const signage::Picture* picture = FindPicture(pictures, file);
-    if (!picture) return file + " is not in the signage folder now: the game's board shows.";
+    if (!picture) return file + " is not in the signage folder now: the default board shows.";
     const uint32_t scale = signage::ScaleFor(board, picture->width, picture->height);
     return file + ": " + std::to_string(picture->width) + " x " + std::to_string(picture->height) + ", shown at " +
            std::to_string(board.width * scale) + " x " + std::to_string(board.height * scale) + ".";
   };
   row.pictures = [draft, &track, &board] {
     std::vector<MenuPicture> out;
-    if (auto game = PictureOf(signage::BoardPreview(track, board), "THE GAME'S"); game.rgba) out.push_back(game);
+    if (auto game = PictureOf(signage::BoardPreview(track, board), "DEFAULT"); game.rgba) out.push_back(game);
     const std::string file = draft->Choice(track, board);
     if (!file.empty()) {
       const auto pictures = signage::Pictures();
@@ -244,7 +244,7 @@ MenuRow BoardRow(const std::shared_ptr<Draft>& draft, const Track& track, const 
 MenuRow ResetRow(const std::shared_ptr<Draft>& draft, const Track& track) {
   MenuRow row;
   row.label = "RESET ALL BOARDS";
-  row.description = "Puts every board of this track back to the game's (with SAVE & APPLY). Your pictures stay in the folder.";
+  row.description = "Puts every board of this track back to its default (with SAVE & APPLY). Your pictures stay in the folder.";
   row.value = [] { return std::string("RESET"); };
   row.adjust = [draft, &track](int) {
     for (const Board& board : track.boards) draft->Choose(track, board, std::string());

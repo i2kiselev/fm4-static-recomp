@@ -12,7 +12,7 @@
 
 REXCVAR_DEFINE_BOOL(fm4_track_signage, true, "Forza Motorsport 4",
                     "TRACK SIGNAGE (PC OPTIONS > SIGNAGE): show your pictures on the track boards "
-                    "chosen there; false shows every board as the game's");
+                    "chosen there; false shows every board's default");
 
 namespace fm4_static_recomp::signage {
 namespace {

@@ -12,16 +12,16 @@ In PC OPTIONS (**F6**), the **SIGNAGE** tab:
 
 | Row | What it does |
 |---|---|
-| **TRACK SIGNAGE** | ON (default) shows your pictures; OFF shows the game's boards everywhere and keeps your choices for later. |
+| **TRACK SIGNAGE** | ON (default) shows your pictures; OFF shows the default boards everywhere and keeps your choices for later. |
 | **HOCKENHEIMRING** | Opens the track's boards (below). Its note says how many boards have a picture of yours. |
 | **SIGNAGE FOLDER** | OPEN (A or Enter) opens the folder your pictures come from. Its note says how many pictures are in it, and where it is. |
 
 On a track's boards:
 
-- **LEFT / RIGHT** choose the picture a board shows: **GAME'S**, or any PNG in the signage folder.
-- The description shows **the game's board** and **yours** side by side, the board's size, and the size
+- **LEFT / RIGHT** choose the picture a board shows: **DEFAULT**, or any PNG in the signage folder.
+- The description shows **the default board** and **yours** side by side, the board's size, and the size
   your picture is shown at.
-- **RESET ALL BOARDS** puts every board of the track back to the game's.
+- **RESET ALL BOARDS** puts every board of the track back to its default.
 - **B** goes back to the tracks; **SAVE & APPLY** (Y) shows the choices on track straight away.
 
 ## Pictures
@@ -78,7 +78,7 @@ barriers and flags.
 ## Turning it off
 
 **TRACK SIGNAGE: OFF** on the page, or `--fm4_track_signage=false` (a
-[launch option](launch-options.md)), leaves every board as the game's.
+[launch option](launch-options.md)), shows every board's default.
 
 ## How it works
 
