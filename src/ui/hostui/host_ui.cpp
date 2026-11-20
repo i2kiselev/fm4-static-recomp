@@ -750,6 +750,20 @@ void HostUi::RecordLayout(const std::string& title, size_t first_batch, size_t f
               inside ? 1 : 0);
 }
 
+ImmediateTexture* HostUi::PictureTexture(const MenuPicture& picture) {
+  if (!picture.rgba || picture.rgba->size() < size_t(picture.width) * picture.height * 4) {
+    return nullptr;
+  }
+  auto& slot = picture_textures_[picture.rgba.get()];
+  if (!slot.texture) {
+    slot.pixels = picture.rgba;
+    slot.texture = drawer_.CreateTexture(picture.width, picture.height, ImmediateTextureFilter::kLinear,
+                                         false, picture.rgba->data());
+  }
+  slot.used = picture_frame_;
+  return slot.texture.get();
+}
+
 void HostUi::Flush() {
   for (const Batch& batch : batches_) {
     if (batch.indices.empty()) {
@@ -980,6 +994,37 @@ void HostUi::DrawMenu(rex::ui::UIDrawContext& context) {
     }
     DrawRect(kPanelX - 5.0f, accent_top, 4.0f, kPanelAccentHeight, kRed);
     float baseline = kPanelFirstBaseline;
+    // The row's pictures first (previews), each as wide as the text at most, its caption under it.
+    if (row.pictures) {
+      ++picture_frame_;
+      constexpr float kPictureMaxHeight = 96.0f;
+      float top = kPanelFirstBaseline - kTextSize * 0.8f;
+      for (const MenuPicture& picture : row.pictures()) {
+        ImmediateTexture* texture = PictureTexture(picture);
+        if (!texture || !picture.width || !picture.height) {
+          continue;
+        }
+        const float max_width = kPanelTextRight - kPanelTextLeft;
+        float width = max_width;
+        float height = width * float(picture.height) / float(picture.width);
+        if (height > kPictureMaxHeight) {
+          height = kPictureMaxHeight;
+          width = height * float(picture.width) / float(picture.height);
+        }
+        DrawRect(kPanelTextLeft - 1.0f, top - 1.0f, width + 2.0f, height + 2.0f, kLine);
+        DrawRect(kPanelTextLeft, top, width, height, 0xFFFFFFFFu, texture);
+        top += height + kPanelLinePitch * 0.9f;
+        if (!picture.caption.empty()) {
+          DrawText(Face::kMedium, kTextSize * 0.85f, picture.caption, kPanelTextLeft, top - 4.0f, kHeader);
+          top += kPanelLinePitch * 0.6f;
+        }
+      }
+      baseline = std::max(baseline, top + kPanelLinePitch);
+      // Pictures not shown for a while give their textures back.
+      for (auto it = picture_textures_.begin(); it != picture_textures_.end();) {
+        it = picture_frame_ - it->second.used > 600 ? picture_textures_.erase(it) : std::next(it);
+      }
+    }
     const auto paragraph = [&](const std::string& text, uint32_t color) {
       if (text.empty()) {
         return;

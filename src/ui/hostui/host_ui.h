@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -145,7 +146,17 @@ class HostUi final : public rex::ui::UIDrawer, public rex::ui::WindowInputListen
   void DrawRotated(float x, float y, float size, float turns, uint32_t color,
                    rex::ui::ImmediateTexture* texture);
   void Flush();
+  // The texture of a row's picture, made once while the picture lives (by its pixels).
+  rex::ui::ImmediateTexture* PictureTexture(const MenuPicture& picture);
   void RecordLayout(const std::string& title, size_t first_batch, size_t first_vertex);
+
+  struct PictureSlot {
+    std::shared_ptr<const std::vector<uint8_t>> pixels;
+    std::unique_ptr<rex::ui::ImmediateTexture> texture;
+    uint64_t used = 0;
+  };
+  std::map<const void*, PictureSlot> picture_textures_;
+  uint64_t picture_frame_ = 0;
 
   rex::ReXApp& app_;
   rex::ui::Presenter& presenter_;

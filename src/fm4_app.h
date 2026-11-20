@@ -48,6 +48,8 @@
 #include "input/prompt_strings.h"
 #include "input/prompt_swap.h"
 #include "mixer_options.h"
+#include "track_signage_runtime.h"
+#include "ui/signage_page.h"
 #include "scripted_input.h"
 #include "shader_cache/cache_writer.h"
 #include "shader_cache/disc_shaders.h"
@@ -207,6 +209,10 @@ class Fm4App final : public rex::ReXApp {
     }
     if (gameplay_config_->Load()) {
       fm4_static_recomp::ui::ApplySavedGameplaySettings(*gameplay_config_);
+      // Track signage: pictures of <state>\signage on the track boards PC OPTIONS > SIGNAGE chose
+      // (config\signage.toml).
+      fm4_static_recomp::signage::Start(gameplay_config_->path().parent_path().parent_path() / "signage",
+                                        game_data_root(), gameplay_config_->path().parent_path() / "signage.toml");
     } else {
       REXLOG_ERROR("Gameplay settings: cannot read {}", gameplay_config_->path().string());
     }
@@ -640,7 +646,8 @@ class Fm4App final : public rex::ReXApp {
            mouse.apply = [this] { return ApplyControls(); };
            return ui::CreateMousePage(*controls_config_, std::move(mouse));
          }},
-        {"GAMEPLAY", [this] { return ui::CreateGameplayPage(*gameplay_config_); }}};
+        {"GAMEPLAY", [this] { return ui::CreateGameplayPage(*gameplay_config_); }},
+        {"SIGNAGE", [] { return ui::CreateSignagePage(); }}};
     host_ui_->Open(std::move(tabs), 0);
   }
 
