@@ -137,6 +137,20 @@ A PlayStation controller works without DS4Windows: the game reads it directly. W
 a similar app (x360ce) is running, the game leaves PlayStation and Switch controllers out and uses
 the app's Xbox controller instead. If one of them then does nothing, close that app.
 
+## The racing wheel has no force feedback
+
+1. Close your wheel's own control panel (Pit House, G HUB, the Thrustmaster Control Panel)
+   and start the game again.
+2. If the forces still stop, or stop in the middle of a race, unplug the wheel and plug it in
+   again. The game picks it up again on its own.
+
+The wheel has no force in menus and in the pause menu; that is normal.
+
+## A pedal or wheel button does nothing
+
+Close the game. In the launcher, open **WHEEL** and click **RUN SETUP AGAIN**, then do each step
+with the pedal or button you want. More in [Racing wheels](wheels.md#set-up-your-wheel).
+
 ## Linux, Steam Deck or Proton
 
 Not supported yet: the setup fails there (for example "licences could not be read"). A native

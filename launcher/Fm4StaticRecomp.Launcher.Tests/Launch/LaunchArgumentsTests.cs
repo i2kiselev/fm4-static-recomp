@@ -497,4 +497,16 @@ public class LaunchArgumentsTests
         var args = LaunchArguments.ForPlay(layout, "0.1.0", profile, settings, new LinuxPlatform());
         Assert.DoesNotContain(args, a => a.StartsWith("--vulkan_present_via_dxgi"));
     }
+
+    [Fact]
+    public void The_wheel_tool_modes_log_beside_the_game_log()
+    {
+        var layout = new InstallLayout(TestPath.Combine("C:", "G", "data"));
+        Assert.Equal([$"--game_data_root={layout.Game}", $"--log_file={Path.Combine(layout.Logs, "wheel-probe.log")}",
+                "--fm4_skip_intro=true", "--fm4_wheel_probe=true"],
+            LaunchArguments.ForWheelProbe(layout));
+        Assert.Equal([$"--game_data_root={layout.Game}", $"--log_file={Path.Combine(layout.Logs, "wheel-schema.log")}",
+                "--fm4_skip_intro=true", "--fm4_write_wheel_schema=w.json"],
+            LaunchArguments.ForWheelSchema(layout, "w.json"));
+    }
 }

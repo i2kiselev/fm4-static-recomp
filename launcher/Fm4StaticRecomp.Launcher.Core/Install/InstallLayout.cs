@@ -28,6 +28,7 @@ public sealed record InstallLayout(string Root)
     public string Config => Path.Combine(Root, "config");
     public string GraphicsToml => Path.Combine(Config, "graphics.toml");
     public string ControlsToml => Path.Combine(Config, "controls.toml");
+    public string WheelToml => Path.Combine(Config, "wheel.toml");
     public string LauncherToml => Path.Combine(Config, "launcher.toml");
     public string ConfigBackups => Path.Combine(Config, "backups");
     // Profiles, their backups and deleted profiles: data\ unless SETTINGS → SAVES FOLDER moved them (#20).
@@ -49,6 +50,7 @@ public sealed record InstallLayout(string Root)
     public string BuildFolder(string version) => Path.Combine(Source(version), "out", "build", OperatingSystem.IsMacOS() ? "mac-arm64-release" : "win-amd64-release");
     public string GameExecutable(string version) => Path.Combine(BuildFolder(version), OperatingSystem.IsMacOS() ? "fm4_static_recomp" : "fm4_static_recomp.exe");
     public string GraphicsSchema(string version) => Path.Combine(BuildFolder(version), "graphics-settings.json");
+    public string WheelSchema(string version) => Path.Combine(BuildFolder(version), "wheel-settings.json");
     public string SetupScript(string version) => Path.Combine(Source(version), "tools", OperatingSystem.IsMacOS() ? "setup-macos.py" : "setup.ps1");
     public string LicencesScript(string version) => Path.Combine(Source(version), "tools", "microsoft-licences.ps1");
     public string CrashReportScript(string version) => Path.Combine(Source(version), "tools", "create-crash-report.ps1");

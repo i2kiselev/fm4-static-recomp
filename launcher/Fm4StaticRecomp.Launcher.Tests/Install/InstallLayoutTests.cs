@@ -24,6 +24,7 @@ public class InstallLayoutTests
     {
         if (!OperatingSystem.IsWindows()) return;
         Assert.Equal(@"C:\G\data\config\controls.toml", new InstallLayout(@"C:\G\data").ControlsToml);
+        Assert.Equal(@"C:\G\data\config\wheel.toml", new InstallLayout(@"C:\G\data").WheelToml);
     }
 
     [Fact]
@@ -48,6 +49,7 @@ public class InstallLayoutTests
         Assert.Equal(@"C:\G\data\source\1.0.0\config\pfp4-1.3.json", layout.Pfp4ManifestOf("1.0.0"));
         Assert.Equal(@"C:\G\data\pfp4\modes\hard\skip-intro\Asia", layout.Pfp4SkipIntro("hard", "Asia"));
         Assert.Equal(@"C:\G\data\source\1.0.0\out\build\win-amd64-release\graphics-settings.json", layout.GraphicsSchema("1.0.0"));
+        Assert.Equal(@"C:\G\data\source\1.0.0\out\build\win-amd64-release\wheel-settings.json", layout.WheelSchema("1.0.0"));
     }
 
     [Fact]

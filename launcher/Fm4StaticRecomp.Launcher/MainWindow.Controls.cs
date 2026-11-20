@@ -95,6 +95,7 @@ public partial class MainWindow
         ControlsBody.Children.Clear();
         _captureUndo = null;
         ControlsBody.Children.Add(new VectorHeading { Text = "CONTROLS", FontSize = 24, Foreground = Brush("LabelBrush") });
+        ControlsBody.Children.Add(Help("Racing wheel? Set it up under WHEEL."));
         _saveControlsButton = null;
         _controlsUnsaved = null;
         _controlsStatus = Help(status);

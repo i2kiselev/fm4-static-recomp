@@ -7,7 +7,9 @@
 `cmake/Fm4RexGlue.cmake`, `src/ui/hostui/*` and `src/config/host_config.*` are adapted
 from Pinyon Shift (https://github.com/arcanite24/pinyon-shift). The launcher
 (`launcher/Fm4StaticRecomp.Launcher`) is a fork of Pinyon Shift's Avalonia launcher, and
-`tools/create-crash-report.ps1` is adapted from Pinyon Shift's. Parts of `src/scripted_input.*`,
+`tools/create-crash-report.ps1` is adapted from Pinyon Shift's. The launcher's wheel device
+matching and input capture (`launcher/Fm4StaticRecomp.Launcher.Core/Wheel/WheelDevices.cs`,
+`WheelCapture.cs`) are adapted from Pinyon Shift's wheel set-up. Parts of `src/scripted_input.*`,
 `src/ui/graphics_page.*`, `src/fm4_app.h`, `tools/setup.ps1`, `tools/codegen.ps1`,
 `tools/build.ps1` and `tools/undump.py` come from Pinyon Shift too. The missing DLC header
 metadata in `src/dlc_licenses.cpp` follows the SDK's content-enumeration fallback.

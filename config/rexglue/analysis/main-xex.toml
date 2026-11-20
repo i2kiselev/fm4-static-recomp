@@ -463,3 +463,10 @@ registers = ["r3", "r29"]
 address = 0x825E7BB0
 name = "Fm4QuickRaceTrackQuery"
 registers = ["r4"]
+
+# The controller poll's wheel force update (r3 = the wheel force state, its byte 5 set while
+# driving): outside driving the wheel driver holds the title's forces.
+[[midasm_hook]]
+address = 0x823A42A0
+name = "Fm4WheelUpdate"
+registers = ["r3"]

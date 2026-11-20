@@ -4,6 +4,8 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
+#include <span>
 #include <string_view>
 #include <utility>
 
@@ -77,6 +79,9 @@ constexpr std::array kAfterGpuPlugin = {
     Default{"texture_cache_memory_budget_limits", "false"},
     Default{"vulkan_texture_load_compute_copy", "false"},
     Default{"vulkan_small_texture_copy_views", "false"},
+    // FM4 sends its wheel effects on a 0-127 scale, not DirectInput's 10000.
+    Default{"wheel_ffb_magnitude_max", "127"},
+    Default{"wheel_ffb_strength", "85"},
 #if defined(__APPLE__)
     // The SDK enables FH1's single-pass tiling optimization on macOS. FM4's
     // 4x MSAA menus need the original tile passes or parts of the UI are
@@ -141,6 +146,18 @@ void ApplyBuiltInDefaults(DefaultStage stage) {
   } else {
     Apply(kAfterGpuPlugin);
   }
+}
+
+std::optional<std::string_view> BuiltInDefault(std::string_view name) {
+  for (const std::span<const Default> defaults :
+       {std::span<const Default>(kBeforeGpuPlugin), std::span<const Default>(kAfterGpuPlugin)}) {
+    for (const auto& [key, value] : defaults) {
+      if (key == name) {
+        return value;
+      }
+    }
+  }
+  return std::nullopt;
 }
 
 // Intel GPUs flicker the scene's lights with the generic resolve and EDRAM transfer passes.

@@ -136,4 +136,13 @@ public static class LaunchArguments
         if (dlcFolder is not null) args.Add($"--fm4_dlc_packages={dlcFolder}");
         return args;
     }
+
+    // Tool modes of 0.4.0 and later; each keeps its own log so runtime.log stays the last game's.
+    public static IReadOnlyList<string> ForWheelProbe(InstallLayout layout) =>
+        [$"--game_data_root={layout.Game}", $"--log_file={Path.Combine(layout.Logs, "wheel-probe.log")}",
+         "--fm4_skip_intro=true", "--fm4_wheel_probe=true"];
+
+    public static IReadOnlyList<string> ForWheelSchema(InstallLayout layout, string schemaPath) =>
+        [$"--game_data_root={layout.Game}", $"--log_file={Path.Combine(layout.Logs, "wheel-schema.log")}",
+         "--fm4_skip_intro=true", $"--fm4_write_wheel_schema={schemaPath}"];
 }

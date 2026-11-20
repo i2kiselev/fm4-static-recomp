@@ -81,6 +81,9 @@ Views and measurements:
 | `--fm4_physics_log` | empty | A CSV file receiving every main loop time step and each car's physics substeps |
 | `--fm4_car_min_substeps` | `0` | A car's physics substeps per tick are at least this many; the launcher passes `6` on Project Forza Plus 4 |
 | `--fm4_log_keys` | `false` | Log each key the game window receives, pressed and released, with the controls in force (menu or driving) and the pad buttons the current keys give it (`Key log: Semicolon (0xBA) down in driving -> dpad_down`). Keys typed into the PC OPTIONS pages are logged too |
+| `--fm4_wheel_probe` | `false` | Tool mode for the launcher's WHEEL screen: print the connected joysticks, then their axes, buttons and hats, as JSON lines on stdout until stdin closes, then quit |
+| `--fm4_write_wheel_schema` | empty | Tool mode for the launcher's WHEEL screen: write the WHEEL rows, the wheel types and the other `wheel_*` settings as JSON to this file, then quit |
+| `--wheel_ffb_trace` | `false` | Write the game's force feedback calls (effects, steering, pedals, the force sent) to a CSV beside the runtime log; attach it to a wheel report |
 | `--fm4_hook_census` | `false` | Log each of the game code hooks once, on its first hit (`Hook census: <name>`): the render tests check that a Rev 1 build reaches the hooks a 1.0 build does |
 | `--fm4_render_scenario_omit` | empty | Render settings left to the game, comma-separated: `tiling`, `lod_thresholds`, `focus_lod`, `other_lod`, `lod_distances`, ... |
 | `--fm4_graphics_lod_thresholds` | empty | Car level-of-detail rank thresholds of the high and ultra settings, as `lod1,lod2,count` |

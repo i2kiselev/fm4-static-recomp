@@ -350,6 +350,7 @@ public partial class MainWindow : Window
         ProfileCombo.IsEnabled = ProfileButton.IsEnabled = !_busy && !running;
         UpdateSettingsActions();
         UpdateControlsActions();
+        UpdateWheelActions();
         UpdateUpdateActions();
         Disc2AddButtons.IsEnabled = DlcAddButtons.IsEnabled = ChooseModAgainButton.IsEnabled = UnlockUnicornsButton.IsEnabled = ContentOpen;
         UpdateSetupActions();
@@ -560,6 +561,7 @@ public partial class MainWindow : Window
             Close();
             return;
         }
+        StopWheelProbe();
         lock (_sessionLogGate)
         {
             _sessionLog?.Dispose();

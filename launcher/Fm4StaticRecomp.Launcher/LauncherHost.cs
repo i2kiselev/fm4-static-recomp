@@ -6,12 +6,14 @@ using Fm4StaticRecomp.Launcher.Core.Content;
 using Fm4StaticRecomp.Launcher.Core.Discs;
 using Fm4StaticRecomp.Launcher.Core.Fonts;
 using Fm4StaticRecomp.Launcher.Core.Install;
+using Fm4StaticRecomp.Launcher.Core.Launch;
 using Fm4StaticRecomp.Launcher.Core.Pfp4;
 using Fm4StaticRecomp.Launcher.Core.Platform;
 using Fm4StaticRecomp.Launcher.Core.Profiles;
 using Fm4StaticRecomp.Launcher.Core.Settings;
 using Fm4StaticRecomp.Launcher.Core.Setup;
 using Fm4StaticRecomp.Launcher.Core.Updates;
+using Fm4StaticRecomp.Launcher.Core.Wheel;
 
 namespace Fm4StaticRecomp.Launcher;
 
@@ -175,6 +177,38 @@ public sealed class LauncherHost
     // Null while no version is active or the active one predates controls.toml.
     public ControlsSettings? Controls() =>
         Settings.ActiveVersion is { } version && ControlsSettings.Supports(version) ? new ControlsSettings(Layout.ControlsToml) : null;
+
+    // Null while no version is built or the active one predates wheel.toml. The game exe writes the
+    // schema the first time per version; null too when it cannot.
+    public async Task<WheelSettings?> WheelAsync()
+    {
+        if (Settings.ActiveVersion is not { } version || !WheelSettings.Supports(version)
+            || !File.Exists(Layout.GameExecutable(version))) return null;
+        var schema = Layout.WheelSchema(version);
+        if (!File.Exists(schema))
+        {
+            Directory.CreateDirectory(Layout.Logs);
+            var start = new ProcessStartInfo(Layout.GameExecutable(version))
+            {
+                UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = Layout.BuildFolder(version),
+            };
+            foreach (var argument in LaunchArguments.ForWheelSchema(Layout, schema)) start.ArgumentList.Add(argument);
+            using var process = Process.Start(start);
+            if (process is null) return null;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            try { await process.WaitForExitAsync(timeout.Token); }
+            catch (OperationCanceledException)
+            {
+                process.Kill(entireProcessTree: true);
+                return null;
+            }
+            if (!File.Exists(schema)) return null;
+        }
+        return new WheelSettings(Layout.WheelToml, WheelSchema.Load(schema), Layout.ConfigBackups);
+    }
+
+    public WheelProbe NewWheelProbe(string version) =>
+        new(() => Process.Start(WheelProbe.StartInfo(Layout.GameExecutable(version), LaunchArguments.ForWheelProbe(Layout))));
 
     public static void Open(string target)
     {

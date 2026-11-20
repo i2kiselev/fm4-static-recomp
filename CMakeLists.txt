@@ -31,6 +31,7 @@ set(FM4_HOST_SOURCES
     src/main.cpp
     src/built_in_defaults.cpp
     src/tool_mode.cpp
+    src/wheel_settings.cpp
     src/disc2_install.cpp
     src/dlc_licenses.cpp
     src/game_hooks.cpp
@@ -58,6 +59,7 @@ set(FM4_HOST_SOURCES
     src/input/prompt_swap.cpp
     src/ui/controls_page.cpp
     src/ui/gameplay_page.cpp
+    src/ui/wheel_page.cpp
     src/ui/graphics_page.cpp
     src/ui/hostui/glyph_atlas.cpp
     src/ui/hostui/host_ui.cpp
@@ -117,6 +119,9 @@ if(FM4_BUILD_TESTS)
         tests/controller_layout_test.cpp
         tests/mixer_options_test.cpp
         tests/gameplay_page_test.cpp
+        tests/tool_mode_test.cpp
+        tests/wheel_settings_test.cpp
+        tests/wheel_page_test.cpp
         src/car_dirt.cpp
         src/audio_gain.cpp
         src/dlc_licenses.cpp
@@ -127,6 +132,9 @@ if(FM4_BUILD_TESTS)
         src/quick_race_laps.cpp
         src/game_language.cpp
         src/string_log.cpp
+        src/built_in_defaults.cpp
+        src/tool_mode.cpp
+        src/wheel_settings.cpp
         src/config/host_config.cpp
         src/input/bc3_encoder.cpp
         src/input/controller_layout.cpp
@@ -142,6 +150,7 @@ if(FM4_BUILD_TESTS)
         src/ui/hostui/menu.cpp
         src/ui/controls_page.cpp
         src/ui/gameplay_page.cpp
+        src/ui/wheel_page.cpp
         src/ui/graphics_page.cpp
     )
     # Away from the game's staged runtime, which is only as new as the last game build;

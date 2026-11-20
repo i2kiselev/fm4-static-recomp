@@ -10,6 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\schema-sample.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Settings\wheel-schema-sample.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Content\unicorns.slt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>

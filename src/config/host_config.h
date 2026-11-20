@@ -13,8 +13,9 @@ namespace fm4_static_recomp::config {
 //
 // - A setting is the first line whose name, after leading spaces or tabs, is
 //   followed by optional spaces or tabs and '='.
-// - Its value runs to a '#' or the end of the line, trimmed, with the
-//   surrounding quotes of a string removed; an empty value counts as absent.
+// - Its value runs to a '#' or the end of the line, trimmed; a quoted string
+//   runs to its closing quote, with \\ and \" unescaped. An empty value
+//   counts as absent.
 // - Setting a value replaces that line (not its line ending) with
 //   `name = value`, or appends the line using the file's line ending.
 // - Files are written through a temporary file that replaces the old one,

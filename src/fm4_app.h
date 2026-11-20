@@ -7,17 +7,20 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <mutex>
 #include <span>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <rex/cvar.h>
 #include <rex/input/input_system.h>
 #include <rex/input/mnk/mnk_input_driver.h>
+#include <rex/input/sdl/joystick_probe.h>
 #include <rex/kernel/xboxkrnl/io.h>
 #include <rex/logging.h>
 #include <rex/rex_app.h>
@@ -58,6 +61,8 @@
 #include "ui/guest_frame_stats.h"
 #include "ui/hostui/host_ui.h"
 #include "ui/hostui/ui_fonts.h"
+#include "ui/wheel_page.h"
+#include "wheel_settings.h"
 
 REXCVAR_DECLARE(std::string, fm4_config_root);
 REXCVAR_DECLARE(std::string, fm4_write_graphics_schema);
@@ -65,6 +70,8 @@ REXCVAR_DECLARE(std::string, fm4_dump_disc_shaders);
 REXCVAR_DECLARE(std::string, fm4_build_shader_cache);
 REXCVAR_DECLARE(std::string, fm4_shader_list_dir);
 REXCVAR_DECLARE(std::string, fm4_export_ui_fonts);
+REXCVAR_DECLARE(std::string, fm4_write_wheel_schema);
+REXCVAR_DECLARE(bool, wheel_enabled);
 REXCVAR_DECLARE(bool, fm4_show_fps);
 REXCVAR_DECLARE(bool, controller_vibration);
 REXCVAR_DECLARE(bool, fm4_log_keys);
@@ -155,13 +162,17 @@ class Fm4App final : public rex::ReXApp {
         std::make_unique<fm4_static_recomp::config::HostConfig>(config_root / "controls.toml");
     gameplay_config_ =
         std::make_unique<fm4_static_recomp::config::HostConfig>(config_root / "gameplay.toml");
+    wheel_config_ =
+        std::make_unique<fm4_static_recomp::config::HostConfig>(config_root / "wheel.toml");
   }
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
     const fm4_static_recomp::ToolMode mode = fm4_static_recomp::CurrentToolMode();
     if (mode == fm4_static_recomp::ToolMode::kInstall ||
         mode == fm4_static_recomp::ToolMode::kShaderCache ||
-        mode == fm4_static_recomp::ToolMode::kUiFonts) {
+        mode == fm4_static_recomp::ToolMode::kUiFonts ||
+        mode == fm4_static_recomp::ToolMode::kWheelProbe ||
+        mode == fm4_static_recomp::ToolMode::kWheelSchema) {
       config.gpu_plugin.clear();
       config.audio_factory = nullptr;
       config.tool_mode = true;
@@ -210,6 +221,11 @@ class Fm4App final : public rex::ReXApp {
     } else {
       REXLOG_ERROR("Gameplay settings: cannot read {}", gameplay_config_->path().string());
     }
+    if (wheel_config_->Load()) {
+      fm4_static_recomp::ApplySavedWheelSettings(*wheel_config_);
+    } else {
+      REXLOG_ERROR("Wheel settings: cannot read {}", wheel_config_->path().string());
+    }
   }
 
   bool WantsPresentation() const override {
@@ -217,6 +233,18 @@ class Fm4App final : public rex::ReXApp {
   }
 
   bool ConstructRuntime(const rex::PathConfig& paths) override {
+    if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kWheelProbe) {
+      return RunWheelProbe();
+    }
+    if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kWheelSchema) {
+      const std::filesystem::path path = std::string(REXCVAR_GET(fm4_write_wheel_schema));
+      if (fm4_static_recomp::WriteWheelSchema(path)) {
+        REXLOG_INFO("Wheel schema written to {}", path.string());
+        return true;
+      }
+      REXLOG_ERROR("Wheel schema: cannot write {}", path.string());
+      return false;
+    }
     if (fm4_static_recomp::CurrentToolMode() == fm4_static_recomp::ToolMode::kSchema) {
       const std::filesystem::path path = std::string(REXCVAR_GET(fm4_write_graphics_schema));
       if (fm4_static_recomp::ui::WriteGraphicsSchema(path)) {
@@ -526,6 +554,17 @@ class Fm4App final : public rex::ReXApp {
     return swap;
   }
 
+  // The launcher's wheel set-up reads the lines and ends the probe by closing stdin.
+  static bool RunWheelProbe() {
+    static std::atomic<bool> stdin_open{true};
+    std::thread([] {
+      while (std::getchar() != EOF) {
+      }
+      stdin_open.store(false);
+    }).detach();
+    return rex::input::sdl::RunJoystickProbe(stdout, [] { return stdin_open.load(); }) == 0;
+  }
+
   // Returning false makes the process exit with a failure code.
   bool RunShaderCacheTool() {
     namespace shader_cache = fm4_static_recomp::shader_cache;
@@ -641,12 +680,16 @@ class Fm4App final : public rex::ReXApp {
            return ui::CreateMousePage(*controls_config_, std::move(mouse));
          }},
         {"GAMEPLAY", [this] { return ui::CreateGameplayPage(*gameplay_config_); }}};
+    if (REXCVAR_GET(wheel_enabled)) {
+      tabs.push_back({"WHEEL", [this] { return ui::CreateWheelPage(*wheel_config_); }});
+    }
     host_ui_->Open(std::move(tabs), 0);
   }
 
   std::unique_ptr<fm4_static_recomp::config::HostConfig> graphics_config_;
   std::unique_ptr<fm4_static_recomp::config::HostConfig> controls_config_;
   std::unique_ptr<fm4_static_recomp::config::HostConfig> gameplay_config_;
+  std::unique_ptr<fm4_static_recomp::config::HostConfig> wheel_config_;
   // The keyboard filter's ramp times, apart from controls_mutex_: the filter runs under the
   // input system's device lock.
   std::mutex ramp_mutex_;

@@ -75,7 +75,23 @@ std::optional<std::string> GetValue(std::string_view text, std::string_view name
   if (match.line_begin == std::string_view::npos) {
     return std::nullopt;
   }
-  std::string_view value = text.substr(match.value_begin, match.line_end - match.value_begin);
+  std::string_view value =
+      Trim(text.substr(match.value_begin, match.line_end - match.value_begin));
+  // A TOML basic string, as the launcher writes it: '#' inside is no comment, and \\ and \" are
+  // escapes (a wheel's device path, \\?\HID#..., holds both). Other backslashes stay as written.
+  if (value.size() >= 2 && value.front() == '"') {
+    std::string out;
+    for (size_t i = 1; i < value.size() && value[i] != '"'; ++i) {
+      if (value[i] == '\\' && i + 1 < value.size() && (value[i + 1] == '\\' || value[i + 1] == '"')) {
+        ++i;
+      }
+      out.push_back(value[i]);
+    }
+    if (out.empty()) {
+      return std::nullopt;
+    }
+    return out;
+  }
   value = value.substr(0, value.find('#'));
   value = Trim(value);
   while (!value.empty() && value.front() == '"') {
