@@ -14,6 +14,7 @@
 #include <cstring>
 #include <functional>
 #include <initializer_list>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -36,6 +37,7 @@
 #include <rex/ui/upscaler.h>
 
 #include "audio_gain.h"
+#include "custom_decals.h"
 #include "custom_music.h"
 #include "car_dirt.h"
 #include "game_hooks.h"
@@ -248,6 +250,8 @@ std::unordered_map<std::u16string, uint32_t> g_prompt_texts;
 std::mutex g_string_log_mutex;
 fm4_static_recomp::StringShownLog g_string_log;
 
+using fm4_guest::kDatabaseQuery;
+using fm4_guest::kListAddItem;
 using fm4_guest::kStringLookup;
 using fm4_guest::kTextAssign;
 using fm4_guest::kTextSetupGetTextReturn;
@@ -329,8 +333,8 @@ uint32_t CallGuest(PPCContext& ctx, uint8_t* base, uint32_t stack, uint32_t addr
   nested.dispatch_address = 0;
   nested.lr = 0;
   nested.r1.u32 = stack - 0x70;
-  PPCRegister* const registers[] = {&nested.r3, &nested.r4, &nested.r5,
-                                    &nested.r6, &nested.r7, &nested.r8};
+  PPCRegister* const registers[] = {&nested.r3, &nested.r4, &nested.r5, &nested.r6,
+                                    &nested.r7, &nested.r8, &nested.r9, &nested.r10};
   size_t index = 0;
   for (uint32_t arg : args) {
     registers[index++]->u64 = arg;
@@ -1407,6 +1411,26 @@ bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCR
   if (nested) {
     return false;
   }
+  // A custom decal's name, unless the table has its own text for the key (a key a table lacks
+  // gives an empty text).
+  if (const auto name = fm4_static_recomp::decals::DecalName(key)) {
+    nested = true;
+    const uint32_t original = CallGuest(ctx, base, r1.u32, kStringLookup, {r3.u32, r4.u32});
+    nested = false;
+    if (original && !ReadGuestText(base, original).empty()) {
+      r3.u64 = original;
+      return true;
+    }
+    static std::mutex mutex;
+    static std::map<std::u16string, uint32_t> texts;
+    const std::lock_guard lock(mutex);
+    uint32_t& address = texts[*name];
+    if (!address) {
+      address = GuestText(*name);
+    }
+    r3.u64 = address;
+    return true;
+  }
   const bool log = fm4_static_recomp::StringLogEnabled();
   std::function<std::optional<std::u16string>(uint16_t, std::u16string_view)> source;
   if (fm4_static_recomp::input::IsPromptStringKey(key)) {
@@ -1453,6 +1477,127 @@ bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCR
     g_live_prompts[ctx.r31.u32] = {key, found, std::move(shown)};
   }
   return true;
+}
+
+// The game database's query (out, database, sql). The livery system maps decal ids to files with
+// the query below each time a livery is first needed and each time the paint editor opens; just
+// before it, the custom decals' rows (src/custom_decals.h) are replaced when they changed, with
+// the same query on the same database.
+void Fm4DatabaseQuery(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r4, PPCRegister& r5) {
+  FM4_HOOK_CENSUS();
+  if (!r5.u32) {
+    return;
+  }
+  const char* const sql = reinterpret_cast<const char*>(base + r5.u32);
+  // A custom decal item opened the decal picker: its queries list the custom decals alone. Each
+  // query keeps its swapped text for the session (the game reads it while this call runs).
+  if (fm4_static_recomp::decals::CustomPicker()) {
+    if (const auto custom = fm4_static_recomp::decals::CustomPickerQuery(sql)) {
+      static std::mutex mutex;
+      static std::map<std::string, uint32_t> texts;
+      const std::lock_guard lock(mutex);
+      uint32_t& text = texts[*custom];
+      if (!text) {
+        text = rex::system::kernel_state()->memory()->SystemHeapAlloc(uint32_t(custom->size() + 1));
+        std::memcpy(base + text, custom->c_str(), custom->size() + 1);
+      }
+      r5.u64 = text;
+      return;
+    }
+  }
+  static constexpr std::string_view kDecalFiles = "SELECT ID, Filename AS elemname FROM Livery_Decals";
+  if (std::strncmp(sql, kDecalFiles.data(), kDecalFiles.size()) != 0) {
+    return;
+  }
+  thread_local bool nested = false;
+  if (nested) {
+    return;
+  }
+  static std::mutex mutex;
+  static uint64_t applied = 0;
+  const std::lock_guard lock(mutex);
+  std::vector<std::string> statements;
+  if (!fm4_static_recomp::decals::StatementsSince(applied, &statements)) {
+    return;
+  }
+  auto* const memory = rex::system::kernel_state()->memory();
+  const uint32_t out = memory->SystemHeapAlloc(4);
+  int failed = 0;
+  nested = true;
+  for (const std::string& statement : statements) {
+    const uint32_t text = memory->SystemHeapAlloc(uint32_t(statement.size() + 1));
+    std::memcpy(base + text, statement.c_str(), statement.size() + 1);
+    StoreGuestWord(base + out, 0);
+    CallGuest(ctx, base, r1.u32, kDatabaseQuery, {out, r4.u32, text});
+    if (const uint32_t result = LoadGuestWord(base, out)) {
+      const uint32_t release = LoadGuestWord(base, LoadGuestWord(base, result) + 8);
+      CallGuest(ctx, base, r1.u32, release, {result});
+    } else {
+      ++failed;
+      REXLOG_WARN("CUSTOM DECALS: the database did not take: {}", statement.substr(0, 200));
+    }
+    memory->SystemHeapFree(text);
+  }
+  nested = false;
+  memory->SystemHeapFree(out);
+  REXLOG_INFO("CUSTOM DECALS: {} database statement{} applied{}", statements.size(),
+              statements.size() == 1 ? "" : "s", failed ? ", " + std::to_string(failed) + " failed" : std::string());
+}
+
+// A custom decal item after a layer menu's manufacturer decal item, made as that one is: a string
+// id from a key (the string lookup answers it), a menu label, the list item; the temporaries are
+// the builder's own (free here) and are released as it releases them. None in a vinyl group's
+// menu (the screen's flag at 400: it has no decals), nor without custom decals.
+void AddCustomDecalItem(PPCContext& ctx, uint8_t* base, uint32_t stack, uint32_t owner, uint32_t screen,
+                        uint32_t string_slot, uint32_t label_slot, uint16_t key) {
+  if (!key || LoadGuestWord(base, screen + 400) != 0) {
+    return;
+  }
+  const uint32_t string_id = stack + string_slot;
+  const uint32_t label = stack + label_slot;
+  CallGuest(ctx, base, stack, kMakeLocString, {string_id, owner, key});
+  CallGuest(ctx, base, stack, kMakeMenuLabel, {label, string_id});
+  ctx.f1.f64 = ctx.f31.f64;  // the item height the builder passes (f1 is free here)
+  CallGuest(ctx, base, stack, kListAddItem,
+            {LoadGuestWord(base, screen + 380), fm4_static_recomp::decals::kCustomDecalAction, label, 0,
+             0xFFFFFFFFu, 0, 1});
+  for (const uint32_t slot : {label, string_id}) {
+    if (const uint32_t object = LoadGuestWord(base, slot)) {
+      CallGuest(ctx, base, stack, LoadGuestWord(base, LoadGuestWord(base, object) + 8), {object});
+    }
+  }
+}
+
+// CREATE LAYER: APPLY A CUSTOM DECAL after APPLY A MANUFACTURER DECAL. A layer menu is where every
+// visit to the decal picker starts: the picker lists the game's decals until a custom item is chosen,
+// and keeps the custom ones while that visit lasts (a cancelled placement reopens the picker, and
+// the livery work after it runs the decal-file query).
+void Fm4CreateLayerMenu(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r30, PPCRegister& r31) {
+  FM4_HOOK_CENSUS();
+  fm4_static_recomp::decals::SetCustomPicker(false);
+  AddCustomDecalItem(ctx, base, r1.u32, r30.u32, r31.u32, 240, 100,
+                     fm4_static_recomp::decals::CurrentStatus().apply_key);
+}
+
+// EDIT LAYER: CHANGE CUSTOM DECAL after CHANGE MANUFACTURER DECAL (a picker visit starts here too).
+void Fm4EditLayerMenu(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r30, PPCRegister& r31) {
+  FM4_HOOK_CENSUS();
+  fm4_static_recomp::decals::SetCustomPicker(false);
+  AddCustomDecalItem(ctx, base, r1.u32, r30.u32, r31.u32, 316, 168,
+                     fm4_static_recomp::decals::CurrentStatus().change_key);
+}
+
+// A menu list's choice: a custom decal item is the game's decal choice, with the picker in custom
+// mode; the game's own decal items put it back.
+void Fm4MenuItemChosen(PPCRegister& r3) {
+  FM4_HOOK_CENSUS();
+  namespace decals = fm4_static_recomp::decals;
+  if (r3.u32 == decals::kCustomDecalAction) {
+    decals::SetCustomPicker(true);
+    r3.u64 = decals::kGameDecalAction;
+  } else if (r3.u32 == decals::kGameDecalAction) {
+    decals::SetCustomPicker(false);
+  }
 }
 
 // A text element's update, before it checks whether to lay its text out again: a prompt
