@@ -65,6 +65,8 @@ TEST_CASE("Hockenheim lists its 31 boards, each its own texture and name", "[sig
     CHECK(board.width % 4 == 0);
     CHECK(board.height % 4 == 0);
     CHECK(board.levels >= 1);
+    // The SIGNAGE page's description heading fits about 30 capitals at 1080p.
+    CHECK(board.name.size() <= 30);
   }
   CHECK(signage::FindBoard(track, "mobil1")->hash == 0xCE9A5CD46ACED489);
   CHECK_FALSE(signage::FindBoard(track, "Mobil1"));
