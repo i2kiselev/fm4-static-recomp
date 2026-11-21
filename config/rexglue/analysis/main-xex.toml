@@ -463,3 +463,10 @@ registers = ["r3", "r29"]
 address = 0x825E7BB0
 name = "Fm4QuickRaceTrackQuery"
 registers = ["r4"]
+
+# The render thread's wait for GPU ring-buffer space: the loop head in sub_822B0788, which calls sub_826E8358 (a
+# db16cyc spin) until the GPU's read pointer moves. Fm4RingWaitBackoff sleeps in short steps once a wait lasts
+# longer than a short spin, instead of polling one core at 100 % (src/ring_wait.cpp, #111).
+[[midasm_hook]]
+address = 0x822B0818
+name = "Fm4RingWaitBackoff"

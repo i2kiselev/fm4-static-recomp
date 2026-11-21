@@ -34,6 +34,7 @@ set(FM4_HOST_SOURCES
     src/disc2_install.cpp
     src/dlc_licenses.cpp
     src/game_hooks.cpp
+    src/ring_wait.cpp
     src/audio_gain.cpp
     src/custom_music.cpp
     src/mixer_options.cpp

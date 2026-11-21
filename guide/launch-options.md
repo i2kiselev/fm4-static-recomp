@@ -28,6 +28,7 @@ or in the launcher's SETTINGS.
 | `--fm4_race_music_folder=<folder>` | Shuffled race MP3/WAV playlist; empty uses original music |
 | `--fm4_language=<code>` | The game's language (see [Languages](#languages)) |
 | `--fm4_config_root=<folder>` | Where `graphics.toml` and `controls.toml` live (default: the state folder's `config`) |
+| `--fm4_ring_wait_backoff=false` | The render thread polls one CPU core at 100 % while it waits for the GPU, as before; by default it sleeps in short steps, so the CPU runs cooler |
 | `--fh1_async_readbacks=false` | Turn off asynchronous readbacks, if you ever see a corrupted texture |
 | `--fullscreen=false` | Start in a window; **Alt+Enter** switches while you play. In the launcher: [WINDOWED](windowed.md) |
 | `--window_width=<n>`, `--window_height=<n>` | The window's size, multiplied by Windows' display scale (at 150 %, 1600 opens 2400 pixels wide). In the launcher, WINDOW SIZE is in real pixels |
