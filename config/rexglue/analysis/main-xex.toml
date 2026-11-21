@@ -322,13 +322,14 @@ name = "Fm4MainMenuBack"
 registers = ["r30"]
 jump_address_on_true = 0x826114F0
 
-# Every screen's update, each frame (the base screen's vtable slot 10, shared by 207 screens; r3 the screen): on
-# the main menu, BACK's label and the EXIT TO DESKTOP box.
+# The UI's frame (the cursor's update, once a UI frame on the game thread; r1 its caller's stack): on the main menu,
+# BACK's label and the EXIT TO DESKTOP box. Here, before the UI lays out and animates, the bar takes a new label's
+# width as its own.
 [[midasm_hook]]
-address = 0x82516458
-name = "Fm4ScreenUpdate"
+address = 0x8238DE90
+name = "Fm4MainMenuFrame"
 context = true
-registers = ["r1", "r3"]
+registers = ["r1"]
 
 # The screens' answer to a button (0x824E48B8(screen, id): popup buttons call it): the main menu's EXIT TO
 # DESKTOP box answers with ids of its own, which the screen never sees.

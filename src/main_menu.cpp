@@ -2,6 +2,7 @@
 // BSD 3-Clause License: see LICENSE in the repository root.
 #include "main_menu.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -169,6 +170,8 @@ bool TopLevelOf(const uint8_t* base, uint32_t splash) {
 // The bar's BACK slot says EXIT on the main menu's own menu (as short as BACK: the bar lays its prompts out
 // from a fixed start, a longer label would run past its end) (its icon the pad's BACK button while a pad
 // was used last) and the game's BACK on FREE PLAY's. Scratch goes below the caller's stack, the calls below that.
+// Whether the bar has laid its prompts out (each label measured): only then is the label changed, so the bar lays
+// the new one out from its real width, as it does its own.
 void SetBackPrompt(PPCContext& ctx, uint8_t* base, uint32_t caller_stack, uint32_t bar, bool exit) {
   const bool pad = exit && g_pad_prompts;
   if (bar == g_labelled_bar && exit == g_label_exit && pad == g_label_pad) return;
@@ -186,7 +189,8 @@ void SetBackPrompt(PPCContext& ctx, uint8_t* base, uint32_t caller_stack, uint32
   if (index < 0) return;  // the bar is not filled yet
   g_labelled_bar = bar, g_label_exit = exit, g_label_pad = pad;
   const uint32_t stack = caller_stack - 0x140, holders = stack;  // scratch [stack, stack + 8)
-  MakeLabel(ctx, base, stack, holders, exit ? uint32_t(kExitStringKey) : Word(base, kBackStringKey));
+  MakeLabel(ctx, base, stack, holders,
+            exit ? uint32_t(kExitToDesktopStringKey) : Word(base, kBackStringKey));
   const uint32_t icon = pad ? BackIconPath(style) : Word(base, kPromptIcons + 4 * (style * 11 + kPromptButtonB));
   const uint32_t gap_bits = Word(base, kPromptGap);
   float gap;
@@ -300,17 +304,21 @@ bool BackPressed(uint32_t splash) {
   return true;
 }
 
-void Frame(PPCContext& ctx, uint8_t* base, uint32_t screen, uint32_t stack) {
+void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
   const uint32_t splash = g_splash;
-  if (!Enabled() || screen != splash || Word(base, splash) != kSplashVtable) return;
+  if (!Enabled() || !GuestPointer(splash) || Word(base, splash) != kSplashVtable) return;
   const uint32_t bar = Word(base, splash + kBar);
-  if (base[splash + kState] != 0 || !GuestPointer(bar)) {
-    g_labelled_bar = 0;  // set again once the menus are up (the game may have rebuilt the bar)
+  if (!GuestPointer(bar)) {
+    g_labelled_bar = 0;  // set again once the bar is back (the game may have rebuilt it)
     return;
   }
-  if (Word(base, splash + kScreenPopup) == 0 && Clock() - g_box_shown > 0.5) g_box_open = false;
-  const bool top = TopLevelOf(base, splash);
+  // The label goes in as soon as the bar has its BACK, before the bar shows: the bar sizes its prompts when it
+  // comes on screen and does not size them again, so a label put in later would run past the bar's end.
+  const bool menus = base[splash + kState] == 0;
+  const bool top = !menus || TopLevelOf(base, splash);
   SetBackPrompt(ctx, base, stack, bar, top);
+  if (!menus) return;
+  if (Word(base, splash + kScreenPopup) == 0 && Clock() - g_box_shown > 0.5) g_box_open = false;
   if (g_asked.exchange(false) && top && !g_box_open) {
     g_box_open = true;
     g_box_shown = Clock();

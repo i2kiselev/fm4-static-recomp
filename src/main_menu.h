@@ -32,8 +32,8 @@ void FilterPad(rex::input::X_INPUT_GAMEPAD& pad);
 // The main menu's Back, about to sign out and go back to "Press A" (r30 = the screen): true to ask instead.
 bool BackPressed(uint32_t splash);
 
-// Each frame of a screen's update (game thread, `stack` the caller's r1): on the main menu, BACK's label and the box.
-void Frame(PPCContext& ctx, uint8_t* base, uint32_t screen, uint32_t stack);
+// Each UI frame (game thread, `stack` the caller's r1): on the main menu, BACK's label and the box.
+void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack);
 
 // A popup button's answer (0x824E48B8(screen, id)): true when it was the box's, which the screen never sees.
 bool ScreenAnswer(uint32_t screen, uint32_t id);
