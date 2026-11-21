@@ -282,11 +282,25 @@ PromptSwap::PromptSwap(std::vector<PromptTexture> textures, const hostui::Vector
     for (const PromptTexture& texture : textures_)
       keycaps.push_back(KeyboardImage(texture, font, controls, context));
   }
+  for (const PromptTexture& texture : textures_) {
+    // A key or pad button means nothing to the mouse: clear, so the prompt reads as its label.
+    mouse_.push_back(ImageOf(texture, Canvas(texture.width, texture.height)));
+    if (texture.name == "A_Button_F3") {
+      mouse_title_ = ImageOf(texture, KeycapCanvas(RenderMouseButton(false, texture.width * kScale)));
+    }
+    if (texture.name == "B_Button_F3") {
+      mouse_back_ = ImageOf(texture, KeycapCanvas(RenderMouseButton(true, texture.width * kScale)));
+    }
+  }
 }
 
-void PromptSwap::Update(bool keyboard_active, InputContext context) {
+void PromptSwap::Update(bool keyboard_active, InputContext context, bool mouse_last, bool mouse_title,
+                        bool mouse_back) {
+  const bool mouse = mouse_last && context == InputContext::kMenu;
   for (size_t i = 0; i < textures_.size(); ++i) {
-    Image wanted = keyboard_active ? keycaps_[size_t(context)][i] : nullptr;
+    Image wanted = mouse ? mouse_[i] : keyboard_active ? keycaps_[size_t(context)][i] : nullptr;
+    if (mouse && mouse_title && textures_[i].name == "A_Button_F3") wanted = mouse_title_;
+    if (mouse && mouse_back && textures_[i].name == "B_Button_F3") wanted = mouse_back_;
     if (wanted != registered_[i]) {
       registered_[i] = wanted;
       registry_(textures_[i].hash, std::move(wanted));
