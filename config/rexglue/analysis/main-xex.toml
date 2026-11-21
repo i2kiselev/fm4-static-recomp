@@ -64,6 +64,14 @@ registers = ["r4"]
 [[midasm_hook]]
 address = 0x824C7308
 name = "Fm4AutovistaCameraUpdate"
+registers = ["r3"]
+
+# The UI photo mode camera's update (CUI4PhotoModeCamera vtable +4: TAKE PHOTO in Autovista and the
+# showrooms), while photo mode is open: the mouse works its sticks.
+[[midasm_hook]]
+address = 0x824C8A00
+name = "Fm4PhotoModeCameraUpdate"
+registers = ["r3"]
 
 # The car shadow map's setup (renderer, variance map size, grey map size): 512
 # and 256 or 512 from every caller (256 and 256 with UseSmallShadowMap). Above
@@ -463,3 +471,73 @@ registers = ["r3", "r29"]
 address = 0x825E7BB0
 name = "Fm4QuickRaceTrackQuery"
 registers = ["r4"]
+
+# The mouse in menus (#76): every UI container as it is made and freed (CUIContainerCtrl's constructor
+# after it set its vtables, r31; its destructor's entry, r3), and a point once a UI frame on the game
+# thread (the Natal cursor's update; r1 its caller's stack, below which a slider's step routine is called)
+# where the pointer is hit-tested against the focused list.
+[[midasm_hook]]
+address = 0x82635920
+name = "Fm4UiContainerCreated"
+registers = ["r31"]
+
+[[midasm_hook]]
+address = 0x82635948
+name = "Fm4UiContainerDestroyed"
+registers = ["r3"]
+
+[[midasm_hook]]
+address = 0x825DF968
+name = "Fm4SplashCreated"
+registers = ["r31"]
+
+# A screen's focus group (CUI4CtrlFocusGroup: which of its controls the D-pad works, e.g. the livery colour
+# screen's colour box and grid): made (at the constructor's return, r3) and gone (the destructor, r3).
+[[midasm_hook]]
+address = 0x824DF3D4
+name = "Fm4FocusGroupCreated"
+registers = ["r3"]
+
+[[midasm_hook]]
+address = 0x824DF3EC
+name = "Fm4FocusGroupDestroyed"
+registers = ["r3"]
+
+# The screens that hide their menu after 5 s with no input (their base's idle: +0x1F8 idle since, +0x201
+# hidden): the pre-race menu (CPreRace) and the car colour choice (CCarColorSelect), made (constructor's end,
+# r31) and gone (destructor, r31). The mouse wakes them as a press would.
+[[midasm_hook]]
+address = 0x825BF7D0
+name = "Fm4IdleScreenCreated"
+registers = ["r31"]
+
+[[midasm_hook]]
+address = 0x824BCDBC
+name = "Fm4IdleScreenCreated2"
+registers = ["r31"]
+
+[[midasm_hook]]
+address = 0x825BEC90
+name = "Fm4IdleScreenDestroyed"
+registers = ["r31"]
+
+[[midasm_hook]]
+address = 0x824C41BC
+name = "Fm4IdleScreenDestroyed2"
+registers = ["r31"]
+
+[[midasm_hook]]
+address = 0x824BD078
+name = "Fm4LiveryPlacementCreated"
+registers = ["r31"]
+
+[[midasm_hook]]
+address = 0x8257BC58
+name = "Fm4MainMenuCreated"
+registers = ["r31"]
+
+[[midasm_hook]]
+address = 0x8238DE90
+name = "Fm4UiCursorFrame"
+context = true
+registers = ["r1"]

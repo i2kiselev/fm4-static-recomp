@@ -43,6 +43,7 @@
 #include "input/controller_layout.h"
 #include "input/input_context.h"
 #include "input/prompt_strings.h"
+#include "menu_mouse.h"
 #include "quick_race_laps.h"
 #include "scripted_input.h"
 #include "shadow_map.h"
@@ -813,9 +814,10 @@ void Fm4ShowroomCameraStep(PPCRegister& f1) {
   f1.f64 = std::min(ms, 100u) / 1000.0;
 }
 
-void Fm4AutovistaCameraUpdate() {
+void Fm4AutovistaCameraUpdate(PPCRegister& r3) {
   FM4_HOOK_CENSUS();
-  // Runs every tick while Autovista is open, and nowhere else.
+  // Runs every tick while Autovista is open, and nowhere else (r3: its camera).
+  fm4_static_recomp::menu_mouse::AutovistaTick(r3.u32);
   static auto last = std::chrono::steady_clock::time_point{};
   const auto now = std::chrono::steady_clock::now();
   if (now - last > std::chrono::seconds(1)) {
@@ -1222,12 +1224,14 @@ void Fm4RaceMenuSceneCreated(PPCRegister& r3) {
 void Fm4RaceSubmenuSceneCreated(PPCRegister& r3) {
   FM4_HOOK_CENSUS();
   fm4_static_recomp::input::GameInputContext().RaceSubmenuSceneCreated(r3.u32);
+  fm4_static_recomp::menu_mouse::RaceSubmenuCreated(r3.u32);
   REXLOG_INFO("Race submenu scene created {:08X}", r3.u32);
 }
 
 void Fm4RaceMenuSceneDestroyed(PPCRegister& r3) {
   FM4_HOOK_CENSUS();
   fm4_static_recomp::input::GameInputContext().RaceMenuSceneDestroyed(r3.u32);
+  fm4_static_recomp::menu_mouse::RaceSubmenuDestroyed(r3.u32);
   REXLOG_INFO("Race menu scene destroyed {:08X}", r3.u32);
 }
 

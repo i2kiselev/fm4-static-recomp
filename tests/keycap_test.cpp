@@ -281,3 +281,22 @@ TEST_CASE("Sample keycaps", "[.keycap_images]") {
         .write(reinterpret_cast<const char*>(file.data()), std::streamsize(file.size()));
   }
 }
+
+TEST_CASE("The mouse prompt darkens the left or the right button", "[keycap]") {
+  using fm4_static_recomp::input::RenderMouseButton;
+  const uint32_t size = 64;
+  const auto left = RenderMouseButton(false, size), right = RenderMouseButton(true, size);
+  REQUIRE(left.size == size);
+  REQUIRE(left.pixels.size() == size_t(size) * size * 4);
+  auto at = [size](const fm4_static_recomp::input::Rgba& image, uint32_t x, uint32_t y) {
+    return &image.pixels[(size_t(y) * size + x) * 4];
+  };
+  // A point on each button, and one on the body below them.
+  const uint32_t lx = size * 2 / 5, rx = size * 3 / 5, by = size / 4, body = size * 3 / 4;
+  CHECK(at(left, lx, by)[0] < 0x40);   // left pressed: dark
+  CHECK(at(left, rx, by)[0] > 0xA0);   // right not: light
+  CHECK(at(right, rx, by)[0] < 0x40);
+  CHECK(at(right, lx, by)[0] > 0xA0);
+  CHECK(at(left, size / 2, body)[3] == 255);  // the body is solid
+  CHECK(at(left, 1, 1)[3] == 0);              // the corners are clear
+}
