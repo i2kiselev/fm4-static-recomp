@@ -18,6 +18,7 @@
 #include <rex/system/xmemory.h>
 
 #include "game_hooks.h"
+#include "guest_addresses.h"
 
 REXCVAR_DEFINE_BOOL(fm4_skip_title_screen, true, "Forza Motorsport 4",
                     "Goes past the title screen (\"Press A to start the game\") on its own, and the main "
@@ -28,7 +29,7 @@ namespace {
 
 // The screen (CSplash). +0x239: 1 "Press A", 0 the menus. Its menu object (+0x160) shows a list (+0x140) of a data
 // source (+0x70): the main menu's own (the screen's +0x164), or FREE PLAY's while that menu is open.
-constexpr uint32_t kSplashVtable = 0x8204649C;
+using fm4_guest::kSplashVtable;
 constexpr uint32_t kState = 0x239, kMenu = 0x160, kMainSource = 0x164, kBar = 0x168;
 constexpr uint32_t kMenuList = 0x140, kListSource = 0x70;
 // Once the screen has taken A it is going to the main menu ("going to another screen", as the race menus' +272).
@@ -41,15 +42,25 @@ constexpr double kTitleSettle = 0.5;  // seconds after the screen is made before
 // The icon path is the prompt style's (+0x158, 11 per style in kPromptIcons) or the pad's BACK button, which no style
 // has. A label: kMakeLocString(out, table, key), then kMakeMenuLabel(label, string).
 constexpr uint32_t kBarSource = 0x13C, kSourceBegin = 0x18, kSourceEnd = 0x1C, kSourceStride = 0x38, kSourceButton = 0x08;
-constexpr uint32_t kSourceRemove = 0x8266FB20, kSourceInsert = 0x82673AD8, kPromptGap = 0x82000F28;
-constexpr uint32_t kBarStyle = 0x158, kPromptIcons = 0x82D6EDC0, kBarView = 0x6C, kViewLayout = 0x28;
-constexpr uint32_t kMakeLocString = 0x822B1AE8, kMakeMenuLabel = 0x82971220, kHelpButtonsTable = 0x8200A364;
-constexpr uint32_t kBackStringKey = 0x82DE05C4;  // IDS_Back's key, set by the game at start
+constexpr uint32_t kSourceRemove = fm4_guest::kPromptSourceRemove, kSourceInsert = fm4_guest::kPromptSourceInsert;
+using fm4_guest::kPromptGap;
+using fm4_guest::kPromptIcons;
+// The bar's view is embedded at +0x6C (its own vtable there): the layout is called on that address.
+constexpr uint32_t kBarStyle = 0x158, kBarView = 0x6C, kViewLayout = 0x28;
+using fm4_guest::kMakeLocString;
+using fm4_guest::kMakeMenuLabel;
+using fm4_guest::kHelpButtonsTable;
+using fm4_guest::kBackStringKey;  // IDS_Back's key, set by the game at start
 constexpr uint32_t kPromptButtonB = 1;
 // The box: kShowYesNo(screen, message, title, on YES, on NO, sound, 0), as the screens ask (YES on A, NO on B). A
 // button's callback is kMakeScreenCallback(holder, {screen, id}) (a 0x20-byte holder, its reference at +0x1C):
 // pressed, it calls 0x824E48B8(screen, id), which ScreenAnswer takes for our two ids.
-constexpr uint32_t kShowYesNo = 0x824EF660, kMakeScreenCallback = 0x824EDDE8, kYesNoSound = 0x82E025D4;
+// kMakeScreenCallback copies the {screen, id} pair into its own object, so the pair can live in stack scratch.
+using fm4_guest::kShowYesNo;
+using fm4_guest::kMakeScreenCallback;
+using fm4_guest::kYesNoSound;
+// A screen's popup over it (CPopupMsgBox: the game's boxes and ours), 0 when there is none.
+constexpr uint32_t kScreenPopup = 0xB4;
 constexpr uint32_t kCallbackHolder = 0x20, kHolderReference = 0x1C;
 constexpr uint32_t kExitYes = 0x7E570001, kExitNo = 0x7E570002;
 
@@ -59,6 +70,7 @@ std::atomic<double> g_title_made{0};
 std::atomic<bool> g_title_seen{false};
 std::atomic<bool> g_asked{false};     // Back pressed: the box, next frame
 std::atomic<bool> g_box_open{false};  // from the box's showing to its answer
+double g_box_shown = 0;  // frame thread: when ours was shown (it reaches the screen's popup slot a little later)
 std::atomic<bool> g_pad_prompts{false};
 bool g_pad_back_down = false;  // pad thread
 // Frame thread: what the bar's BACK slot says now.
@@ -145,8 +157,10 @@ uint32_t BackIconPath(uint32_t style) {
   return paths[which];
 }
 
+// The main menu's own menu, with nothing over it (no box: the game's own take B and BACK themselves).
 bool TopLevelOf(const uint8_t* base, uint32_t splash) {
   if (!GuestPointer(splash) || Word(base, splash) != kSplashVtable || base[splash + kState] != 0) return false;
+  if (Word(base, splash + kScreenPopup) != 0) return false;
   const uint32_t menu = Word(base, splash + kMenu), main = Word(base, splash + kMainSource);
   const uint32_t list = GuestPointer(menu) ? Word(base, menu + kMenuList) : 0;
   return GuestPointer(main) && GuestPointer(list) && Word(base, list + kListSource) == main;
@@ -233,6 +247,7 @@ bool Enabled() { return REXCVAR_GET(fm4_skip_title_screen); }
 void SplashCreated(uint32_t splash) {
   if (!splash) return;
   g_splash = splash;
+  g_labelled_bar = 0;
   REXLOG_INFO("Title screen created {:08X}", splash);
   if (g_title_seen.exchange(true)) return;  // A only on the session's first
   g_title_made = Clock();
@@ -244,6 +259,7 @@ void SplashDestroyed(uint32_t splash) {
   g_title_splash.compare_exchange_strong(expected, 0);
   expected = splash;
   if (splash && g_splash.compare_exchange_strong(expected, 0)) {
+    g_labelled_bar = 0;
     g_box_open = false;
     g_asked = false;
     REXLOG_INFO("Title screen destroyed {:08X}", splash);
@@ -253,7 +269,8 @@ void SplashDestroyed(uint32_t splash) {
 bool TitleScreenWantsA() {
   const uint32_t splash = g_title_splash;
   if (!Enabled() || !splash) return false;
-  if (Base()[splash + kNavigating]) {
+  const uint8_t* const base = Base();
+  if (base[splash + kNavigating] || (base[splash + kState] == 0 && TopLevelOf(base, splash))) {
     uint32_t expected = splash;
     if (g_title_splash.compare_exchange_strong(expected, 0)) {
       REXLOG_INFO("Title screen {:08X} took A: going to the main menu", splash);
@@ -278,9 +295,7 @@ void FilterPad(rex::input::X_INPUT_GAMEPAD& pad) {
 }
 
 bool BackPressed(uint32_t splash) {
-  if (!Enabled() || splash != g_splash) return false;
-  // Our box is gone if the screen has Back again (it never closes unanswered so far, but then it is asked anew).
-  g_box_open = false;
+  if (!Enabled() || splash != g_splash || !TopLevelOf(Base(), splash)) return false;
   g_asked = true;
   return true;
 }
@@ -293,10 +308,12 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t screen, uint32_t stack) {
     g_labelled_bar = 0;  // set again once the menus are up (the game may have rebuilt the bar)
     return;
   }
+  if (Word(base, splash + kScreenPopup) == 0 && Clock() - g_box_shown > 0.5) g_box_open = false;
   const bool top = TopLevelOf(base, splash);
   SetBackPrompt(ctx, base, stack, bar, top);
   if (g_asked.exchange(false) && top && !g_box_open) {
     g_box_open = true;
+    g_box_shown = Clock();
     ShowBox(ctx, base, stack, splash);
   }
 }

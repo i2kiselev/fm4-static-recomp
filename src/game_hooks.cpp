@@ -1246,6 +1246,7 @@ bool Fm4MainMenuBack(PPCRegister& r30) {
 
 // A screen's update, each frame (r3 = the screen): the main menu's label and box.
 void Fm4ScreenUpdate(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r3) {
+  FM4_HOOK_CENSUS();
   fm4_static_recomp::main_menu::Frame(ctx, base, r3.u32, r1.u32);
 }
 
@@ -1450,6 +1451,12 @@ bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCR
                           : key == fm4_static_recomp::kExitStringKey       ? exit
                                                                            : question;
     r3.u64 = game && !ReadGuestText(base, game).empty() ? game : text;
+    if (fm4_static_recomp::StringLogEnabled()) {
+      const std::u16string shown = ReadGuestText(base, r3.u32);
+      const double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+      const std::lock_guard lock(g_string_log_mutex);
+      if (g_string_log.Shown(shown, now)) REXLOG_INFO("{}", fm4_static_recomp::StringLogLine(shown));
+    }
     return true;
   }
   const bool log = fm4_static_recomp::StringLogEnabled();

@@ -10,6 +10,14 @@ kMakeLocString = 0x822B1AE8
 kMakeMenuLabel = 0x82971220
 # Adds an item to a menu (menu, label, action, 1, 0).
 kMenuAddItem = 0x8266FF00
+# Takes a prompt out of a prompt bar's data source (source, index).
+kPromptSourceRemove = 0x8266FB20
+# Puts a prompt into a prompt bar's data source (source, index, button, label, icon path, button, gap f1, 1).
+kPromptSourceInsert = 0x82673AD8
+# Shows the game's YES / NO box over a screen (screen, message, title, on YES, on NO, sound, 0).
+kShowYesNo = 0x824EF660
+# Makes a screen callback for a box's button (holder, {screen, id}): it copies the pair.
+kMakeScreenCallback = 0x824EDDE8
 # The string lookup Fm4GraphicsOptionText hooks (its entry), called for the original text.
 kStringLookup = 0x823A4780
 # Assigns a text element's wide string (string, text, length), as its SetText does.
@@ -20,6 +28,18 @@ kTextSetupGetTextReturn = 0x8234FDA4
 
 # Guest data the hooks read.
 [data]
+# CSplash's vtable (the title screen and main menu).
+kSplashVtable = 0x8204649C
+# The gap between a prompt bar's prompts (float).
+kPromptGap = 0x82000F28
+# The prompt icon paths: 11 per prompt style.
+kPromptIcons = 0x82D6EDC0
+# The help buttons' string table (the prompts' labels).
+kHelpButtonsTable = 0x8200A364
+# IDS_Back's string key, set by the game at start.
+kBackStringKey = 0x82DE05C4
+# The YES / NO box's sound.
+kYesNoSound = 0x82E025D4
 # Holds the render scenario manager.
 kScenarioManagerPointer = 0x82DC3750
 # Each scenario control's offset, indexed by control id.
