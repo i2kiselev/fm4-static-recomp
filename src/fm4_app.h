@@ -593,6 +593,7 @@ class Fm4App final : public rex::ReXApp {
             // let go (still held when the box has closed, it would go back on the screen under it).
             constexpr uint16_t kA = rex::input::X_INPUT_GAMEPAD_A, kB = rex::input::X_INPUT_GAMEPAD_B;
             if (!(pad.buttons & kB)) {
+              if (back_is_ok) fm4_static_recomp::menu_mouse::DialogAnswered();
               back_is_ok = false;
             } else if (back_is_ok || fm4_static_recomp::menu_mouse::DialogTakesOnlyOk()) {
               const bool box = fm4_static_recomp::menu_mouse::DialogTakesOnlyOk();

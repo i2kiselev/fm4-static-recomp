@@ -176,7 +176,19 @@ struct LiveryDrag {
 uint32_t g_last_list = 0;  // the last list seen on screen (game thread)
 // A click that woke the hidden hub: played on the item under the pointer once its list is back.
 Clock::time_point g_wake_click{};
+std::optional<input::UiPoint> g_wake_point;  // where that click was: only it is played once the menu is back
 Clock::time_point g_woke_at{};  // when a move or click last woke it
+Clock::time_point g_chose_at{};  // when a click last chose something (A, or a prompt's button)
+constexpr auto kDoubleClickGuard = std::chrono::milliseconds(350);
+Clock::time_point g_idle_woke_at{};  // when a hidden pre-race or colour menu was last brought back
+constexpr auto kIdleWakeGuard = std::chrono::milliseconds(1000);
+std::atomic<int64_t> g_dialog_quiet_until{0};  // ms: a box just answered is not taken as still waiting
+
+// A click's A: it chooses what is focused.
+void ChooseTap() {
+  g_chose_at = Clock::now();
+  input::MenuWheelTaps().AddClick(false);
+}
 Clock::time_point g_last_keep{};  // a message box is up: key and pad presses are its, never held back
 // The wheel moves the focus away from the pointer: until the mouse moves or clicks again, the resting
 // pointer does not take it back (game thread only).
@@ -831,7 +843,7 @@ void StoreWord(uint8_t* base, uint32_t a, uint32_t value) {
 }
 
 // The prompts a bar shows now (those laid out somewhere: a hidden bar's sit at the origin).
-std::vector<input::Prompt> ReadPrompts(const uint8_t* base, uint32_t container) {
+std::vector<input::Prompt> ReadPrompts(const uint8_t* base, uint32_t container, bool hidden_labels_too = false) {
   std::vector<input::Prompt> prompts;
   if (!GuestPointer(container) || Word(base, container) != kBarVtable) return prompts;
   const uint32_t begin = Word(base, container + kPromptsBegin), end = Word(base, container + kPromptsEnd);
@@ -856,7 +868,10 @@ std::vector<input::Prompt> ReadPrompts(const uint8_t* base, uint32_t container) 
     // prompts piled at one spot with no label.
     if (!(prompt.icon > 0 && prompt.icon < 200 && prompt.label > 0 && prompt.label < 1000)) continue;
     // Its label moved off the screen (ShowSelectLabel: SELECT where a click on the item does it): not there.
-    if (const uint32_t label = NthChild(base, inner, 0); label && std::fabs(Float(base, label + 0x10) - 4000.0f) < 1) continue;
+    if (const uint32_t label = NthChild(base, inner, 0);
+        !hidden_labels_too && label && std::fabs(Float(base, label + 0x10) - 4000.0f) < 1) {
+      continue;
+    }
     char name[128] = {};
     if (!Readable(base, path, sizeof(name) - 1)) continue;
     std::memcpy(name, base + path, sizeof(name) - 1);
@@ -1258,7 +1273,7 @@ void PlayPendingChoose(const uint8_t* base) {
   if (g_choose.reached == 0) g_choose.reached = now;
   if (now - g_choose.reached >= kChooseSettle && !input::MenuWheelTaps().Busy()) {
     g_choose = {};
-    input::MenuWheelTaps().AddClick(false);
+    ChooseTap();
   }
 }
 
@@ -1356,7 +1371,9 @@ constexpr int kLiveryMove = 0, kLiverySize = 1, kLiverySpin = 2;
 // second. Returns how long the hub had been idle (seconds), NaN when there is no hub or it was not looked at.
 // The mouse used on a screen that hides its menu when idle: a hidden menu comes back, a shown one restarts
 // its idle (as a press does; the hub has its own, KeepAwake).
-void WakeIdleScreens(PPCContext& ctx, uint8_t* base, uint32_t stack) {
+// True when a hidden menu was brought back.
+bool WakeIdleScreens(PPCContext& ctx, uint8_t* base, uint32_t stack) {
+  bool woke = false;
   std::vector<uint32_t> screens;
   {
     std::lock_guard lock(g_containers_mutex);
@@ -1366,6 +1383,7 @@ void WakeIdleScreens(PPCContext& ctx, uint8_t* base, uint32_t stack) {
     const uint32_t vtable = Word(base, screen);
     if (vtable == kPreRaceVtable) {
       const bool hidden = base[screen + kPreRaceHidden] != 0;
+      woke |= hidden;
       CallGuest(ctx, base, stack, hidden ? kPreRaceShow : kTimerRestart,
                 [&](PPCContext& c) { c.r3.u64 = hidden ? screen : screen + kPreRaceTimer; });
       if (hidden && REXCVAR_GET(fm4_menu_mouse_log)) REXLOG_INFO("Menu mouse: screen {:08X} woken", screen);
@@ -1373,6 +1391,7 @@ void WakeIdleScreens(PPCContext& ctx, uint8_t* base, uint32_t stack) {
     }
     if (vtable != kCarColorVtable) continue;
     if (base[screen + kIdleHidden] != 0) {
+      woke = true;
       CallGuest(ctx, base, stack, kScreenWake, [&](PPCContext& c) { c.r3.u64 = screen; });
       if (REXCVAR_GET(fm4_menu_mouse_log)) REXLOG_INFO("Menu mouse: screen {:08X} woken", screen);
     } else if (Word(base, screen + kIdleSince) != 0) {
@@ -1381,6 +1400,7 @@ void WakeIdleScreens(PPCContext& ctx, uint8_t* base, uint32_t stack) {
       if (ticks != 0) StoreWord(base, screen + kIdleSince, ticks);
     }
   }
+  return woke;
 }
 
 constexpr double kHubHiding = 7.7;  // seconds idle: just before the hub starts hiding its menu (measured ~8)
@@ -1758,6 +1778,11 @@ void ContainerDestroyed(uint32_t container) {
 
 bool DialogTakesOnlyOk() { return g_dialog_ok_only && input::CurrentInputContext() == input::InputContext::kMenu; }
 
+void DialogAnswered() {
+  g_dialog_quiet_until = SteadyMs() + 500;  // it may still be closing: a next press is for the screen under it
+  g_dialog_ok_only = false;
+}
+
 void GateFocusBack(FocusBackGate& gate, rex::input::X_INPUT_GAMEPAD& pad) {
   const uint16_t pressed = uint16_t(pad.buttons & ~gate.last);
   gate.last = pad.buttons;
@@ -1805,7 +1830,9 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
     notches = std::exchange(state.notches, 0);
     sideways_notches = std::exchange(state.sideways_notches, 0);
   }
-  PlayPendingChoose(base);
+  if (right_clicks != 0 || notches != 0 || sideways_notches != 0 || !input::MouseLast()) g_choose = {};
+  // The second click of a double-click: the first has already chosen.
+  if (click && Clock::now() - g_chose_at < kDoubleClickGuard) click = false;
   if (g_brought.container && (!pointer || std::fabs(pointer->x - g_brought.at.x) > kBroughtSlop ||
                               std::fabs(pointer->y - g_brought.at.y) > kBroughtSlop)) {
     g_brought = {};
@@ -1850,13 +1877,16 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
   double hub_idle = std::numeric_limits<double>::quiet_NaN();
   if (moved || click || right_clicks != 0 || notches != 0 || sideways_notches != 0) {
     hub_idle = KeepAwake(ctx, base, stack);
-    WakeIdleScreens(ctx, base, stack);
+    if (WakeIdleScreens(ctx, base, stack)) {
+      g_idle_woke_at = Clock::now();
+      click = false;  // it brought the menu back: it chooses nothing on it
+    }
   }
   if ((right_clicks != 0 || notches != 0 || sideways_notches != 0) && !g_unlit.empty()) Relight(ctx, base, stack);
   // The livery editor placing a layer: the mouse works the layer itself. A drag on the car (above the tabs)
   // follows the tab (MOVE moves, SIZE sizes, SPIN spins...); the wheel sizes, Shift + wheel spins. A click on
   // the car presses nothing (no OK by accident); the tabs and the prompts work as anywhere.
-  const auto livery = LiveryUp(ctx, base, stack);
+  const auto livery = g_modal ? std::optional<Livery>{} : LiveryUp(ctx, base, stack);
   if (livery) {
     if (notches != 0) LiveryAdjust(ctx, base, stack, *livery, kLiverySize, notches * kLiveryWheelSize,
                                    notches * kLiveryWheelSize);
@@ -1885,7 +1915,10 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
   } else {
     g_livery_drag = LiveryDrag{};
   }
-  if (notches != 0 || sideways_notches != 0) g_wheel_led = true;
+  if (notches != 0 || sideways_notches != 0) {
+    g_wheel_led = true;
+    g_hover_pending = false;
+  }
   if (moved || click) g_wheel_led = false;
   if (notches != 0) input::MenuWheelTaps().AddNotches(notches, g_wheel_along_row);
   if (sideways_notches != 0) input::MenuWheelTaps().AddNotches(sideways_notches, true);
@@ -1909,7 +1942,7 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
   static uint32_t frames = 0;
   const bool survey = ++frames % 6 == 0;
   if (input::MenuWheelTaps().Busy()) NoteHighlight(std::nullopt);  // a press is playing: the screen may change
-  if (!moved && !click && !survey && !g_back_waiting && !g_hover_pending) return;
+  if (!moved && !click && !survey && !g_back_waiting && !g_hover_pending && !g_choose.container) return;
   if (!moved && !click && input::MenuWheelTaps().Busy()) return;
   // While presses are still being played (a wheel spin, a clicked prompt), a move waits; a click waits too
   // (kept for next frame).
@@ -2016,6 +2049,13 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
     if (active.active[i]) home = controls[i].home;
   }
   g_modal = active.modal;
+  // A delayed choose is for its list as it was: not a box that opened since, nor a list no longer the active one.
+  if (g_choose.container) {
+    bool still_active = false;
+    for (size_t i = 0; i < controls.size(); ++i) still_active |= active.active[i] && controls[i].container == g_choose.container;
+    if (active.modal || !still_active) g_choose = {};
+    PlayPendingChoose(base);
+  }
   // The wheel moves along a sideways strip when every list on the screen is one (a grid or a column: up / down).
   {
     bool any = false, all_rows = true;
@@ -2053,16 +2093,24 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
     return c.list && !input::IsTabHeader(*c.list) && input::ItemAt(*c.list, *pointer) >= 0;
   });
   if (g_wake_click != Clock::time_point{}) {
-    if (item_under && Clock::now() - g_woke_at > std::chrono::milliseconds(350)) {
-      click = true;
+    const bool same_place = pointer && g_wake_point && std::fabs(pointer->x - g_wake_point->x) <= kBroughtSlop &&
+                            std::fabs(pointer->y - g_wake_point->y) <= kBroughtSlop;
+    if (!same_place || Clock::now() - g_wake_click > std::chrono::milliseconds(1500)) {
       g_wake_click = {};
-    } else if (Clock::now() - g_wake_click > std::chrono::milliseconds(1500)) {
+    } else if (item_under && Clock::now() - g_woke_at > std::chrono::milliseconds(350)) {
+      click = true;
       g_wake_click = {};
     }
   }
-  // A click while the woken menu is still coming back waits for it too.
-  if (click && !item_under && Clock::now() - g_woke_at < std::chrono::milliseconds(1500)) {
+  // A click while the woken menu is still off the screen waits for it; one on a prompt is the prompt's.
+  const bool on_prompt = pointer && std::any_of(controls.begin(), controls.end(), [&](const Control& c) {
+    return std::any_of(c.prompts.begin(), c.prompts.end(),
+                       [&](const input::Prompt& p) { return input::PromptHit(p, *pointer); });
+  });
+  if (click && pointer && !item_under && !list_shown && !on_prompt &&
+      Clock::now() - g_woke_at < std::chrono::milliseconds(1500)) {
     g_wake_click = Clock::now();
+    g_wake_point = *pointer;
     return;
   }
   // Hidden (no list on screen after a few idle seconds), or hiding right now (the hub starts sliding its menu
@@ -2077,7 +2125,10 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
     if (hub_scene != 0 && scene(g_last_list) == hub_scene) {
       input::MenuWheelTaps().AddSteps(0x0002, 1);
       g_woke_at = Clock::now();
-      if (click) g_wake_click = Clock::now();
+      if (click) {
+        g_wake_click = Clock::now();
+        g_wake_point = pointer;
+      }
       if (REXCVAR_GET(fm4_menu_mouse_log)) REXLOG_INFO("Menu mouse: the hub hid its menu ({:.1f} s idle): woken", hub_idle);
       return;
     }
@@ -2091,14 +2142,16 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
         back = back || (prompt.buttons & 0x2000) != 0;
       }
     }
-    if (g_dialog_ok_only.exchange(ok && !back) != (ok && !back) && REXCVAR_GET(fm4_menu_mouse_log)) {
-      REXLOG_INFO("Menu mouse: message box with only OK {}", ok && !back ? "up" : "gone");
+    const bool only_ok = ok && !back && SteadyMs() >= g_dialog_quiet_until.load();
+    if (g_dialog_ok_only.exchange(only_ok) != only_ok && REXCVAR_GET(fm4_menu_mouse_log)) {
+      REXLOG_INFO("Menu mouse: message box with only OK {}", only_ok ? "up" : "gone");
     }
   }
   // With the mouse the last thing used, what is lit follows the resting pointer too: a screen that opens
   // lights the item under it, or nothing.
   const bool settle = survey && input::MouseLast() && pointer.has_value() && !g_wheel_led;
   if (!moved && !click && !settle && !g_back_waiting && !g_hover_pending) return;
+  g_hover_pending = false;  // set again below only while the pointer is on a row it is held back from
   if ((moved || click) && REXCVAR_GET(fm4_menu_mouse_log)) {
     REXLOG_INFO("Menu mouse: pointer {} {}, {} containers, modal {}", pointer ? pointer->x : 0.0f,
                 pointer ? pointer->y : 0.0f, containers.size(), active.modal);
@@ -2158,9 +2211,12 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
       }
     }
     bool keeps_with_a = false;
-    for (size_t i = 0; i < controls.size(); ++i) {
-      if (!active.active[i]) continue;
-      for (const input::Prompt& prompt : controls[i].prompts) keeps_with_a |= prompt.buttons == kButtonABit;
+    for (size_t i = 0; values && i < controls.size(); ++i) {
+      if (!active.active[i] || Word(base, controls[i].container) != kBarVtable) continue;
+      // Its real buttons: a reused A prompt may still have its label parked off the screen.
+      for (const input::Prompt& prompt : ReadPrompts(base, controls[i].container, true)) {
+        keeps_with_a |= prompt.buttons == kButtonABit;
+      }
     }
     const bool camera = AutovistaUp() && !g_viewer_list_up;
     const bool goes_back = DialogTakesOnlyOk() || (!active.modal && !livery && !(values && keeps_with_a) && !camera);
@@ -2226,6 +2282,7 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
   // The home button: a click on it is the pad's BACK (Tab), as the game shows it. Not under a dialog.
   if (click && pointer && home && !active.modal && home->Hit(*pointer)) {
     if (!g_unlit.empty()) Relight(ctx, base, stack);
+    g_chose_at = Clock::now();
     input::MenuWheelTaps().AddPress(kButtonBackBit);
     return;
   }
@@ -2236,6 +2293,8 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
         if (input::PromptHit(prompt, *pointer)) {
           if (!input::PromptTakesClick(prompt, clicks_choose(controls[i].container))) return;
           if (!g_unlit.empty()) Relight(ctx, base, stack);
+          if (active.modal) DialogAnswered();
+          g_chose_at = Clock::now();
           input::MenuWheelTaps().AddPress(prompt.buttons);
           return;
         }
@@ -2262,7 +2321,7 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
     const auto list = ReadList(base, brought.container);
     if (list && list->focus == brought.entry && NowSeconds() - brought.when >= kStepClicks) {
       if (!g_unlit.empty()) Relight(ctx, base, stack);
-      input::MenuWheelTaps().AddClick(false);
+      ChooseTap();
       return;
     }
   }
@@ -2324,12 +2383,14 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
     if (input::OnSliderBar(hit, *pointer)) {
       StopDrag();
       g_drag.active = true, g_drag.container = controls[i].container, g_drag.item = item;
+      // At once: a quick click may be let go before the next frame.
+      DragSlider(ctx, base, stack, hit, input::SliderTarget(hit, pointer->x));
     } else if (hit.spinner) {
       // A full tap (some screens miss a one-frame press: ASSISTS & DIFFICULTY).
       const bool back = input::SpinnerClick(hit, pointer->x) < 0;
       input::MenuWheelTaps().AddPress(back ? 0x0004 : 0x0008);
     } else if (!hit.slider && Word(base, hit.id) != kSliderVtable) {
-      input::MenuWheelTaps().AddClick(false);
+      ChooseTap();
     }
     return;
   }
@@ -2347,7 +2408,7 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
   // The Autovista viewer: a click (a press let go without walking) on the focused part's icon opens it (A);
   // anywhere else in the picture it does nothing.
   if (click && !any_list && pointer && pointer->y > input::kBottomRowY && AutovistaUp()) {
-    if (!PhotoModeUp() && OnAutovistaIcon(base, *pointer)) input::MenuWheelTaps().AddClick(false);
+    if (!PhotoModeUp() && OnAutovistaIcon(base, *pointer)) ChooseTap();
     return;
   }
   bool a_prompt = false;
@@ -2355,9 +2416,9 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
     if (!active.active[i]) continue;
     for (const input::Prompt& prompt : controls[i].prompts) a_prompt |= (prompt.buttons & kButtonABit) != 0;
   }
-  if (click && !any_list && !a_prompt && !livery) {
+  if (click && !any_list && !a_prompt && !livery && Clock::now() - g_idle_woke_at >= kIdleWakeGuard) {
     if (!g_unlit.empty()) Relight(ctx, base, stack);
-    input::MenuWheelTaps().AddClick(false);
+    ChooseTap();
   }
 }
 

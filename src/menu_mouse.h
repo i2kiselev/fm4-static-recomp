@@ -62,6 +62,8 @@ void GateFocusBack(FocusBackGate& gate, rex::input::X_INPUT_GAMEPAD& pad);
 // A message box that only has OK (FEATURE UNAVAILABLE...) is up: the keyboard's and the mouse's back (Esc,
 // right click) close it with OK, as on any PC; a pad's B is left as the game has it.
 bool DialogTakesOnlyOk();
+// The OK-only box has been answered: the next press is for the screen under it.
+void DialogAnswered();
 
 // From the game thread, once a UI frame (the Natal cursor's update); `stack` is free guest stack below
 // which game routines can be called (a slider's step).

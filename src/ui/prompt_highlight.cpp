@@ -60,14 +60,17 @@ void PromptHighlight::Draw(rex::ui::UIDrawContext& context) {
   if (!box_ || !white_) return;
   // The game's 16:9 UI space fitted into the painted picture, as the PC OPTIONS pages place it.
   float x = 0, y = 0, width = float(context.render_target_width()), height = float(context.render_target_height());
+  float scale_x = std::min(width / kUiWidth, height / kUiHeight), scale_y = scale_x;
+  float left = x + (width - kUiWidth * scale_x) / 2, top = y + (height - kUiHeight * scale_y) / 2;
+  // The painted picture is the whole UI, stretched with it when letterboxing is off, as the pointer maps it.
   if (const auto rect = presenter_.GetPaintedGuestOutputRectFromUIThread()) {
-    x = float(rect->x), y = float(rect->y), width = float(rect->width), height = float(rect->height);
+    left = float(rect->x), top = float(rect->y);
+    scale_x = float(rect->width) / kUiWidth, scale_y = float(rect->height) / kUiHeight;
   }
-  const float scale = std::min(width / kUiWidth, height / kUiHeight);
+  const float scale = std::min(scale_x, scale_y);
   if (scale <= 0) return;
-  const float left = x + (width - kUiWidth * scale) / 2, top = y + (height - kUiHeight * scale) / 2;
-  const auto to_x = [&](float ux) { return left + (ux + kUiWidth / 2) * scale; };
-  const auto to_y = [&](float uy) { return top + (kUiHeight / 2 - uy) * scale; };
+  const auto to_x = [&](float ux) { return left + (ux + kUiWidth / 2) * scale_x; };
+  const auto to_y = [&](float uy) { return top + (kUiHeight / 2 - uy) * scale_y; };
   // Fading in: drawn again each paint until it is full.
   const double since = std::chrono::duration<double>(std::chrono::steady_clock::now() - shown_at_).count();
   const float open = float(std::clamp(since / kOpenSeconds, 0.0, 1.0));
