@@ -38,4 +38,9 @@ void InstallAudioCompatibility();
 // thumbnail ends the readback hold its render began.
 void NoteGuestFileOpen(std::string_view guest_path);
 
+// String keys the game leaves empty, answered EXIT TO DESKTOP, its question and EXIT (the main menu's Back, main_menu.h).
+inline constexpr uint16_t kExitToDesktopStringKey = 0x7159;
+inline constexpr uint16_t kExitToDesktopQuestionKey = 0x715A;
+inline constexpr uint16_t kExitStringKey = 0x715B;  // the main menu's prompt: EXIT
+
 }  // namespace fm4_static_recomp

@@ -43,6 +43,7 @@
 #include "input/controller_layout.h"
 #include "input/input_context.h"
 #include "input/prompt_strings.h"
+#include "main_menu.h"
 #include "quick_race_laps.h"
 #include "scripted_input.h"
 #include "shadow_map.h"
@@ -1225,6 +1226,35 @@ void Fm4RaceSubmenuSceneCreated(PPCRegister& r3) {
   REXLOG_INFO("Race submenu scene created {:08X}", r3.u32);
 }
 
+// The title screen / main menu (main_menu.h): made by its factory (0x824B4EB0's constructor call returns it in r3)
+// and freed by its deleting destructor.
+void Fm4TitleSceneCreated(PPCRegister& r3) {
+  FM4_HOOK_CENSUS();
+  fm4_static_recomp::main_menu::SplashCreated(r3.u32);
+}
+
+void Fm4TitleSceneDestroyed(PPCRegister& r3) {
+  FM4_HOOK_CENSUS();
+  fm4_static_recomp::main_menu::SplashDestroyed(r3.u32);
+}
+
+// The main menu's Back, about to sign out and go back to "Press A": EXIT TO DESKTOP asks instead.
+bool Fm4MainMenuBack(PPCRegister& r30) {
+  FM4_HOOK_CENSUS();
+  return fm4_static_recomp::main_menu::BackPressed(r30.u32);
+}
+
+// A screen's update, each frame (r3 = the screen): the main menu's label and box.
+void Fm4ScreenUpdate(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegister& r3) {
+  fm4_static_recomp::main_menu::Frame(ctx, base, r3.u32, r1.u32);
+}
+
+// The screens' answer to a popup button (0x824E48B8(screen, id)): the EXIT TO DESKTOP box's YES / NO.
+bool Fm4ScreenAnswer(PPCRegister& r3, PPCRegister& r4) {
+  FM4_HOOK_CENSUS();
+  return fm4_static_recomp::main_menu::ScreenAnswer(r3.u32, r4.u32);
+}
+
 void Fm4RaceMenuSceneDestroyed(PPCRegister& r3) {
   FM4_HOOK_CENSUS();
   fm4_static_recomp::input::GameInputContext().RaceMenuSceneDestroyed(r3.u32);
@@ -1406,6 +1436,21 @@ bool Fm4GraphicsOptionText(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCR
   thread_local bool nested = false;
   if (nested) {
     return false;
+  }
+  // EXIT TO DESKTOP, its question and EXIT (main_menu), unless the game has a text of its own under these keys.
+  if (key == fm4_static_recomp::kExitToDesktopStringKey || key == fm4_static_recomp::kExitToDesktopQuestionKey ||
+      key == fm4_static_recomp::kExitStringKey) {
+    nested = true;
+    const uint32_t game = CallGuest(ctx, base, r1.u32, kStringLookup, {r3.u32, r4.u32});
+    nested = false;
+    static const uint32_t title = GuestText(u"EXIT TO DESKTOP");
+    static const uint32_t question = GuestText(u"Exit Forza Motorsport 4 and return to the desktop?");
+    static const uint32_t exit = GuestText(u"EXIT");
+    const uint32_t text = key == fm4_static_recomp::kExitToDesktopStringKey ? title
+                          : key == fm4_static_recomp::kExitStringKey       ? exit
+                                                                           : question;
+    r3.u64 = game && !ReadGuestText(base, game).empty() ? game : text;
+    return true;
   }
   const bool log = fm4_static_recomp::StringLogEnabled();
   std::function<std::optional<std::u16string>(uint16_t, std::u16string_view)> source;
