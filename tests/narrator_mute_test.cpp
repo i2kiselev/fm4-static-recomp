@@ -89,6 +89,10 @@ TEST_CASE("A bank that is not the disc's is left alone", "[narrator]") {
   Put<uint32_t>(overrun, 4, 3);
   CHECK_FALSE(MuteNarratorBank(overrun));
 
+  auto huge = Bank({116, 112});
+  Put<uint32_t>(huge, 4, 0xFFFFFFFFu);  // more samples than the header bytes can hold: refused, nothing reserved
+  CHECK_FALSE(MuteNarratorBank(huge));
+
   std::vector<uint8_t> tiny = {'F', 'S', 'B', '4'};
   CHECK_FALSE(MuteNarratorBank(tiny));
 }

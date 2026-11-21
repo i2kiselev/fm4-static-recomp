@@ -102,11 +102,8 @@ struct Draft {
       rex::cvar::SetFlagByName(name, value);
       REXLOG_INFO("Gameplay page: {} = {}", name, value);
       if (name == kMuteNarrator && !game_data_root.empty()) {
-        // The game loaded the narrator's bank as it started: it is changed where it is, off the
-        // UI thread (it searches the guest's heaps).
-        std::thread([root = game_data_root, mute = value == "true"] {
-          SetNarratorMuteLive(root, mute);
-        }).detach();
+        // The game loaded the narrator's bank as it started: it is changed where it is.
+        RequestNarratorMute(game_data_root, value == "true");
       }
     }
     pending.clear();

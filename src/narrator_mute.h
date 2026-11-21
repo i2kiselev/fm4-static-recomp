@@ -17,9 +17,11 @@ bool MuteNarratorBank(std::span<uint8_t> bank);
 // Registers the muted bank of every language for the guest when fm4_mute_narrator is set.
 void InstallNarratorMute(const std::filesystem::path& game_data_root);
 
-// Mutes or restores the bank the game has already loaded (it reads it once, as it starts),
-// in the guest's memory: the next clip the narrator plays takes it. Slow (it searches the
-// heaps): call it off the guest's threads. False when the loaded bank was not found.
-bool SetNarratorMuteLive(const std::filesystem::path& game_data_root, bool mute);
+// Mutes or restores the bank the game has already loaded (it reads it once, as it starts), in the
+// guest's memory: the next clip the narrator plays takes it. The search runs on its own thread,
+// which takes only the newest choice; the bank served at the next start follows it too.
+void RequestNarratorMute(const std::filesystem::path& game_data_root, bool mute);
+// Ends that thread: before the runtime goes away.
+void StopNarratorMute();
 
 }  // namespace fm4_static_recomp
