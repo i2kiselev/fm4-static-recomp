@@ -2,14 +2,19 @@
 // BSD 3-Clause License: see LICENSE in the repository root.
 // CUSTOM DECALS (custom_decals.h): the package, the folder's images and the game's files.
 #include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <chrono>
 #include <condition_variable>
 #include <cstring>
 #include <fstream>
 #include <iterator>
+#include <charconv>
+#include <map>
 #include <mutex>
+#include <set>
 #include <thread>
+#include <utility>
 
 #include <rex/cvar.h>
 #include <rex/filesystem.h>
@@ -27,6 +32,19 @@ namespace fm4_static_recomp::decals {
 namespace {
 
 constexpr const char* kIdsFile = "custom-decals.txt";
+constexpr uint32_t kMaxImageSide = 8192;  // a larger PNG is refused before it is decoded
+
+// A PNG's header says it is larger than kMaxImageSide on a side.
+bool PngTooLarge(const std::vector<uint8_t>& bytes) {
+  static constexpr uint8_t kSignature[8] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+  if (bytes.size() < 24 || std::memcmp(bytes.data(), kSignature, 8) != 0) return false;
+  const auto be32 = [&](size_t at) {
+    return uint32_t(bytes[at]) << 24 | uint32_t(bytes[at + 1]) << 16 | uint32_t(bytes[at + 2]) << 8 | bytes[at + 3];
+  };
+  return be32(16) > kMaxImageSide || be32(20) > kMaxImageSide;
+}
+
+std::atomic<bool> g_stopping{false};
 
 std::optional<std::vector<uint8_t>> ReadAll(const std::filesystem::path& path) {
   std::ifstream in(path, std::ios::binary);
@@ -116,8 +134,9 @@ constexpr auto kWatchInterval = std::chrono::seconds(2);
 
 // What a build is made from: the settings and each image's name, size and time.
 std::string Signature() {
-  const std::string folder = REXCVAR_GET(fm4_custom_decals_folder);
-  std::string out = folder + (REXCVAR_GET(fm4_all_sponsor_decals) ? "\n1\n" : "\n0\n");
+  const Settings settings = CurrentSettings();
+  const std::string& folder = settings.folder;
+  std::string out = folder + (settings.all_sponsors ? "\n1\n" : "\n0\n");
   if (folder.empty()) return out;
   std::vector<std::string> lines;
   std::error_code ec;
@@ -159,7 +178,10 @@ std::filesystem::path EnsurePackage(const std::filesystem::path& user_root) {
     return {};
   }
   const std::filesystem::path offer = media / (std::to_string(kPackageOffer) + ".puboffer");
-  if (!std::filesystem::exists(offer) && !WriteAll(offer, {0x20, 0x0d, 0x0a})) return {};
+  if (!std::filesystem::exists(offer) && !WriteAll(offer, {0x20, 0x0d, 0x0a})) {
+    REXLOG_ERROR("CUSTOM DECALS: cannot write {}", rex::path_to_utf8(offer));
+    return {};
+  }
   if (!std::filesystem::exists(header)) {
     using rex::system::xam::XCONTENT_AGGREGATE_DATA;
     XCONTENT_AGGREGATE_DATA data{};
@@ -180,12 +202,15 @@ std::filesystem::path EnsurePackage(const std::filesystem::path& user_root) {
   return decals;
 }
 
-// Makes the decals of the settings now and publishes them; at startup also removes the files no
-// decal uses any more (later the game may still have one open).
-void Build(bool at_startup) {
+// Makes the decals of the settings now and publishes them. At startup it takes only what is already made (the game
+// waits on it) and returns true when images are left for the background build; only a startup with nothing left
+// removes the files no decal uses any more (later the game may still have one open).
+bool Build(bool at_startup) {
   std::lock_guard lock(g_setup.mutex);
-  const std::string folder = REXCVAR_GET(fm4_custom_decals_folder);
-  const bool all_sponsors = REXCVAR_GET(fm4_all_sponsor_decals);
+  const Settings settings = CurrentSettings();
+  const std::string& folder = settings.folder;
+  const bool all_sponsors = settings.all_sponsors;
+  bool left_to_make = false;
   Status status;
   std::vector<std::pair<std::string, std::filesystem::path>> images;
   if (!folder.empty()) {
@@ -225,44 +250,90 @@ void Build(bool at_startup) {
       if (!ids.contains(name)) {
         REXLOG_WARN("CUSTOM DECALS: {} left out (at most {} decals)", name, kMaxDecals);
         status.problems.push_back(rex::path_to_utf8(path.filename()) + " (over the limit of " +
-                                  std::to_string(kMaxDecals) + " decals)");
+                                  std::to_string(kMaxDecals) + " different decal names used so far)");
         continue;
       }
+      if (g_stopping) return false;
       const int id = ids.at(name);
-      const auto bytes = ReadAll(path);
-      const std::string file = bytes ? DecalFileName(id, ImageHash(*bytes)) : std::string();
-      std::error_code ec;
-      const std::filesystem::path target = g_setup.decals_dir / file;
-      // An image made before is reused: its file has its id and hash in its name.
-      const bool made = bytes && std::filesystem::file_size(target, ec) == DecalFileSize(kCustomDecalSize);
-      if (!made) {
-        int w = 0, h = 0;
-        const std::vector<uint8_t> rgba =
-            bytes ? rex::ui::DecodeImageRGBA(bytes->data(), bytes->size(), w, h) : std::vector<uint8_t>{};
-        if (rgba.empty()) {
-          REXLOG_WARN("CUSTOM DECALS: {} is not a PNG image the game can read", rex::path_to_utf8(path));
-          status.problems.push_back(rex::path_to_utf8(path.filename()) + " (not a valid PNG image)");
+      // One image's trouble (out of memory on a huge one) is that image's alone.
+      try {
+        const auto bytes = ReadAll(path);
+        if (bytes && PngTooLarge(*bytes)) {
+          REXLOG_WARN("CUSTOM DECALS: {} is larger than {} pixels on a side", rex::path_to_utf8(path), kMaxImageSide);
+          status.problems.push_back(rex::path_to_utf8(path.filename()) + " (larger than " +
+                                    std::to_string(kMaxImageSide) + " pixels on a side)");
           continue;
         }
-        const auto decal =
-            EncodeDecal(FitImage(rgba, w, h, kCustomDecalSize), kCustomDecalSize, g_setup.decal_template);
-        if (!WriteAll(target, decal)) {
-          REXLOG_ERROR("CUSTOM DECALS: cannot write {}", rex::path_to_utf8(target));
-          status.problems.push_back(rex::path_to_utf8(path.filename()) + " (could not be saved)");
+        const std::string file = bytes ? DecalFileName(id, ImageHash(*bytes)) : std::string();
+        std::error_code ec;
+        const std::filesystem::path target = g_setup.decals_dir / file;
+        // An image made before is reused: its file has its id and hash in its name.
+        const bool made = bytes && std::filesystem::file_size(target, ec) == DecalFileSize(kCustomDecalSize);
+        if (!made && at_startup) {
+          left_to_make = true;
           continue;
         }
+        if (!made) {
+          int w = 0, h = 0;
+          const std::vector<uint8_t> rgba =
+              bytes ? rex::ui::DecodeImageRGBA(bytes->data(), bytes->size(), w, h) : std::vector<uint8_t>{};
+          if (rgba.empty()) {
+            REXLOG_WARN("CUSTOM DECALS: {} is not a PNG image the game can read", rex::path_to_utf8(path));
+            status.problems.push_back(rex::path_to_utf8(path.filename()) + " (not a valid PNG image)");
+            continue;
+          }
+          const auto decal =
+              EncodeDecal(FitImage(rgba, w, h, kCustomDecalSize), kCustomDecalSize, g_setup.decal_template);
+          if (!WriteAll(target, decal)) {
+            REXLOG_ERROR("CUSTOM DECALS: cannot write {}", rex::path_to_utf8(target));
+            status.problems.push_back(rex::path_to_utf8(path.filename()) + " (could not be saved)");
+            continue;
+          }
+        }
+        files.insert(file);
+        decals.push_back({id, name, file, 0});
+      } catch (const std::exception& e) {
+        REXLOG_ERROR("CUSTOM DECALS: {} could not be made: {}", rex::path_to_utf8(path), e.what());
+        status.problems.push_back(rex::path_to_utf8(path.filename()) + " (could not be made)");
       }
-      files.insert(file);
-      decals.push_back({id, name, file, 0});
     }
   } else if (!images.empty()) {
-    status.problems.push_back("The game's own decals could not be read, so custom decals are unavailable.");
+    status.problems.push_back(g_setup.ready
+                                  ? "The custom decals' folder in the user data could not be made."
+                                  : "The game's own decals could not be read, so custom decals are unavailable.");
+  }
+
+  // An image gone from the folder keeps its row and file: a saved livery remembers its decals by id.
+  if (!g_setup.decals_dir.empty()) {
+    std::set<int> live;
+    for (const LiveDecal& d : decals) live.insert(d.id);
+    std::map<int, std::pair<std::filesystem::file_time_type, std::string>> newest;
+    std::error_code ec;
+    for (std::filesystem::directory_iterator it(g_setup.decals_dir, ec), end; !ec && it != end; it.increment(ec)) {
+      const std::string file = rex::path_to_utf8(it->path().filename());
+      int id = 0;
+      if (!file.starts_with("custom_") || !file.ends_with(".carbin")) continue;
+      const auto parsed = std::from_chars(file.data() + 7, file.data() + file.size(), id);
+      if (parsed.ec != std::errc() || *parsed.ptr != '_') continue;
+      std::error_code item;
+      const auto time = it->last_write_time(item);
+      if (item) continue;
+      auto& best = newest[id];
+      if (best.second.empty() || time > best.first) best = {time, file};
+    }
+    for (const auto& [name, id] : ids) {
+      const auto found = newest.find(id);
+      if (live.contains(id) || found == newest.end()) continue;
+      files.insert(found->second.second);
+      decals.push_back({id, name, found->second.second, 0, true});
+    }
   }
 
   // Keys for the menu items' labels (ids 1 and 2, before every decal's) and the decals' names.
   constexpr int kApplyLabelId = 1, kChangeLabelId = 2;
   std::vector<int> decal_ids = {kApplyLabelId, kChangeLabelId};
-  for (const LiveDecal& d : decals) decal_ids.push_back(d.id);
+  // Every id ever given, not only those here now: a decal's key never moves while the game's rows still name it.
+  for (const auto& [name, id] : ids) decal_ids.push_back(id);
   const auto keys = AssignKeys(decal_ids, g_setup.taken_keys);
   std::map<uint16_t, std::u16string> shown;
   std::vector<LiveDecal> named;
@@ -272,23 +343,25 @@ void Build(bool at_startup) {
     shown[d.key] = Utf16(d.name);
     named.push_back(std::move(d));
   }
-  status.decals = int(named.size());
-  if (!named.empty() && keys.contains(kApplyLabelId) && keys.contains(kChangeLabelId)) {
+  status.decals = int(std::count_if(named.begin(), named.end(), [](const LiveDecal& d) { return !d.retired; }));
+  if (status.decals > 0 && keys.contains(kApplyLabelId) && keys.contains(kChangeLabelId)) {
     status.apply_key = keys.at(kApplyLabelId);
     status.change_key = keys.at(kChangeLabelId);
     shown[status.apply_key] = std::u16string(kApplyLabel);
     shown[status.change_key] = std::u16string(kChangeLabel);
   }
 
-  if (at_startup && !g_setup.decals_dir.empty()) {
+  if (at_startup && !left_to_make && !g_setup.decals_dir.empty()) {
     std::error_code ec;
     for (std::filesystem::directory_iterator it(g_setup.decals_dir, ec), end; !ec && it != end; it.increment(ec)) {
       if (!files.contains(rex::path_to_utf8(it->path().filename()))) std::filesystem::remove(it->path(), ec);
     }
   }
   Publish(DecalStatements(named, all_sponsors), std::move(shown), status);
-  REXLOG_INFO("CUSTOM DECALS: {} decal{} from {}{}", named.size(), named.size() == 1 ? "" : "s",
-              folder.empty() ? "no folder" : folder, all_sponsors ? ", all sponsor decals on every car" : "");
+  REXLOG_INFO("CUSTOM DECALS: {} decal{} from {}, {} kept for saved liveries{}", status.decals,
+              status.decals == 1 ? "" : "s", folder.empty() ? "no folder" : folder,
+              named.size() - size_t(status.decals), all_sponsors ? ", all sponsor decals on every car" : "");
+  return left_to_make;
 }
 
 }  // namespace
@@ -306,7 +379,9 @@ void InstallCustomDecals(const std::filesystem::path& game_data_root, const std:
     } else {
       REXLOG_WARN("CUSTOM DECALS: the game's decals (Media\\Livery.zip) are not readable");
     }
-    // Name keys the game's own decal names do not use, in any language.
+    // Name keys the game's own decal names do not use, in any language; the menu labels' keys also resolve in the
+    // editor's own tables, so one language's whole set of tables counts too (a table's keys are alike in each).
+    bool all_tables = false;
     std::error_code ec;
     for (std::filesystem::directory_iterator it(game_data_root / "Media" / "StringTables", ec), end;
          !ec && it != end; it.increment(ec)) {
@@ -315,10 +390,24 @@ void InstallCustomDecals(const std::filesystem::path& game_data_root, const std:
       if (const auto table = zip ? zip->Read("Livery_Decals.str") : std::nullopt) {
         if (const auto keys = StringHashes(*table)) g_setup.taken_keys.insert(keys->begin(), keys->end());
       }
+      if (zip && !std::exchange(all_tables, true)) {
+        for (const std::string& member : zip->MemberNames()) {
+          if (!member.ends_with(".str")) continue;
+          if (const auto other = zip->Read(member)) {
+            if (const auto keys = StringHashes(*other)) g_setup.taken_keys.insert(keys->begin(), keys->end());
+          }
+        }
+      }
     }
   }
+  SetSettings({REXCVAR_GET(fm4_custom_decals_folder), REXCVAR_GET(fm4_all_sponsor_decals)});
   std::string built = Signature();
-  Build(true);
+  // What is already made is there at once; new images are made in the background, the game not waiting on them.
+  if (Build(true)) {
+    built.clear();
+    SetBuilding();
+    g_watcher.woken = true;
+  }
   SetRebuild([] {
     {
       std::lock_guard lock(g_watcher.mutex);
@@ -335,12 +424,26 @@ void InstallCustomDecals(const std::filesystem::path& game_data_root, const std:
       lock.unlock();
       if (std::string now = Signature(); now != built) {
         SetBuilding();
-        Build(false);
+        try {
+          Build(false);
+        } catch (const std::exception& e) {
+          REXLOG_ERROR("CUSTOM DECALS: the build failed: {}", e.what());
+        }
         built = std::move(now);
       }
       lock.lock();
     }
   });
+}
+
+void StopCustomDecals() {
+  g_stopping = true;
+  {
+    std::lock_guard lock(g_watcher.mutex);
+    g_watcher.stop = true;
+  }
+  g_watcher.wake.notify_all();
+  if (g_watcher.thread.joinable()) g_watcher.thread.join();
 }
 
 

@@ -99,7 +99,13 @@ struct State {
   Status status;
   std::array<std::atomic<bool>, 0x10000> used{};
   std::function<void()> rebuild;
+  Settings settings;
+  uint64_t failed_generation = 0;
+  int failed = 0;
 };
+
+// A retired decal's place in the list; the custom picker leaves these out.
+constexpr std::string_view kRetiredSort = "~retired~";
 
 State& state() {
   static State s;
@@ -331,7 +337,8 @@ std::vector<std::string> DecalStatements(const std::vector<LiveDecal>& decals, b
     const uint32_t ref = kDecalStringTable << 16 | d.key;
     out.push_back("INSERT INTO Livery_Decals (ID, Filename, DisplayName, AlphaSort) VALUES (" + std::to_string(d.id) +
                   ", " + Quoted("GAME:\\Media\\Livery\\Decals\\" + d.file) + ", " +
-                  Quoted("_&" + std::to_string(ref)) + ", " + Quoted(d.name) + ")");
+                  Quoted("_&" + std::to_string(ref)) + ", " +
+                  Quoted(d.retired ? std::string(kRetiredSort) + d.name : d.name) + ")");
   }
   if (all_sponsors) {
     out.push_back("INSERT INTO Livery_DecalsSortOrder (ID, MakeID, Sequence, Livery_DecalID) SELECT " + sort_base +
@@ -353,7 +360,8 @@ std::optional<std::string> CustomPickerQuery(std::string_view sql) {
   const size_t at = sql.find(kList);
   if (at == std::string_view::npos) return std::nullopt;
   return std::string(sql.substr(0, at)) + " WHERE Livery_Decals.ID BETWEEN " + std::to_string(kFirstDecalId) +
-         " AND " + std::to_string(kFirstDecalId + kMaxDecals - 1) + " ORDER BY Livery_Decals.AlphaSort";
+         " AND " + std::to_string(kFirstDecalId + kMaxDecals - 1) + " AND Livery_Decals.AlphaSort NOT LIKE '" +
+         std::string(kRetiredSort) + "%' ORDER BY Livery_Decals.AlphaSort";
 }
 
 void Publish(std::vector<std::string> statements, std::map<uint16_t, std::u16string> names, Status status) {
@@ -386,6 +394,34 @@ bool StatementsSince(uint64_t& generation, std::vector<std::string>* statements)
   generation = s.taken = s.generation;
   if (statements) *statements = s.statements;
   return true;
+}
+
+void StatementsFailed(uint64_t& generation) {
+  constexpr int kTries = 3;
+  State& s = state();
+  std::lock_guard lock(s.mutex);
+  if (s.failed_generation != generation) {
+    s.failed_generation = generation;
+    s.failed = 0;
+  }
+  if (++s.failed < kTries) {
+    generation = 0;  // taken again at the next look (the statements start by clearing the custom rows)
+    s.taken = 0;
+  } else {
+    s.status.problems.push_back("Some custom decals could not be added to the game's database.");
+  }
+}
+
+void SetSettings(Settings settings) {
+  State& s = state();
+  std::lock_guard lock(s.mutex);
+  s.settings = std::move(settings);
+}
+
+Settings CurrentSettings() {
+  State& s = state();
+  std::lock_guard lock(s.mutex);
+  return s.settings;
 }
 
 bool ChangesWaiting() {

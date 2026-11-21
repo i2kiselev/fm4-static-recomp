@@ -75,6 +75,8 @@ struct LiveDecal {
   std::string name;  // shown in the editor; also its place in the list (AlphaSort)
   std::string file;  // its file name in GAME:\Media\Livery\Decals
   uint16_t key;      // its name's string key
+  // Its image has left the folder: the row and file stay, so a saved livery keeps it, but no picker lists it.
+  bool retired = false;
 };
 // A name key for each id (in id order), none of `taken` (the game's Livery_Decals keys).
 std::map<int, uint16_t> AssignKeys(const std::vector<int>& ids, const std::set<uint16_t>& taken);
@@ -111,6 +113,8 @@ Status CurrentStatus();
 // The statements of the newest state when it is newer than `generation` (then updated); the
 // game has taken that state (it takes it as the paint editor opens).
 bool StatementsSince(uint64_t& generation, std::vector<std::string>* statements);
+// Some of those statements failed: the next look takes them again, a few times, then the page says so.
+void StatementsFailed(uint64_t& generation);
 // True while decals are being made, or made but not yet taken by the game: the paint editor
 // shows them the next time it opens.
 bool ChangesWaiting();
@@ -133,6 +137,15 @@ void InstallCustomDecals(const std::filesystem::path& game_data_root, const std:
 // (every 2 seconds, in the background, as images are added, edited or taken out). The game takes
 // them the next time the paint editor opens.
 void ApplyCustomDecals();
+// The settings the background builds read: the page sets them as it applies (the cvars are not safe across threads).
+struct Settings {
+  std::string folder;
+  bool all_sponsors = false;
+};
+void SetSettings(Settings settings);
+Settings CurrentSettings();
+// Ends the background builds: before the runtime goes away.
+void StopCustomDecals();
 // What ApplyCustomDecals runs (InstallCustomDecals sets it); without one it does nothing.
 void SetRebuild(std::function<void()> rebuild);
 

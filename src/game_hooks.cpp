@@ -1540,6 +1540,7 @@ void Fm4DatabaseQuery(PPCContext& ctx, uint8_t* base, PPCRegister& r1, PPCRegist
   }
   nested = false;
   memory->SystemHeapFree(out);
+  if (failed) fm4_static_recomp::decals::StatementsFailed(applied);
   REXLOG_INFO("CUSTOM DECALS: {} database statement{} applied{}", statements.size(),
               statements.size() == 1 ? "" : "s", failed ? ", " + std::to_string(failed) + " failed" : std::string());
 }

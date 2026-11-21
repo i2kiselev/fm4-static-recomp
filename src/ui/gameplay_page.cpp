@@ -130,6 +130,7 @@ struct Draft {
       decals_changed = decals_changed || name == kDecalsFolder || name == kAllSponsors;
     }
     if (decals_changed) {
+      decals::SetSettings({REXCVAR_GET(fm4_custom_decals_folder), REXCVAR_GET(fm4_all_sponsor_decals)});
       decals::ApplyCustomDecals();
     }
     pending.clear();

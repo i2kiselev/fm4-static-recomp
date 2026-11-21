@@ -187,19 +187,53 @@ TEST_CASE("The database statements replace the custom rows", "[custom_decals]") 
   CHECK(Contains(sponsors[2], "m.MakeID, 900, d.ID"));
 }
 
+TEST_CASE("A decal whose image has gone keeps its row, out of the picker", "[custom_decals]") {
+  const auto rows = decals::DecalStatements({{9001, "Kept", "custom_9001_00000000000000aa.carbin", 0xF4A1},
+                                             {9002, "Gone", "custom_9002_00000000000000bb.carbin", 0xF4A3, true}},
+                                            false);
+  REQUIRE(rows.size() == 4);
+  CHECK(Contains(rows[2], "'Kept')"));
+  CHECK(Contains(rows[3], "(9002, "));
+  CHECK(Contains(rows[3], "'~retired~Gone')"));
+}
+
+TEST_CASE("A decal's key does not move when another image goes", "[custom_decals]") {
+  const auto all = decals::AssignKeys({1, 2, 9001, 9002, 9003}, {});
+  const auto again = decals::AssignKeys({1, 2, 9001, 9002, 9003, 9004}, {});
+  for (const int id : {9001, 9002, 9003}) CHECK(all.at(id) == again.at(id));
+}
+
+TEST_CASE("Failed database statements are taken again, a few times", "[custom_decals]") {
+  uint64_t seen = 0;
+  std::vector<std::string> statements;
+  decals::StatementsSince(seen, nullptr);
+  decals::Publish({"A"}, {}, {});
+  REQUIRE(decals::StatementsSince(seen, &statements));
+  decals::StatementsFailed(seen);
+  CHECK(decals::ChangesWaiting());
+  REQUIRE(decals::StatementsSince(seen, &statements));
+  decals::StatementsFailed(seen);
+  REQUIRE(decals::StatementsSince(seen, &statements));
+  decals::StatementsFailed(seen);  // the third: left alone, and said on the page
+  CHECK_FALSE(decals::StatementsSince(seen, &statements));
+  CHECK(decals::CurrentStatus().problems.size() == 1);
+  decals::Publish({}, {}, {});
+  decals::StatementsSince(seen, nullptr);
+}
+
 TEST_CASE("A custom decal item's picker lists the custom decals alone", "[custom_decals]") {
   // The picker's queries, as the game sends them.
   CHECK(decals::CustomPickerQuery(
             "SELECT Livery_Decals.ID AS ID FROM Livery_Decals INNER JOIN Livery_DecalsSortOrder ON "
             "(Livery_Decals.ID = Livery_DecalsSortOrder.Livery_DecalID) WHERE MakeID = 52 ORDER BY Sequence, "
             "AlphaSort") ==
-        "SELECT Livery_Decals.ID AS ID FROM Livery_Decals WHERE Livery_Decals.ID BETWEEN 9001 AND 9999 ORDER BY "
-        "Livery_Decals.AlphaSort");
+        "SELECT Livery_Decals.ID AS ID FROM Livery_Decals WHERE Livery_Decals.ID BETWEEN 9001 AND 9999 AND "
+        "Livery_Decals.AlphaSort NOT LIKE '~retired~%' ORDER BY Livery_Decals.AlphaSort");
   CHECK(decals::CustomPickerQuery(
             "SELECT Livery_Decals.FileName FROM Livery_Decals  INNER JOIN Livery_DecalsSortOrder ON "
             "(Livery_Decals.ID = Livery_DecalsSortOrder.Livery_DecalID) WHERE MakeID = 7 ORDER BY Sequence, AlphaSort") ==
-        "SELECT Livery_Decals.FileName FROM Livery_Decals  WHERE Livery_Decals.ID BETWEEN 9001 AND 9999 ORDER BY "
-        "Livery_Decals.AlphaSort");
+        "SELECT Livery_Decals.FileName FROM Livery_Decals  WHERE Livery_Decals.ID BETWEEN 9001 AND 9999 AND "
+        "Livery_Decals.AlphaSort NOT LIKE '~retired~%' ORDER BY Livery_Decals.AlphaSort");
   // Anything else is left alone.
   CHECK_FALSE(decals::CustomPickerQuery("SELECT ID, Filename AS elemname FROM Livery_Decals ORDER BY ID"));
   CHECK_FALSE(decals::CustomPickerQuery("DELETE FROM Livery_DecalsSortOrder INNER JOIN Livery_DecalsSortOrder ON "
