@@ -12,7 +12,7 @@
 
 namespace fm4_static_recomp {
 
-// HARDCORE: options that change the game's own data as it loads it, each only ever making the
+// CAREER DIFFICULTY (named Hardcore in the code): options that change the game's own data as it loads it, each only ever making the
 // game harder. The game reads its database (Media\db\gamedb.slt) and its tunables
 // (Media\GameTunableSettings\GameTunableSettings.ini) read-only at startup; with an option set,
 // an edited copy of either is served in place of the file (a content override), so the files on
@@ -79,7 +79,7 @@ std::optional<std::vector<uint8_t>> EditDatabase(const std::vector<uint8_t>& byt
 // and logs what each changed. An option whose edits cannot be made is left out, with a warning.
 void InstallHardcoreOptions(const std::filesystem::path& game_data_root);
 
-// A HARDCORE setting's value as the game started (what this session's data has), for the
+// A CAREER DIFFICULTY setting's value as the game started (what this session's data has), for the
 // "from the next start" notes; its value now before InstallHardcoreOptions ran.
 std::string HardcoreSettingAtStart(std::string_view name);
 

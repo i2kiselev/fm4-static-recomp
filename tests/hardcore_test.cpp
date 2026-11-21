@@ -231,7 +231,7 @@ TEST_CASE("A value that cannot be scaled says why", "[hardcore]") {
   CHECK(why == "is not a number");
 }
 
-TEST_CASE("Only the HARDCORE options set, and in range, are applied", "[hardcore]") {
+TEST_CASE("Only the CAREER DIFFICULTY options set, and in range, are applied", "[hardcore]") {
   const auto reset = [] {
     for (const char* name : {"fm4_race_payouts", "fm4_repair_costs", "fm4_resale_value"}) {
       rex::cvar::SetFlagByName(name, "100");

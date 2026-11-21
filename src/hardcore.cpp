@@ -19,13 +19,13 @@
 #include <sqlite3.h>
 
 REXCVAR_DEFINE_INT32(fm4_race_payouts, 100, "Forza Motorsport 4",
-                     "HARDCORE: race payouts as a percentage of the game's: 100, 75 or 50 (from the "
+                     "CAREER DIFFICULTY: race payouts as a percentage of the game's: 100, 75 or 50 (from the "
                      "next start)");
 REXCVAR_DEFINE_INT32(fm4_repair_costs, 100, "Forza Motorsport 4",
-                     "HARDCORE: repair costs as a percentage of the game's: 100, 200 or 300 (from "
+                     "CAREER DIFFICULTY: repair costs as a percentage of the game's: 100, 200 or 300 (from "
                      "the next start)");
 REXCVAR_DEFINE_INT32(fm4_resale_value, 100, "Forza Motorsport 4",
-                     "HARDCORE: what selling a car pays, as a percentage of the game's: 100, 75 or "
+                     "CAREER DIFFICULTY: what selling a car pays, as a percentage of the game's: 100, 75 or "
                      "50 (from the next start)");
 
 namespace fm4_static_recomp {
@@ -102,7 +102,7 @@ std::vector<HardcoreOption> ActiveHardcoreOptions() {
   const auto setting = [](const char* name, std::initializer_list<int> allowed) -> std::optional<int> {
     const int value = std::atoi(rex::cvar::GetFlagByName(name).c_str());
     if (std::find(allowed.begin(), allowed.end(), value) == allowed.end()) {
-      REXLOG_WARN("HARDCORE: {} = {} is not one of its settings; the game's is kept", name, value);
+      REXLOG_WARN("CAREER DIFFICULTY: {} = {} is not one of its settings; the game's is kept", name, value);
       return std::nullopt;
     }
     return value;
@@ -295,7 +295,7 @@ void InstallHardcoreOptions(const std::filesystem::path& game_data_root) {
       }
     }
     if (!problem.empty()) {
-      REXLOG_WARN("HARDCORE: {} not applied: {}", option.name, problem);
+      REXLOG_WARN("CAREER DIFFICULTY: {} not applied: {}", option.name, problem);
       continue;
     }
     if (next_database) {
@@ -306,7 +306,7 @@ void InstallHardcoreOptions(const std::filesystem::path& game_data_root) {
       tunables = std::move(next_tunables);
       tunables_changed = true;
     }
-    REXLOG_INFO("HARDCORE: {} ({} database statements){}", option.name, option.edits.sql.size(), changes);
+    REXLOG_INFO("CAREER DIFFICULTY: {} ({} database statements){}", option.name, option.edits.sql.size(), changes);
   }
   if (database_changed) rex::filesystem::SetContentOverride(kDatabaseGuestPath, std::move(*database));
   if (tunables_changed) {

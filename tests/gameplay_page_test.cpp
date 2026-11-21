@@ -136,11 +136,11 @@ TEST_CASE("A saved count out of range is ignored", "[gameplay_page]") {
   CHECK(QuickRaceLapsSetting() == 0);
 }
 
-TEST_CASE("HARDCORE has its three settings, each the game's own by default", "[gameplay_page]") {
+TEST_CASE("CAREER DIFFICULTY has its three settings, each the game's own by default", "[gameplay_page]") {
   Page page("");
   fm4_static_recomp::InstallHardcoreOptions({});  // the game started with them all off
   const auto& rows = page.screen->rows();
-  CHECK(rows[1].label == "HARDCORE");
+  CHECK(rows[1].label == "CAREER DIFFICULTY");
   CHECK_FALSE(rows[1].is_enabled());  // a heading
   CHECK(rows[2].label == "RACE PAYOUTS");
   CHECK(rows[3].label == "REPAIR COSTS");
@@ -152,7 +152,7 @@ TEST_CASE("HARDCORE has its three settings, each the game's own by default", "[g
   }
 }
 
-TEST_CASE("HARDCORE settings step through their choices and save for the next start",
+TEST_CASE("CAREER DIFFICULTY settings step through their choices and save for the next start",
           "[gameplay_page]") {
   Page page("");
   fm4_static_recomp::InstallHardcoreOptions({});
@@ -178,7 +178,7 @@ TEST_CASE("HARDCORE settings step through their choices and save for the next st
   CHECK(rows[2].note() == "");
 }
 
-TEST_CASE("Saved HARDCORE settings are applied at startup, ones out of range ignored",
+TEST_CASE("Saved CAREER DIFFICULTY settings are applied at startup, ones out of range ignored",
           "[gameplay_page]") {
   {
     Page page("fm4_race_payouts = 75\nfm4_resale_value = 50\n");
