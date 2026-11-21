@@ -11,7 +11,9 @@ identical function reached through the vtables pointing at a duplicated body; th
 function between matched neighbours (changed); for code without PDATA, the neighbours' shift
 with branch targets checked through the function map; for data, the address every reference
 in an identical function agrees on. Anything else stops with the address. Entries found in a
-changed function carry `changed`: review them before committing the table.
+changed function carry `changed`: review them before committing the table. A data address the
+references cannot settle (none in identical functions, or they disagree) is found by hand and
+written into the table with `reviewed` (what showed it), which a rerun keeps.
 """
 import argparse
 import bisect
@@ -268,7 +270,9 @@ def main():
     print(f"{len(port.fo)} functions, {len(port.match)} matched, {len(port.same)} identical")
 
     wanted = list({a.address: a for a in ci.canonical_addresses()}.values())
-    entries, failed = {}, []
+    out = ci.port_table_path(image)
+    reviewed = ci.load_port_table(image) if out.is_file() else {}
+    entries, failed, notes = {}, [], {}
     for a in (a for a in wanted if a.kind == "code"):
         b, how, changed = port._code(a.address)
         if b is None or (changed is None and ci.code_fingerprint(old, a.address) != ci.code_fingerprint(new, b)):
@@ -281,6 +285,11 @@ def main():
     for a in data:
         found = votes.get(a.address, collections.Counter())
         if len(found) != 1 or None in found:
+            kept = reviewed.get(a.address, {})
+            if "reviewed" in kept:
+                entries[a.address] = (a, kept["at"], "data, found by hand", None)
+                notes[a.address] = kept["reviewed"]
+                continue
             failed.append(f"{a.label} 0x{a.address:08X}: references disagree "
                           f"({', '.join(f'{v:08X}' if v else '?' for v in found) or 'none'})")
             continue
@@ -291,11 +300,11 @@ def main():
 
     new_refs = ci.data_references(new, [b for a, b, *_ in entries.values() if a.kind == "data"])
     # A reviewed note stays while the address does.
-    out = ci.port_table_path(image)
-    reviewed = ci.load_port_table(image) if out.is_file() else {}
     for canonical, (a, b, how, changed) in entries.items():
-        if changed and reviewed.get(canonical, {}).get("at") == b and "changed" in reviewed[canonical]:
-            entries[canonical] = (a, b, how, reviewed[canonical]["changed"])
+        # A data address with a different reference count carries its review note the same way.
+        kept = reviewed.get(canonical, {})
+        if (changed or a.kind == "data") and kept.get("at") == b and "changed" in kept:
+            entries[canonical] = (a, b, how, kept["changed"])
     lines = [f"# Code image {image}: where each canonical (1.0) guest address of the build is in it.",
              "# Written by tools/port_release.py; `fingerprint` hashes the normalised code at `at`,",
              "# `references` counts the code building a data address. `changed` marks an address in a",
@@ -306,6 +315,8 @@ def main():
         check = (f"references = {new_refs[b]}" if a.kind == "data"
                  else f'fingerprint = "{ci.code_fingerprint(new, b)}"')
         note = f', changed = "{changed}"' if changed else ""
+        if canonical in notes:
+            note += f', reviewed = "{notes[canonical]}"'
         lines.append(f"# {a.label}: {how}")
         lines.append(f"0x{canonical:08X} = {{ at = 0x{b:08X}, {check}{note} }}")
         if a.kind == "data" and new_refs[b] != old_refs[canonical]:
