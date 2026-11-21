@@ -73,6 +73,7 @@ struct NavOutcome {
   bool slider = false;         // the focused row is a slider
   bool slots = false;          // the focused row is a row of key slots
   bool capturing = false;      // a key capture was running
+  bool inert = false;          // the row cannot change now (disabled, nothing to adjust, the page busy)
 };
 
 // The sound for a command, or none.

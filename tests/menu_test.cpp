@@ -71,6 +71,11 @@ TEST_CASE("Sliders, slots, applying and leaving have theirs", "[menu]") {
         MenuSound::kAccept);
   CHECK(NavSound({.command = NavCommand::kApply, .handled = true}) == MenuSound::kAccept);
   CHECK_FALSE(NavSound({.command = NavCommand::kApply}));
+  // A key taken off its slot sounds, though no shown value moves; a row that cannot change has no end to reach.
+  CHECK(NavSound({.command = NavCommand::kClear, .handled = true, .slots = true}) == MenuSound::kChange);
+  CHECK_FALSE(NavSound({.command = NavCommand::kClear}));
+  CHECK_FALSE(NavSound({.command = NavCommand::kRight, .inert = true}));
+  CHECK_FALSE(NavSound({.command = NavCommand::kLeft, .slider = true, .inert = true}));
   CHECK(NavSound({.command = NavCommand::kBack, .left_screen = true}) == MenuSound::kBack);
   // The screen kept open (unapplied changes, asked to confirm).
   CHECK(NavSound({.command = NavCommand::kBack, .handled = true}) == MenuSound::kError);

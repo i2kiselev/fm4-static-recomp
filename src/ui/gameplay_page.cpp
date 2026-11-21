@@ -47,6 +47,7 @@ struct Draft {
   int Laps() const { return laps.value_or(QuickRaceLapsSetting()); }
 
   void Change(int value) {
+    if (value == Laps()) return;  // a press at the row's end
     if (value == QuickRaceLapsSetting()) {
       laps.reset();
     } else {

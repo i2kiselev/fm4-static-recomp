@@ -1466,6 +1466,8 @@ struct QueuedUiSound {
 };
 std::mutex g_ui_sound_mutex;
 std::vector<QueuedUiSound> g_ui_sounds;
+std::atomic<bool> g_ui_sounds_waiting{false};  // looked at on every text update, without the lock
+constexpr auto kUiSoundMaxAge = std::chrono::milliseconds(150);
 std::unordered_map<uint32_t, std::chrono::steady_clock::time_point> g_ui_sound_last;
 
 // The UI object manager's play-sound slot (+0xEC): (manager, scene key, sound id).
@@ -1475,13 +1477,14 @@ constexpr uint32_t kUiManagerPlaySound = 0xEC;
 // PlaySound looks its element's scene up first, for the scenes' sound overrides; the host menu
 // is no scene, so it takes the defaults.
 void PlayQueuedUiSounds(PPCContext& ctx, uint8_t* base, uint32_t stack) {
+  if (!g_ui_sounds_waiting.load(std::memory_order_acquire)) {
+    return;
+  }
   std::vector<QueuedUiSound> sounds;
   {
     const std::lock_guard lock(g_ui_sound_mutex);
-    if (g_ui_sounds.empty()) {
-      return;
-    }
     sounds.swap(g_ui_sounds);
+    g_ui_sounds_waiting.store(false, std::memory_order_release);
   }
   const uint32_t manager = LoadGuestWord(base, fm4_guest::kUiManagerPointer);
   const uint32_t vtable = manager ? LoadGuestWord(base, manager) : 0;
@@ -1491,7 +1494,7 @@ void PlayQueuedUiSounds(PPCContext& ctx, uint8_t* base, uint32_t stack) {
   }
   const auto now = std::chrono::steady_clock::now();
   for (const QueuedUiSound& sound : sounds) {
-    if (now - sound.queued > std::chrono::milliseconds(150)) {
+    if (now - sound.queued > kUiSoundMaxAge) {
       continue;
     }
     if (const uint32_t id = LoadGuestWord(base, sound.id_address)) {
@@ -1505,12 +1508,15 @@ void PlayQueuedUiSounds(PPCContext& ctx, uint8_t* base, uint32_t stack) {
 void fm4_static_recomp::PlayUiSound(uint32_t id_address) {
   const auto now = std::chrono::steady_clock::now();
   const std::lock_guard lock(g_ui_sound_mutex);
+  // Sounds too old to play make way for this one.
+  std::erase_if(g_ui_sounds, [&](const QueuedUiSound& s) { return now - s.queued > kUiSoundMaxAge; });
   auto& last = g_ui_sound_last[id_address];
   if (now - last < std::chrono::milliseconds(40) || g_ui_sounds.size() >= 4) {
     return;
   }
   last = now;
   g_ui_sounds.push_back({id_address, now});
+  g_ui_sounds_waiting.store(true, std::memory_order_release);
 }
 
 // A text element's update, before it checks whether to lay its text out again: a prompt

@@ -613,7 +613,7 @@ class Fm4App final : public rex::ReXApp {
           case MenuSound::kBack: id = fm4_guest::kUiSoundCancel; break;
           case MenuSound::kError: id = fm4_guest::kUiSoundError; break;
         }
-        fm4_static_recomp::PlayUiSound(id);
+        if (id) fm4_static_recomp::PlayUiSound(id);
       });
     }
     fm4_static_recomp::ui::GraphicsPageServices services;

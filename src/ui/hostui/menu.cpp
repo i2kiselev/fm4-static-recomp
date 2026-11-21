@@ -59,6 +59,7 @@ std::optional<MenuSound> NavSound(const NavOutcome& o) {
       return o.focus_moved ? std::optional(MenuSound::kMove) : std::nullopt;
     case NavCommand::kLeft:
     case NavCommand::kRight:
+      if (o.inert) return std::nullopt;  // not at an end: it does not move at all
       if (o.slider) {
         if (!o.value_changed) {
           return MenuSound::kSlideEnd;
@@ -70,6 +71,7 @@ std::optional<MenuSound> NavSound(const NavOutcome& o) {
       }
       return o.value_changed ? MenuSound::kChange : MenuSound::kEnd;
     case NavCommand::kAccept:
+      if (o.inert) return std::nullopt;
       if (o.slots) {
         return o.handled ? std::optional(MenuSound::kAccept) : std::nullopt;
       }
@@ -80,7 +82,8 @@ std::optional<MenuSound> NavSound(const NavOutcome& o) {
     case NavCommand::kApply:
       return o.handled ? std::optional(MenuSound::kAccept) : std::nullopt;
     case NavCommand::kClear:
-      return o.value_changed ? std::optional(MenuSound::kChange) : std::nullopt;
+      // A key taken off its slot: the slot stays where it is, so no value shows the change.
+      return o.handled ? std::optional(MenuSound::kChange) : std::nullopt;
     case NavCommand::kBack:
     case NavCommand::kClose:
       if (o.left_screen) {

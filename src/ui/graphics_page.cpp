@@ -404,6 +404,7 @@ struct Draft {
   }
 
   void Change(const Setting& setting, std::string value) {
+    if (value == Value(setting)) return;  // a press at a row's end: nothing changed, the page's state stands
     if (value == Live(setting.name)) {
       values.erase(&setting);
     } else {
@@ -716,10 +717,11 @@ MenuRow AntiAliasingRow(const char* label, const Setting& setting,
 MenuRow UpscalerRow(const std::shared_ptr<Draft>& draft, const GraphicsPageServices& services) {
   MenuRow row = Row("UPSCALER", kUpscaler, draft);
   row.adjust = [draft, services](int direction) {
-    const int index =
-        StepUsable(kUpscaler, Find(kUpscaler, draft->Value(kUpscaler)), direction, [&](int i) {
-          return !UpscalerProblem(services, kUpscaler.choices[size_t(i)].value);
-        });
+    const int current = Find(kUpscaler, draft->Value(kUpscaler));
+    const int index = StepUsable(kUpscaler, current, direction, [&](int i) {
+      return !UpscalerProblem(services, kUpscaler.choices[size_t(i)].value);
+    });
+    if (index == current) return;
     draft->Change(kUpscaler, kUpscaler.choices[size_t(index)].value);
     // An upscaler only upscales: a scale rendering larger than the screen
     // comes down to the largest that fits, drafted like any change.

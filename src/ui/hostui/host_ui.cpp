@@ -453,6 +453,7 @@ void HostUi::Apply(NavCommand command) {
     const MenuRow& row = screen_->rows()[screen_->focus()];
     outcome.slider = row.slider.has_value();
     outcome.slots = bool(row.slots);
+    outcome.inert = !row.is_enabled() || screen_->status().busy || (!row.adjust && !row.slider && !row.slots);
   }
   const RowState before = FocusedState();
   applying_ = true;
@@ -464,6 +465,7 @@ void HostUi::Apply(NavCommand command) {
     const RowState after = FocusedState();
     outcome.focus_moved = after.focus != before.focus;
     outcome.value_changed = !outcome.focus_moved && after != before;
+    if (outcome.focus_moved) slide_at_end_ = false;  // another slider: its end sounds again
   }
   PlaySound(NavSound(outcome));
   if (std::exchange(close_pending_, false) || result == MenuScreen::Result::kBack) {
@@ -496,6 +498,9 @@ void HostUi::PollPad() {
   const int slide_steps = on_slider ? StickSlideSteps(int16_t(state.gamepad.thumb_lx), now) : 0;
   if (!on_slider) {
     slide_owed_ = 0.0f;
+  }
+  if (std::abs(int(state.gamepad.thumb_lx)) < 7849) {  // the stick let go: the next push into an end sounds again
+    slide_at_end_ = false;
   }
   if (commands.empty() && !slide_steps) {
     return;
@@ -1223,7 +1228,7 @@ void HostUi::OnKeyDown(rex::ui::KeyEvent& e) {
   if (screen_->capturing()) {
     if (const std::string name = input::BindKeyName(key); !e.prev_state() && !name.empty()) {
       captured_key_ = int(key);
-      screen_->CaptureKey(name);
+      if (screen_->CaptureKey(name) == MenuScreen::Result::kChanged) PlaySound(MenuSound::kAccept);
       RequestPaint();
     }
     return;

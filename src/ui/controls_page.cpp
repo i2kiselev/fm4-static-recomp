@@ -264,6 +264,9 @@ struct Draft {
   void Store(const std::string& name, std::string value, std::string default_value,
              bool quoted) {
     const auto saved = Saved(name);
+    // A press at a row's end: nothing changed, the page's state stands.
+    const auto edit = edits.find(name);
+    if (value == (edit != edits.end() ? edit->second.value : saved ? *saved : default_value)) return;
     if (saved ? value == *saved : value == default_value) {
       edits.erase(name);
     } else {
