@@ -554,7 +554,7 @@ class Fm4App final : public rex::ReXApp {
     fm4_static_recomp::SetPromptTextSource(
         [this](uint16_t key, std::u16string_view text) -> std::optional<std::u16string> {
           // The title screen with the mouse in use: a click starts the game (menu_mouse).
-          if (input::MouseLast() && text == u"Press A to start the game.") return u"Click to start";
+          if (input::MouseLast() && text == u"Press A to start the game.") return u"Click to start the game.";
           if (!keyboard_prompts_.load(std::memory_order_relaxed)) {
             return std::nullopt;
           }
