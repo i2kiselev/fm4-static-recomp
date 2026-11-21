@@ -5,6 +5,8 @@
 image = "rev1"
 
 [addresses]
+# kPlayerControllerVtable: data, 6 references in identical functions
+0x8200265C = { at = 0x8200267C, references = 7 }
 # hook Fm4UiSceneStep: identical function
 0x822A46D0 = { at = 0x822A48E0, fingerprint = "e9974b79bace224f" }
 # hook Fm4MusicUpdate: identical function
@@ -85,6 +87,8 @@ image = "rev1"
 0x825A90A8 = { at = 0x825AF638, fingerprint = "53f6a43c2f460734" }
 # hook Fm4RaceMenuSceneDestroyed: identical function
 0x825A9100 = { at = 0x825AF690, fingerprint = "477c4ecd604792d3" }
+# kPauseMenuRestartConfirmed: identical function
+0x825A9C40 = { at = 0x825B0220, fingerprint = "433499a2c49c08ba" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x825BF700 = { at = 0x825C6278, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4RaceMenuSceneCreated: identical function
@@ -97,6 +101,8 @@ image = "rev1"
 0x825BFAC0 = { at = 0x825C6638, fingerprint = "9a139160c2a88151" }
 # hook Fm4RaceMenuSceneCreated: identical function
 0x825C10B0 = { at = 0x825C7AB8, fingerprint = "6b4589107dcc75a4" }
+# kPreRaceStartRace: identical function
+0x825C1630 = { at = 0x825C8038, fingerprint = "da6f25f2104cbcd3" }
 # switch 0x825CAB50: most similar function, aligned
 0x825CAB50 = { at = 0x825D1350, fingerprint = "e505a6b675c3b370", changed = "reviewed: only a field after the switch moved (0x2F5C became 0x2F6C at 0x825CAC48); the switch, its byte table and labels are unchanged" }
 # switch 0x825CAB50 label: most similar function, aligned
@@ -191,5 +197,19 @@ image = "rev1"
 0x82C77CF8 = { at = 0x82C82C10, fingerprint = "97f3f29734d22b76" }
 # kControlOffsetTable: data, 103 references in identical functions
 0x82D59FF0 = { at = 0x82D59FE0, references = 103 }
+# kRaceDriversOwner: data, 144 references in identical functions
+0x82DC3704 = { at = 0x82DC3844, references = 207, changed = "reviewed: all 144 references in identical functions agree; the count differs in functions Rev 1 changed. Neighbouring pointers moved +0x140" }
 # kScenarioManagerPointer: data, 79 references in identical functions
 0x82DC3750 = { at = 0x82DC3890, references = 112 }
+# kStartControllerSlot: data, 8 references in identical functions
+0x82DDB12C = { at = 0x82DDB27C, references = 13 }
+# kStartDuration: data, 3 references in identical functions
+0x82DDB130 = { at = 0x82DDB280, references = 5 }
+# kAiRevKeyframes: data, 1 references in identical functions
+0x82DDB1A4 = { at = 0x82DDB2F4, references = 3 }
+# kPreRaceCamsFade: data, 1 references in identical functions
+0x82DDB1D0 = { at = 0x82DDB320, references = 7, changed = "reviewed: the one reference in an identical function and the start cameras beside it (+0x150) agree; the count differs in functions Rev 1 changed" }
+# kHumanRevKeyframes: data, 1 references in identical functions
+0x82DDB24C = { at = 0x82DDB39C, references = 3 }
+# kStartCams: data, found by hand
+0x82DDF344 = { at = 0x82DDF494, references = 0, reviewed = "the start cameras' pointer: no reference in an identical function; every neighbouring address referenced (0x82DDF308..0x82DDF380) moved +0x150" }
