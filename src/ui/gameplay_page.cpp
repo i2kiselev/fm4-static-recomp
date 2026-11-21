@@ -158,9 +158,10 @@ MenuRow QuickRestartRow(const std::shared_ptr<Draft>& draft) {
   row.label = "QUICK RESTART";
   row.divider_above = true;
   row.description =
-      "Hold the QUICK RESTART BUTTON for a moment while racing to restart the race at once: "
-      "the screen fades to black and comes back on the countdown, with no menus and a short "
-      "start. Only while racing, never in menus or during a countdown.";
+      "Press the QUICK RESTART BUTTON while racing (held for a moment, or one tap: see QUICK "
+      "RESTART TRIGGER) to restart the race at once: the screen fades to black and comes back on "
+      "the countdown, with no menus and a short start. Only while racing, never in menus or during "
+      "a countdown.";
   row.value = [draft] { return std::string(draft->RestartOn() ? "ON" : "OFF"); };
   row.adjust = [draft](int) {
     if (draft->RestartOn()) {
@@ -192,6 +193,7 @@ MenuRow QuickRestartButtonRow(const std::shared_ptr<Draft>& draft) {
     if (draft->RestartOn()) draft->Change(kQuickRestart, draft->last_button);
   };
   row.enabled = [draft] { return draft->RestartOn(); };
+  row.badge = [] { return LaunchOptionBadge(kQuickRestart); };
   row.unapplied = [draft] { return draft->pending.contains(kQuickRestart); };
   return row;
 }

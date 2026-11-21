@@ -172,3 +172,43 @@ TEST_CASE("A pre-race screen still up after START RACE gets A", "[quick_restart]
   race.Run(0.05);
   CHECK_FALSE(race.quick.running());
 }
+
+TEST_CASE("A restart that lands on another menu gives the player the screen back", "[quick_restart]") {
+  Race race;
+  race.frame.pad = kLeft;
+  race.Run(QuickRestart::kHoldSeconds);
+  race.Run(0.2);
+  race.frame.driving = false;
+  race.Run(0.05);
+  race.frame.direct_done = true;
+  race.Run(0.05);
+  race.frame.direct_done = false;
+  race.frame.race_view = false;  // loading
+  race.Run(1.0);
+  CHECK(race.quick.running());
+  race.frame.menu_waiting = true;  // a message box instead of the pre-race screen
+  CHECK_FALSE(race.Run(0.05) & kA);
+  CHECK_FALSE(race.quick.running());
+}
+
+TEST_CASE("The button stays off the game until it is let go after a restart", "[quick_restart]") {
+  Race race;
+  race.frame.pad = kLeft;
+  race.Run(QuickRestart::kHoldSeconds);
+  race.Run(0.2);
+  CHECK(race.quick.running());
+  race.frame.driving = false;
+  race.Run(0.05);
+  race.frame.direct_done = true;
+  race.Run(0.05);
+  race.frame.direct_done = false;
+  race.frame.race_view = false;
+  race.Run(1.0);
+  race.frame.race_view = true;
+  race.frame.driving = true;
+  race.Run(0.05);
+  CHECK(race.quick.releasing());  // still held
+  race.frame.pad = 0;
+  race.Run(0.05);
+  CHECK_FALSE(race.quick.releasing());
+}

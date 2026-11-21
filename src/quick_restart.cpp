@@ -29,7 +29,7 @@ constexpr double kPauseTimeout = 2.0;  // START pressed but no pause menu: give 
 // is pressed: never a guess at the menu's items.
 constexpr double kDirectTimeout = 1.0;
 // START RACE is run directly too; A only if the pre-race screen is still up after all.
-constexpr double kTapEvery = 0.6, kLoadTimeout = 60.0, kNoRestart = 8.0;
+constexpr double kTapEvery = 0.6, kLoadTimeout = 30.0, kNoRestart = 8.0;
 
 }  // namespace
 
@@ -77,8 +77,10 @@ uint16_t QuickRestart::Update(const Frame& f) {
     case Step::kLoad:
       if (!f.race_view) left_race_view_ = true;
       // The race view must go (the restart's loading) and come back.
+      // Or it went somewhere it cannot finish by itself (a message box, another screen): the loading screen
+      // goes and the player has it.
       if ((left_race_view_ && f.race_view && f.driving) || (!left_race_view_ && t >= kNoRestart) ||
-          t >= kLoadTimeout) {
+          (left_race_view_ && f.menu_waiting) || t >= kLoadTimeout) {
         Go(Step::kRelease, f.now);
         return 0;
       }

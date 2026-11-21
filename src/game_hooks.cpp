@@ -585,9 +585,13 @@ std::atomic<uint32_t> g_last_race_scene{0};
 std::atomic<double> g_last_race_scene_time{0};
 std::atomic<int> g_pause_restart{0};  // 0 off, 1 requested, 2 taken
 std::atomic<bool> g_prerace_start{false};
-uint32_t g_prerace_called_scene = 0;
-double g_prerace_called_at = 0;
-int g_prerace_calls = 0;
+// START RACE on the pre-race screen (UI thread): the scene called, when, how often, and whether it took it (its
+// navigating flag set). The pad thread clears them for a new restart (RequestPreRaceStart).
+std::atomic<uint32_t> g_prerace_called_scene{0};
+std::atomic<double> g_prerace_called_at{0};
+std::atomic<int> g_prerace_calls{0};
+std::atomic<bool> g_prerace_taken{false};
+std::atomic<int> g_pause_tries{0};  // the pause menu's refusals for this request
 
 bool SceneIs(const uint8_t* base, uint32_t scene, std::string_view name) {
   return scene &&
@@ -602,30 +606,33 @@ void RunQuickRestartRequests(PPCContext& ctx, uint8_t* base, uint32_t stack) {
   last_look = now;
   const uint32_t scene = g_last_race_scene.load(std::memory_order_relaxed);
   if (g_prerace_start.load(std::memory_order_relaxed) && SceneIs(base, scene, kPreRaceName)) {
-    // Once, and again only if the screen is still there a while later (a call it ignored).
-    if (scene != g_prerace_called_scene) {
-      g_prerace_called_scene = scene;
-      g_prerace_calls = 0;
+    // Once, and again only if the screen ignored it (still not going anywhere a while later); never again once
+    // it has taken it.
+    if (scene != g_prerace_called_scene.load(std::memory_order_acquire)) {
+      g_prerace_called_scene.store(scene, std::memory_order_release);
+      g_prerace_calls.store(0, std::memory_order_relaxed);
+      g_prerace_taken.store(false, std::memory_order_relaxed);
     }
-    if (g_prerace_calls == 0 || (g_prerace_calls < 3 && now - g_prerace_called_at > 0.4)) {
-      ++g_prerace_calls;
-      g_prerace_called_at = now;
+    if (base[scene + kSceneNavigating]) g_prerace_taken.store(true, std::memory_order_relaxed);
+    const int calls = g_prerace_calls.load(std::memory_order_relaxed);
+    if (!g_prerace_taken.load(std::memory_order_relaxed) &&
+        (calls == 0 || (calls < 3 && now - g_prerace_called_at.load(std::memory_order_relaxed) > 0.4))) {
+      g_prerace_calls.store(calls + 1, std::memory_order_relaxed);
+      g_prerace_called_at.store(now, std::memory_order_relaxed);
       REXLOG_INFO("Quick restart: START RACE on the pre-race screen {:08X}", scene);
       CallGuest(ctx, base, stack, fm4_guest::kPreRaceStartRace, {scene});
+      if (base[scene + kSceneNavigating]) g_prerace_taken.store(true, std::memory_order_relaxed);
     }
   }
   if (g_pause_restart.load(std::memory_order_relaxed) != 1 || !SceneIs(base, scene, kPauseMenuName)) {
     return;
   }
-  static int tries = 0;
   CallGuest(ctx, base, stack, fm4_guest::kPauseMenuRestartConfirmed, {scene});
   if (base[scene + kSceneNavigating]) {
     REXLOG_INFO("Quick restart: RESTART on the pause menu {:08X}", scene);
     g_pause_restart.store(2, std::memory_order_relaxed);
-    tries = 0;
-  } else if (++tries >= 8) {
+  } else if (g_pause_tries.fetch_add(1, std::memory_order_relaxed) + 1 >= 8) {
     g_pause_restart.store(0, std::memory_order_relaxed);  // QuickRestart closes the menu again
-    tries = 0;
   }
 }
 
@@ -1434,8 +1441,28 @@ void SetGraphicsPageOpener(std::function<void()> opener) {
 bool PreRaceScreenStuck() {
   uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
   const uint32_t scene = g_last_race_scene.load(std::memory_order_relaxed);
-  return SceneIs(base, scene, kPreRaceName) &&
-         SteadySeconds() - g_last_race_scene_time.load(std::memory_order_relaxed) >= 0.7;
+  if (!SceneIs(base, scene, kPreRaceName) || base[scene + kSceneNavigating] ||
+      g_prerace_taken.load(std::memory_order_relaxed)) {
+    return false;  // gone, or going: START RACE was taken
+  }
+  const double now = SteadySeconds();
+  if (now - g_last_race_scene_time.load(std::memory_order_relaxed) < 0.7) return false;
+  // Every direct call made and ignored for a while (or none could be made).
+  return g_prerace_calls.load(std::memory_order_relaxed) >= 3 &&
+         now - g_prerace_called_at.load(std::memory_order_relaxed) >= 0.7;
+}
+
+bool RaceMenuWaiting() {
+  uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
+  const uint32_t scene = g_last_race_scene.load(std::memory_order_relaxed);
+  // Not the pre-race screen, nor the pause menu the restart came from (it stays the newest scene while it closes).
+  return scene && !SceneIs(base, scene, kPreRaceName) && !SceneIs(base, scene, kPauseMenuName) &&
+         !base[scene + kSceneNavigating] &&
+         SteadySeconds() - g_last_race_scene_time.load(std::memory_order_relaxed) >= 1.5;
+}
+
+bool RaceMenuSceneUp() {
+  return g_last_race_scene.load(std::memory_order_relaxed) != 0;
 }
 
 bool PreRaceScreenUp() {
@@ -1444,6 +1471,7 @@ bool PreRaceScreenUp() {
 }
 
 void RequestPauseMenuRestart(bool on) {
+  if (on) g_pause_tries.store(0, std::memory_order_relaxed);
   g_pause_restart.store(on ? 1 : 0, std::memory_order_relaxed);
 }
 
@@ -1452,7 +1480,11 @@ bool PauseMenuRestartDone() {
 }
 
 void RequestPreRaceStart(bool on) {
-  if (on) g_prerace_called_scene = 0;  // a new restart: the screen may reuse the last address
+  if (on) {  // a new restart: the screen may reuse the last address
+    g_prerace_calls.store(0, std::memory_order_relaxed);
+    g_prerace_taken.store(false, std::memory_order_relaxed);
+    g_prerace_called_scene.store(0, std::memory_order_release);
+  }
   g_prerace_start.store(on, std::memory_order_relaxed);
 }
 
@@ -1496,6 +1528,7 @@ bool SetQuickStartSequence(bool on) {
   const std::lock_guard lock(g_quick_start_mutex);
   if (!on) {
     for (const StartValue& value : g_quick_start_applied) {
+      if (std::fabs(LoadGuestFloat(base, value.address) - value.quick) > 0.001f) continue;  // not ours now
       StoreGuestFloat(base, value.address, value.original);
     }
     g_quick_start_applied.clear();

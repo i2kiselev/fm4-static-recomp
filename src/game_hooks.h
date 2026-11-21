@@ -52,6 +52,11 @@ bool PauseMenuRestartDone();
 void RequestPreRaceStart(bool on);
 // The pre-race screen has been up a while despite RequestPreRaceStart (A is pressed then).
 bool PreRaceScreenStuck();
+// Another race menu (not the pre-race screen) waiting on the player a while: a restart's loading went
+// somewhere it cannot finish by itself.
+bool RaceMenuWaiting();
+// Any race menu scene up (none: the front-end menus).
+bool RaceMenuSceneUp();
 // The newest race menu screen is the pre-race screen (up, or left behind by its START RACE).
 bool PreRaceScreenUp();
 

@@ -483,8 +483,9 @@ class Fm4App final : public rex::ReXApp {
     // The full intro again for normal starts: put back at the next pre-race screen, before its
     // START RACE, never during the restarted race. Put back once that race's start sequence has
     // ended on the short values, the game never lets START pause it again.
+    // In the front-end menus (no race menu scene, no race view) too: a race started from them keeps its intro.
     if (state.short_start && !quick.running() && !fm4_static_recomp::RaceViewActive() &&
-        fm4_static_recomp::PreRaceScreenUp()) {
+        (fm4_static_recomp::PreRaceScreenUp() || !fm4_static_recomp::RaceMenuSceneUp())) {
       state.short_start = false;
       fm4_static_recomp::SetQuickStartSequence(false);
     }
@@ -506,7 +507,11 @@ class Fm4App final : public rex::ReXApp {
                                              held,
                                              fm4_static_recomp::PauseMenuRestartDone(),
                                              fm4_static_recomp::PreRaceScreenStuck(),
+                                             fm4_static_recomp::RaceMenuWaiting(),
                                          }));
+    // While it runs (and until let go), the button is not the game's: held into the pause menu or the pre-race
+    // screen it would move their focus.
+    if (quick.running() || quick.releasing()) pad.buttons = uint16_t(pad.buttons & ~trigger);
     if (quick.wants_start() != state.start) {
       state.start = quick.wants_start();
       fm4_static_recomp::RequestPreRaceStart(state.start);

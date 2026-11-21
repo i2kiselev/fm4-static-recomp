@@ -22,6 +22,7 @@ class QuickRestart {
     uint16_t pad = 0;            // the player's own pad buttons
     bool direct_done = false;    // the pause menu's restart handler has run (wants_direct)
     bool prerace_stuck = false;  // the pre-race screen is still up a while after START RACE
+    bool menu_waiting = false;   // another race menu is up, waiting on the player
   };
 
   // HOLD: held this long while the screen fades out; letting go before cancels.
@@ -45,6 +46,8 @@ class QuickRestart {
   bool wants_direct() const { return step_ == Step::kDirect; }
   // The race is reloading: the pre-race screen's START RACE should run as soon as it is up.
   bool wants_start() const { return step_ == Step::kLoad; }
+  // Done, the button still held: it stays the game's no longer until let go.
+  bool releasing() const { return step_ == Step::kRelease; }
   bool running() const {
     return step_ == Step::kPause || step_ == Step::kDirect || step_ == Step::kAbort ||
            step_ == Step::kLoad;
