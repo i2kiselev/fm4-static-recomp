@@ -75,6 +75,18 @@ image = "rev1"
 0x824D38BC = { at = 0x824D7FEC, fingerprint = "98e320c7d4b82ce7" }
 # hook Fm4AddGraphicsOption: identical function
 0x8256CCF4 = { at = 0x82572C0C, fingerprint = "9b13a0c5611cb98b" }
+# hook Fm4CareerRivalsItem: most similar function, aligned
+0x825838C0 = { at = 0x82589B80, fingerprint = "f3f486ab28beba15", changed = "reviewed: the hooked call and its arguments are unchanged; only call targets and string keys moved" }
+# hook Fm4CareerRivalsItem jump_address_on_true: most similar function, aligned
+0x825838C4 = { at = 0x82589B84, fingerprint = "83debc8712cef2ab", changed = "reviewed: the hooked call and its arguments are unchanged; only call targets and string keys moved" }
+# hook Fm4CareerBuyTuningItem: most similar function, aligned
+0x82583B1C = { at = 0x82589DDC, fingerprint = "2f577bdeb8115457", changed = "reviewed: the hooked call and its arguments are unchanged; only call targets and string keys moved" }
+# hook Fm4CareerBuyTuningItem jump_address_on_true: most similar function, aligned
+0x82583B20 = { at = 0x82589DE0, fingerprint = "0754d66e3c8b085e", changed = "reviewed: the hooked call and its arguments are unchanged; only call targets and string keys moved" }
+# hook Fm4CareerBuyDesignsItem: most similar function, aligned
+0x82583DCC = { at = 0x8258A08C, fingerprint = "22ddff4caebcca70", changed = "reviewed: the hooked call and its arguments are unchanged; only call targets and string keys moved" }
+# hook Fm4CareerBuyDesignsItem jump_address_on_true: most similar function, aligned
+0x82583DD0 = { at = 0x8258A090, fingerprint = "c51227706d66b0be", changed = "reviewed: the hooked call and its arguments are unchanged; only call targets and string keys moved" }
 # hook Fm4OpenGraphicsOption: identical function
 0x82589460 = { at = 0x8258F868, fingerprint = "2e446f0b5b9f93e5" }
 # hook Fm4RaceMenuSceneCreated: identical function
@@ -123,6 +135,14 @@ image = "rev1"
 0x825DB968 = { at = 0x825E2268, fingerprint = "6b4589107dcc75a4" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x825DE0F0 = { at = 0x825E4818, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4MainMenuCommunityItem: changed function, aligned
+0x825E409C = { at = 0x825EA70C, fingerprint = "44a14d635e12f463", changed = "reviewed: the hooked AddItem call and its arguments are unchanged; only call targets, string keys and a later call moved" }
+# hook Fm4MainMenuCommunityItem jump_address_on_true: changed function, aligned
+0x825E40A0 = { at = 0x825EA710, fingerprint = "a4c5d69f0b664222", changed = "reviewed: the hooked AddItem call and its arguments are unchanged; only call targets, string keys and a later call moved" }
+# hook Fm4MainMenuMarketplaceItem: changed function, aligned
+0x825E41A4 = { at = 0x825EA814, fingerprint = "52ab6a76977c47cd", changed = "reviewed: the hooked AddItem call and its arguments are unchanged; only call targets, string keys and a later call moved" }
+# hook Fm4MainMenuMarketplaceItem jump_address_on_true: changed function, aligned
+0x825E41A8 = { at = 0x825EA818, fingerprint = "16c4b6209661a516", changed = "reviewed: the hooked AddItem call and its arguments are unchanged; only call targets, string keys and a later call moved" }
 # hook Fm4QuickRaceTrackQuery: identical function
 0x825E7BB0 = { at = 0x825EE220, fingerprint = "bb2f4c0ea3bc95eb" }
 # kMenuAddItem: identical function
