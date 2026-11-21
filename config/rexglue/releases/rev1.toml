@@ -73,6 +73,10 @@ image = "rev1"
 0x824CBD90 = { at = 0x824D0070, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4QuickRaceSetupLaps: identical function
 0x824D38BC = { at = 0x824D7FEC, fingerprint = "98e320c7d4b82ce7" }
+# hook Fm4CreateLayerMenu: identical function
+0x82522698 = { at = 0x82527958, fingerprint = "32e9ef38c25fe1f1" }
+# hook Fm4EditLayerMenu: identical function
+0x825234F4 = { at = 0x825287B4, fingerprint = "8e171ae4cacffd4c" }
 # hook Fm4AddGraphicsOption: identical function
 0x8256CCF4 = { at = 0x82572C0C, fingerprint = "9b13a0c5611cb98b" }
 # hook Fm4OpenGraphicsOption: identical function
@@ -95,6 +99,8 @@ image = "rev1"
 0x825BFA28 = { at = 0x825C65A0, fingerprint = "1acdb4bc6de2dff7" }
 # hook Fm4RaceMenuSceneDestroyed: identical function
 0x825BFAC0 = { at = 0x825C6638, fingerprint = "9a139160c2a88151" }
+# hook Fm4MenuItemChosen: identical function
+0x825C0730 = { at = 0x825C72A8, fingerprint = "a8374dbdb3b0fef0" }
 # hook Fm4RaceMenuSceneCreated: identical function
 0x825C10B0 = { at = 0x825C7AB8, fingerprint = "6b4589107dcc75a4" }
 # switch 0x825CAB50: most similar function, aligned
@@ -127,6 +133,8 @@ image = "rev1"
 0x825E7BB0 = { at = 0x825EE220, fingerprint = "bb2f4c0ea3bc95eb" }
 # kMenuAddItem: identical function
 0x8266FF00 = { at = 0x82675768, fingerprint = "45ef72de459a5a8c" }
+# kListAddItem: identical function
+0x82672C40 = { at = 0x82678460, fingerprint = "ff60c554b29af146" }
 # hook Fm4SkipVblankCallback: identical function
 0x826CB760 = { at = 0x826D1938, fingerprint = "1e84f7b7b0bc725c" }
 # hook Fm4SplashIntroOption: most similar function, aligned
@@ -139,6 +147,8 @@ image = "rev1"
 0x828223C4 = { at = 0x828289A4, fingerprint = "3b141171cf1a9caf" }
 # hook Fm4PhysicsLogCar: identical function
 0x82822D28 = { at = 0x828292F0, fingerprint = "a7fb129dbb9c7ea2" }
+# kDatabaseQuery: identical function
+0x82856880 = { at = 0x8285DC68, fingerprint = "3480a100d0cacc52" }
 # hook Fm4ReflectionCubeSetup: identical function
 0x828D15B0 = { at = 0x828DC988, fingerprint = "4892515488a5bb94" }
 # hook Fm4ReflectionCubeMemory: identical function
