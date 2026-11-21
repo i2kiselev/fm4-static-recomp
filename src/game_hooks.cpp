@@ -1501,9 +1501,12 @@ bool PlayerLapDirty(bool alone, bool against_ai) {
   constexpr uint32_t kMaxDrivers = 32;
   constexpr uint32_t kLapState = 0x10;   // a driver's lap state
   constexpr uint32_t kController = 0x20;  // a driver's controller: the player's, or the AI's
-  constexpr uint32_t kOffTrack = 0x392E;  // the three reasons the lap is dirty
-  constexpr uint32_t kWall = 0x3931;
-  constexpr uint32_t kContact = 0x3932;
+  // The three reasons the lap is dirty, as the driver's IsLapClean reads them: 1.0 0x824A5BD8, Rev 1
+  // 0x824A9140, whose lap state has them 0x10 further on.
+  constexpr uint32_t kFlagsShift = fm4_guest::kCodeImage == "rev1" ? 0x10 : 0;
+  constexpr uint32_t kOffTrack = 0x392E + kFlagsShift;
+  constexpr uint32_t kWall = 0x3931 + kFlagsShift;
+  constexpr uint32_t kContact = 0x3932 + kFlagsShift;
   rex::memory::Memory* const memory = rex::system::kernel_state()->memory();
   const uint8_t* const base = memory->virtual_membase();
   // Read on the input thread while the game may be tearing the race down: each pointer is
