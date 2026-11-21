@@ -108,6 +108,7 @@ if(FM4_BUILD_TESTS)
         tests/car_dirt_test.cpp
         tests/code_image_check_test.cpp
         tests/shadow_map_test.cpp
+        tests/fence_wait_test.cpp
         tests/file_open_log_test.cpp
         tests/game_language_test.cpp
         tests/string_log_test.cpp

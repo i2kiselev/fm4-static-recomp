@@ -9,6 +9,8 @@ image = "rev1"
 0x822A46D0 = { at = 0x822A48E0, fingerprint = "e9974b79bace224f" }
 # hook Fm4MusicUpdate: identical function
 0x822B0040 = { at = 0x822AFF70, fingerprint = "7ea8081381454a3a" }
+# hook Fm4GuestFenceWait: identical function
+0x822B0818 = { at = 0x822B0748, fingerprint = "4b447497ce897f41" }
 # kMakeLocString: identical function
 0x822B1AE8 = { at = 0x822B1A18, fingerprint = "9d447230fd4d8cc0" }
 # hook Fm4AngleSpringCut: identical function

@@ -50,6 +50,12 @@ address = 0x824360D8
 name = "Fm4DepthOfFieldOption"
 registers = ["r4"]
 
+# The head of the render-fence wait loop (calls 826E8358, a delay-hint spin, until the
+# GPU completes the fence): Fm4GuestFenceWait sleeps there once a wait lasts.
+[[midasm_hook]]
+address = 0x822B0818
+name = "Fm4GuestFenceWait"
+
 # The render thread's present interval setter (thread, interval): 1 in races, 2
 # in the showroom, pre-race and other scenes the game draws at half the frame
 # rate. Besides the swap's vblank interval, 2 makes the render thread draw only

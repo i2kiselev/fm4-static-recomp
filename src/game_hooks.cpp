@@ -33,11 +33,13 @@
 #include <rex/system/interfaces/graphics.h>
 #include <rex/system/kernel_state.h>
 #include <rex/system/xmemory.h>
+#include <rex/thread.h>
 #include <rex/ui/upscaler.h>
 
 #include "audio_gain.h"
 #include "custom_music.h"
 #include "car_dirt.h"
+#include "fence_wait.h"
 #include "game_hooks.h"
 #include "guest_addresses.h"
 #include "input/controller_layout.h"
@@ -70,6 +72,11 @@ REXCVAR_DEFINE_INT32(fm4_debug_vblank_hz, 0, "Forza Motorsport 4",
                      "480 Hz, to measure throughput above the player frame-rate range; 0 is off. "
                      "Fast loading and fm4_console_rate take precedence")
     .range(0, 2000)
+    .lifecycle(rex::cvar::Lifecycle::kHotReload);
+REXCVAR_DEFINE_BOOL(fm4_guest_fence_wait, true, "Forza Motorsport 4",
+                    "Windows: the game's GPU fence wait sleeps in short steps once it lasts "
+                    "longer than 50 us instead of polling one core at 100 %; false polls as "
+                    "the console code does")
     .lifecycle(rex::cvar::Lifecycle::kHotReload);
 REXCVAR_DEFINE_INT32(fm4_menu_vblank_hz, 0, "Forza Motorsport 4",
                      "Diagnostics: vblanks per second the game's main loop sees outside races, "
@@ -830,6 +837,25 @@ void Fm4SplashIntroOption(PPCRegister& r23) {
   if (REXCVAR_GET(fm4_skip_intro)) {
     rex::system::kernel_state()->memory()->virtual_membase()[r23.u32 + kDisableSplashIntro] = 1;
   }
+}
+
+// At the head of the fence wait's polling loop (Rev 1 822B0748): observes only, never jumps,
+// so a wait still ends exactly where the game's own check ends it.
+void Fm4GuestFenceWait() {
+  FM4_HOOK_CENSUS();
+#if defined(_WIN32)
+  if (!REXCVAR_GET(fm4_guest_fence_wait)) return;
+  using Clock = std::chrono::steady_clock;
+  const auto now_us = [] {
+    return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now().time_since_epoch())
+        .count();
+  };
+  thread_local fm4_static_recomp::FenceWaitBackoff backoff;
+  if (!backoff.ShouldSleep(now_us())) return;
+  rex::thread::WaitUntil(
+      Clock::now() + std::chrono::microseconds(fm4_static_recomp::FenceWaitBackoff::kSleepUs));
+  backoff.Slept(now_us());
+#endif
 }
 
 void Fm4DepthOfFieldOption(PPCRegister& r4) {
