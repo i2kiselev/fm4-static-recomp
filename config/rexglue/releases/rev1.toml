@@ -73,6 +73,12 @@ image = "rev1"
 0x824CBD90 = { at = 0x824D0070, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4QuickRaceSetupLaps: identical function
 0x824D38BC = { at = 0x824D7FEC, fingerprint = "98e320c7d4b82ce7" }
+# hook Fm4XpScreenDestroyed: identical function through its vtables
+0x824D88C8 = { at = 0x824DCDE8, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4XpScreenCreated: identical function
+0x824D8D70 = { at = 0x824DD3F0, fingerprint = "686aad04dcb14b1b" }
+# hook Fm4XpBarsDone: identical function
+0x82537E8C = { at = 0x8253D1D4, fingerprint = "aab093449ef1a75e" }
 # hook Fm4AddGraphicsOption: identical function
 0x8256CCF4 = { at = 0x82572C0C, fingerprint = "9b13a0c5611cb98b" }
 # hook Fm4OpenGraphicsOption: identical function
@@ -125,6 +131,14 @@ image = "rev1"
 0x825DE0F0 = { at = 0x825E4818, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4QuickRaceTrackQuery: identical function
 0x825E7BB0 = { at = 0x825EE220, fingerprint = "bb2f4c0ea3bc95eb" }
+# hook Fm4WorldTourIntroEnter: identical function
+0x8261D8A8 = { at = 0x82623D28, fingerprint = "4815e76e5c69402e" }
+# hook Fm4WorldTourSceneEvent: identical function
+0x826351D4 = { at = 0x8263AEB4, fingerprint = "699f5ab252ee1a31" }
+# hook Fm4WorldTourPostRaceAnimate: changed function, aligned
+0x8263544C = { at = 0x8263B12C, fingerprint = "e6fca43c257a4190", changed = "reviewed: the hooked call and r31 are unchanged; an event id before it moved (0xF6 to 0xF7) but the hooks compare events by name hash, and the awards fields (0x2B0/0x2B4) and the state flag (+0x315) are at the same offsets" }
+# hook Fm4WorldTourIntroPostRace: changed function, aligned
+0x826355BC = { at = 0x8263B29C, fingerprint = "1bb1e39f6855e82d", changed = "reviewed: the hooked call and r31 are unchanged; an event id before it moved (0xF6 to 0xF7) but the hooks compare events by name hash, and the awards fields (0x2B0/0x2B4) and the state flag (+0x315) are at the same offsets" }
 # kMenuAddItem: identical function
 0x8266FF00 = { at = 0x82675768, fingerprint = "45ef72de459a5a8c" }
 # hook Fm4SkipVblankCallback: identical function
@@ -193,3 +207,5 @@ image = "rev1"
 0x82D59FF0 = { at = 0x82D59FE0, references = 103 }
 # kScenarioManagerPointer: data, 79 references in identical functions
 0x82DC3750 = { at = 0x82DC3890, references = 112 }
+# kWorldTourReadyForTrophy: data, 3 references in identical functions
+0x82DDEEDC = { at = 0x82DDEFC0, references = 3 }
