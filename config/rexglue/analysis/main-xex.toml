@@ -300,6 +300,44 @@ address = 0x8259A1A8
 name = "Fm4RaceMenuSceneCreated"
 registers = ["r3"]
 
+# The title screen and the main menu, one screen (CSplash, "120_P_PRE_SPLASH"; main_menu.h): as its factory
+# (0x824B4EB0, from the screen table) has constructed it (0x825DF8F8, used by nothing else), and its deleting
+# destructor (vtable 0x8204649C slot 1).
+[[midasm_hook]]
+address = 0x824B4EE8
+name = "Fm4TitleSceneCreated"
+registers = ["r3"]
+
+[[midasm_hook]]
+address = 0x825E3EEC
+name = "Fm4TitleSceneDestroyed"
+registers = ["r3"]
+
+# The screen's button handler (vtable slot 9, 0x82611218): Back that its menu does not take itself (FREE PLAY's
+# menu takes it, back to the main menu) signs the profile out and goes back to "Press A" (0x82601E28). The main
+# menu asks EXIT TO DESKTOP instead: the call is skipped.
+[[midasm_hook]]
+address = 0x826114D0
+name = "Fm4MainMenuBack"
+registers = ["r30"]
+jump_address_on_true = 0x826114F0
+
+# Every screen's update, each frame (the base screen's vtable slot 10, shared by 207 screens; r3 the screen): on
+# the main menu, BACK's label and the EXIT TO DESKTOP box.
+[[midasm_hook]]
+address = 0x82516458
+name = "Fm4ScreenUpdate"
+context = true
+registers = ["r1", "r3"]
+
+# The screens' answer to a button (0x824E48B8(screen, id): popup buttons call it): the main menu's EXIT TO
+# DESKTOP box answers with ids of its own, which the screen never sees.
+[[midasm_hook]]
+address = 0x824E48B8
+name = "Fm4ScreenAnswer"
+registers = ["r3", "r4"]
+return_on_true = true
+
 # CAudioOptionsBasic constructor
 [[midasm_hook]]
 address = 0x824AFCA0
