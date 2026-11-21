@@ -81,7 +81,7 @@ HardcoreEdits RepairCostEdits(int percent) {
   HardcoreEdits edits;
   for (const char* part : {"Body", "Brakes", "Clutch", "Driveline", "Engine", "Gearbox", "Steering",
                            "Suspension"}) {
-    edits.scales.push_back({std::string("RaceWinnings\\DmgPenalty") + part, percent / 100.0, 1.0});
+    edits.scales.push_back({std::string("RaceWinnings\\DmgPenalty") + part, percent / 100.0, 1.0, true});
   }
   return edits;
 }
@@ -91,8 +91,8 @@ HardcoreEdits ResaleValueEdits(int percent) {
       .sql = {},
       .scales =
           {
-              {"CarValueScales\\SellValueScale", percent / 100.0, std::nullopt},
-              {"CarValueScales\\RestockingValueScale", percent / 100.0, std::nullopt},
+              {"CarValueScales\\SellValueScale", percent / 100.0, std::nullopt, true},
+              {"CarValueScales\\RestockingValueScale", percent / 100.0, std::nullopt, true},
           },
   };
 }
@@ -111,7 +111,7 @@ std::vector<HardcoreOption> ActiveHardcoreOptions() {
     options.push_back({"RACE PAYOUTS " + std::to_string(*v) + "%", RacePayoutEdits(*v)});
   }
   if (const auto v = setting("fm4_repair_costs", {100, 200, 300}); v && *v != 100) {
-    options.push_back({"REPAIR COSTS " + std::to_string(*v) + "%", RepairCostEdits(*v)});
+    options.push_back({"REPAIR COSTS +" + std::to_string(*v - 100) + "%", RepairCostEdits(*v)});
   }
   if (const auto v = setting("fm4_resale_value", {100, 75, 50}); v && *v != 100) {
     options.push_back({"RESALE VALUE " + std::to_string(*v) + "%", ResaleValueEdits(*v)});
@@ -162,21 +162,36 @@ std::optional<std::string> FormatToFit(double value, size_t width, bool whole, d
   return std::nullopt;
 }
 
-std::optional<std::string> ScaleTunable(std::string text, const TunableScale& scale) {
+std::optional<std::string> ScaleTunable(std::string text, const TunableScale& scale, std::string* why) {
+  const auto refuse = [why](const char* reason) -> std::optional<std::string> {
+    if (why) *why = reason;
+    return std::nullopt;
+  };
+  const auto line = TunableLine(text, scale.key);
   const auto old_text = GetTunable(text, scale.key);
-  if (!old_text || old_text->empty()) return std::nullopt;
+  if (!line || !old_text || old_text->empty()) return refuse("is missing");
   double old_value = 0;
   const auto parsed = std::from_chars(old_text->data(), old_text->data() + old_text->size(), old_value);
-  if (parsed.ec != std::errc() || parsed.ptr != old_text->data() + old_text->size()) return std::nullopt;
+  if (parsed.ec != std::errc() || parsed.ptr != old_text->data() + old_text->size()) {
+    return refuse("is not a number");
+  }
   double value = old_value * scale.factor;
-  if (scale.max) value = std::min(value, *scale.max);
-  const bool whole = old_text->find('.') == std::string::npos;
-  const auto formatted = FormatToFit(value, old_text->size(), whole, old_value);
-  if (!formatted) return std::nullopt;
+  if (scale.max) {
+    value = std::min(value, *scale.max);
+    // A raise never comes out lower: a mod's value already above the cap stays as it is.
+    if (scale.factor >= 1) value = std::max(value, old_value);
+  }
+  const bool whole = !scale.decimal && old_text->find('.') == std::string::npos;
+  // The value's room on its line, padding included.
+  const size_t width = line->second - line->first - scale.key.size() - 1;
+  const auto formatted = FormatToFit(value, std::max(width, old_text->size()), whole, old_value);
+  if (!formatted) return refuse("does not fit on its line");
   // Written as it was: the option would change nothing.
   double written = 0;
   std::from_chars(formatted->data(), formatted->data() + formatted->size(), written);
-  if (std::fabs(written - old_value) < 1e-9 && std::fabs(value - old_value) > 1e-9) return std::nullopt;
+  if (std::fabs(written - old_value) < 1e-9 && std::fabs(value - old_value) > 1e-9) {
+    return refuse("rounds back to its own value in the room it has");
+  }
   return SetTunable(std::move(text), scale.key, *formatted);
 }
 
@@ -268,9 +283,10 @@ void InstallHardcoreOptions(const std::filesystem::path& game_data_root) {
         next_tunables = *tunables;
         for (const TunableScale& scale : option.edits.scales) {
           const auto before = GetTunable(*next_tunables, scale.key);
-          next_tunables = ScaleTunable(std::move(*next_tunables), scale);
+          std::string why;
+          next_tunables = ScaleTunable(std::move(*next_tunables), scale, &why);
           if (!next_tunables) {
-            problem = "the tunable " + scale.key + " is missing or cannot be scaled";
+            problem = "the tunable " + scale.key + " " + why;
             break;
           }
           changes += " " + scale.key + " " + before.value_or("?") + " -> " +

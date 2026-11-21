@@ -147,7 +147,7 @@ TEST_CASE("HARDCORE has its three settings, each the game's own by default", "[g
   CHECK(rows[4].label == "RESALE VALUE");
   CHECK(rows.size() == 5);
   for (size_t row = 2; row <= 4; ++row) {
-    CHECK(page.Value(row) == "GAME'S");
+    CHECK(page.Value(row) == "DEFAULT");
     CHECK(rows[row].note() == "");
   }
 }
@@ -162,7 +162,7 @@ TEST_CASE("HARDCORE settings step through their choices and save for the next st
   page.Step(2, NavCommand::kRight);
   CHECK(page.Value(2) == "-50%");
   page.Step(3, NavCommand::kRight);
-  CHECK(page.Value(3) == "X2");
+  CHECK(page.Value(3) == "+100%");
   page.Step(4, NavCommand::kLeft);  // rolls over to the last
   CHECK(page.Value(4) == "-50%");
   CHECK(rows[2].unapplied());
@@ -174,7 +174,7 @@ TEST_CASE("HARDCORE settings step through their choices and save for the next st
   // The game started with the game's own: until the next start, the rows say so.
   CHECK(rows[2].note() == "From the next start.");
   page.Step(2, NavCommand::kRight);  // back round to the game's own
-  CHECK(page.Value(2) == "GAME'S");
+  CHECK(page.Value(2) == "DEFAULT");
   CHECK(rows[2].note() == "");
 }
 

@@ -47,6 +47,6 @@ earnings screen after a race pays the reduced amount.
 
 | Setting | Choices | What changes |
 |---|---|---|
-| **RACE PAYOUTS** | GAME'S, -25%, -50% | The credits a race pays by distance (`RaceWinnings\CreditsPerMile`) and the car makers' affinity level bonuses (`AffinityLevelDef`) |
-| **REPAIR COSTS** | GAME'S, X2, X3 | The share of a race's winnings each damaged part costs (`RaceWinnings\DmgPenalty*`), a part at most the whole winnings |
-| **RESALE VALUE** | GAME'S, -25%, -50% | What selling a car pays (`CarValueScales\SellValueScale`, `RestockingValueScale`) |
+| **RACE PAYOUTS** | DEFAULT, -25%, -50% | The credits a race pays by distance (`RaceWinnings\CreditsPerMile`) and the car makers' affinity level bonuses (`AffinityLevelDef`) |
+| **REPAIR COSTS** | DEFAULT, +100%, +200% | The share of a race's winnings each damaged part costs (`RaceWinnings\DmgPenalty*`), a part at most the whole winnings |
+| **RESALE VALUE** | DEFAULT, -25%, -50% | What selling a car pays (`CarValueScales\SellValueScale`, `RestockingValueScale`) |

@@ -208,6 +208,29 @@ TEST_CASE("REPAIR COSTS multiply each part's share, at most the whole", "[hardco
   CHECK(GetTunable(*twice, "RaceWinnings\\DmgPenaltyBody") == std::optional<std::string>("0.7"));
 }
 
+TEST_CASE("A raise never makes a mod's repairs cheaper", "[hardcore]") {
+  const std::string text = "RaceWinnings\\DmgPenaltyBody 1.5\n";
+  const auto raised = ScaleTunable(text, {"RaceWinnings\\DmgPenaltyBody", 2.0, 1.0, true});
+  REQUIRE(raised);
+  CHECK(GetTunable(*raised, "RaceWinnings\\DmgPenaltyBody") == std::optional<std::string>("1.5"));
+}
+
+TEST_CASE("A factor written as a whole number can still come down", "[hardcore]") {
+  const std::string padded = "CarValueScales\\SellValueScale 1   \n";
+  const auto lower = ScaleTunable(padded, {"CarValueScales\\SellValueScale", 0.75, std::nullopt, true});
+  REQUIRE(lower);
+  CHECK(GetTunable(*lower, "CarValueScales\\SellValueScale") == std::optional<std::string>("0.75"));
+  CHECK(lower->size() == padded.size());
+}
+
+TEST_CASE("A value that cannot be scaled says why", "[hardcore]") {
+  std::string why;
+  CHECK_FALSE(ScaleTunable("Other\\Key 1\n", {"RaceWinnings\\DmgPenaltyBody", 2.0, 1.0, true}, &why));
+  CHECK(why == "is missing");
+  CHECK_FALSE(ScaleTunable("RaceWinnings\\DmgPenaltyBody abc\n", {"RaceWinnings\\DmgPenaltyBody", 2.0, 1.0, true}, &why));
+  CHECK(why == "is not a number");
+}
+
 TEST_CASE("Only the HARDCORE options set, and in range, are applied", "[hardcore]") {
   const auto reset = [] {
     for (const char* name : {"fm4_race_payouts", "fm4_repair_costs", "fm4_resale_value"}) {

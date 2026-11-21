@@ -25,7 +25,7 @@ using hostui::MenuScreen;
 
 constexpr const char* kLaps = "fm4_quick_race_laps";
 
-// The HARDCORE settings (src/hardcore.h), each a few choices, the first the game's own.
+// The HARDCORE settings (src/hardcore.h), each a few choices, the first the default.
 struct Choice {
   const char* value;  // as fm4_* takes it
   const char* label;
@@ -41,17 +41,18 @@ const std::vector<HardcoreSetting>& HardcoreSettings() {
   static const std::vector<HardcoreSetting> settings = {
       {"fm4_race_payouts", "RACE PAYOUTS",
        "The credits a race pays by distance, and the bonuses for each car maker's affinity "
-       "level. -25% and -50% pay that much less than the game's own (a mod's own included). From "
+       "level. -25% and -50% pay that much less than the default (a mod's own included). From "
        "the next start.",
-       {{"100", "GAME'S"}, {"75", "-25%"}, {"50", "-50%"}}},
+       {{"100", "DEFAULT"}, {"75", "-25%"}, {"50", "-50%"}}},
       {"fm4_repair_costs", "REPAIR COSTS",
-       "What damage costs you from a race's winnings. X2 and X3 make each damaged part cost two "
-       "or three times as much, a part at most the whole winnings. From the next start.",
-       {{"100", "GAME'S"}, {"200", "X2"}, {"300", "X3"}}},
+       "What damage costs you from a race's winnings. +100% and +200% make each damaged part "
+       "cost that much more than the default, a part at most the whole winnings. From the "
+       "next start.",
+       {{"100", "DEFAULT"}, {"200", "+100%"}, {"300", "+200%"}}},
       {"fm4_resale_value", "RESALE VALUE",
-       "What selling a car pays. -25% and -50% pay that much less than the game's own (a mod's "
+       "What selling a car pays. -25% and -50% pay that much less than the default (a mod's "
        "own included). From the next start.",
-       {{"100", "GAME'S"}, {"75", "-25%"}, {"50", "-50%"}}},
+       {{"100", "DEFAULT"}, {"75", "-25%"}, {"50", "-50%"}}},
   };
   return settings;
 }
@@ -124,7 +125,12 @@ struct Draft {
           config.Set(kLaps, value);
         }
       } else {
-        config.Set(name, value);  // a HARDCORE setting
+        // A HARDCORE setting; the default (100) is no line at all.
+        if (value == "100") {
+          config.Remove(name);
+        } else {
+          config.Set(name, value);
+        }
       }
     }
     if (!config.Save()) {
@@ -184,9 +190,11 @@ MenuRow HardcoreRow(const std::shared_ptr<Draft>& draft, const HardcoreSetting& 
   };
   // The game's data was read as it started.
   row.note = [draft, &setting] {
-    return std::string(draft->Value(setting.name) != HardcoreSettingAtStart(setting.name)
-                           ? "From the next start."
-                           : "");
+    // A launch option wins at every start; a value out of range counts as the default.
+    if (FromCommandLine(setting.name)) return std::string();
+    const int now = std::max(ChoiceIndex(setting, draft->Value(setting.name)), 0);
+    const int at_start = std::max(ChoiceIndex(setting, HardcoreSettingAtStart(setting.name)), 0);
+    return std::string(now != at_start ? "From the next start." : "");
   };
   row.badge = [&setting] { return LaunchOptionBadge(setting.name); };
   row.unapplied = [draft, &setting] { return draft->pending.contains(setting.name); };
@@ -245,8 +253,7 @@ void ApplySavedGameplaySettings(const config::HostConfig& config) {
   for (const HardcoreSetting& setting : HardcoreSettings()) {
     const auto value = config.Get(setting.name);
     if (!value || FromCommandLine(setting.name)) continue;
-    if (ChoiceIndex(setting, *value) >= 0) {
-      rex::cvar::SetFlagByName(setting.name, *value);
+    if (ChoiceIndex(setting, *value) >= 0 && rex::cvar::SetFlagByName(setting.name, *value)) {
       REXLOG_INFO("Gameplay settings: {} = {}", setting.name, *value);
     } else {
       REXLOG_WARN("Gameplay settings: ignored {} = {}", setting.name, *value);

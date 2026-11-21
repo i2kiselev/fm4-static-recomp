@@ -24,6 +24,7 @@ struct TunableScale {
   std::string key;  // "Section\Key"
   double factor = 1.0;
   std::optional<double> max;
+  bool decimal = false;  // a factor: written with decimals even where the file has a whole number ("1")
 };
 
 // What one option changes.
@@ -61,7 +62,8 @@ std::optional<std::string> GetTunable(std::string_view text, std::string_view ke
 // Scales `key`'s value as `scale` says, written in no more characters than the old value had
 // (fewer decimals when needed; whole numbers stay whole). nullopt when it is missing or not a
 // number.
-std::optional<std::string> ScaleTunable(std::string text, const TunableScale& scale);
+std::optional<std::string> ScaleTunable(std::string text, const TunableScale& scale,
+                                       std::string* why = nullptr);
 // `value` in at most `width` characters, or nullopt: rounded to the nearest whole number when
 // `whole`, else to the most decimals that fit, without trailing zeros. Exactly between two, the
 // one nearer `toward` (the game's own value: the gentler of the two).
