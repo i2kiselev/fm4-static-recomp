@@ -60,7 +60,39 @@ To turn this off or change how fast the camera turns (**MOUSE LOOK SENSITIVITY**
 launcher's **CONTROLS** page. Fast flicks swing the camera round smoothly; releasing the
 button after a large turn jumps it back behind the car, as releasing a controller's stick does.
 
-Outside races the mouse is not used.
+## The mouse in menus
+
+In the game's menus the mouse works as in any PC game: what is under the pointer lights up, and a
+**left click** chooses it. That goes for menu tiles and rows, colour swatches and vinyl shapes, the
+button prompts at the bottom (SAVE, COLOR FINE TUNE...), the tab names and their **Q** / **E**
+arrows, and the buttons of a message box. A click on nothing does nothing. With the pointer on nothing,
+nothing is lit; the first key or pad press lights the menu again where it was.
+
+**Right click** goes back from menus, and **Esc** or a right click closes a message box that only has OK.
+So that it can never answer a question or lose a change, it does nothing in a message box with a choice, on
+a page of settings or values (AUDIO, HUD, TUNE SETUP, photo effects), on the Autovista and photo cameras, or
+while placing a livery layer: those take a click on their own button.
+
+- **Sliders** (TUNE SETUP): click or drag along the bar.
+- **Choices with arrows** (AUDIO): a click on the row picks the next choice, the left arrow the one before.
+- **Carousels** (PAINT CAR's tiles, CAR SELECT) keep the chosen tile in the middle: a tile lights under the
+  pointer, a click brings it to the middle, and a second click opens it, even with the mouse left where it was.
+  A row cut off at a list's end comes into view and opens with one click.
+- The **mouse wheel** moves up and down through lists, and along a row of tiles (the main menu, the
+  upgrade shop's strip); hold **Shift** to move left and right in a grid, as in the car and track lists.
+- **Colours** (livery and paint): the colour under the pointer shows on the car at once; a click picks it.
+- **Placing a layer in the livery editor** (MOVE, SIZE, SPIN, SKEW, TRANSPARENCY): drag on the car to
+  change the layer the way the tab says (MOVE follows the pointer), turn the **wheel** to size it and
+  **Shift** + wheel to spin it. A click on the car does not confirm the layer: OK does.
+
+- **Autovista and photo mode**: left drag walks the camera, right drag turns it, the wheel steps closer or back.
+
+With the mouse in use the prompts are plain text you can click, lit red under the pointer. SELECT goes where a
+click on the item does the same, and a side menu's BACK shows the right mouse button. Any key or pad button gives
+the usual prompts back.
+The keys and a controller work as before, and the mouse is left alone in races.
+
+`--fm4_menu_mouse=false` turns the mouse in menus off for a session ([Launch options](launch-options.md)).
 
 ## Rebinding keys
 

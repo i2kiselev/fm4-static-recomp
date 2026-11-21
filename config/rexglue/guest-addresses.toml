@@ -19,8 +19,103 @@ kTextAssign = 0x82360E98
 kTextSetupGetTextReturn = 0x8234FDA4
 
 # Guest data the hooks read.
+
+# The mouse in menus (src/menu_mouse.cpp).
+# Moves a CTuneSlider by whole steps (slider, f1 = steps).
+kSliderSteps = 0x82649340
+# Moves a grid's focus to a cell.
+kGridGoTo = 0x82641858
+# Lays a scrolled list out and moves its focus.
+kListSetFocus = 0x826209F0
+# Adjusts the placed livery layer as the stick does.
+kLiveryAdjust = 0x823FCE08
+# The livery editor's edits group (the stick's branch).
+kLiveryEditsGroup = 0x823E98D8
+# The livery editor's adjust group (the stick's branch).
+kLiveryAdjustGroup = 0x823F7CE8
+# Shows a livery layer's change on the screen's readouts.
+kLiveryShowChange = 0x82515030
+# Tells the livery screen its layer changed.
+kLiveryChanged = 0x825221D0
+# Wakes a screen that hid its menu when idle.
+kScreenWake = 0x824E4A60
+# The game's tick clock.
+kGameTicks = 0x8234BD70
+# Shows the pre-race menu again.
+kPreRaceShow = 0x825BED40
+# Restarts a screen timer.
+kTimerRestart = 0x822D59C0
+# Moves a focus group to a control.
+kGroupSetFocus = 0x824C2B10
+# Sets an element's y through its property holder (holder, f1).
+kSetElementY = 0x8298DF70
+# Sets an element's x through its property holder (holder, f1).
+kSetElementX = 0x8237B428
+
 [data]
 # Holds the render scenario manager.
 kScenarioManagerPointer = 0x82DC3750
 # Each scenario control's offset, indexed by control id.
 kControlOffsetTable = 0x82D59FF0
+
+# The mouse in menus (src/menu_mouse.cpp).
+# CAnimatedScrollingListCtrl's vtable (a menu list).
+kListVtable = 0x8204D1EC
+# CTuneSlider's vtable (TUNE SETUP's rows).
+kTuneSliderVtable = 0x8202A15C
+# CSlider's vtable (photo effects, audio).
+kSliderVtable = 0x82053E2C
+# CSpinner's vtable (a row of choices).
+kSpinnerVtable = 0x82052F1C
+# CHelpButtonBar's vtable (the prompt bar).
+kBarVtable = 0x82050F9C
+# A grid of cells' vtable (colours, vinyls, cars).
+kGridVtable = 0x82050B4C
+# The list move event forward.
+kMoveForward = 0x82E023B4
+# The list move event back.
+kMoveBack = 0x82E025B4
+# CMainMenu's vtable (the career hub).
+kMainMenuVtable = 0x8203E384
+# The career hub's input handler's vtable.
+kMainMenuInputVtable = 0x8203E478
+# CLiveryLayerPosition's vtable (placing a livery layer).
+kLiveryPlacementVtable = 0x82027924
+# CLiveryLayerPosition's second vtable.
+kLiveryPlacementVtable2 = 0x82027918
+# CSplash's vtable (the title screen and main menu).
+kSplashVtable = 0x8204649C
+# CUI4PhotoModeCamera's vtable (TAKE PHOTO).
+kPhotoCameraVtable = 0x8202695C
+# CPhotoModeIngame's vtable (a race's photo mode).
+kRacePhotoVtable = 0x820421A4
+# CPreRace's vtable (the pre-race menu).
+kPreRaceVtable = 0x820438FC
+# The car colour screen's vtable.
+kCarColorVtable = 0x82027614
+# CLiveryColorSelect's vtable (PAINT CAR's colour choice and a layer's colour).
+kLiveryColorSelectVtable = 0x82027184
+# CLiveryLayerSelect's vtable (the livery editor's layers).
+kLiveryLayerSelectVtable = 0x8202728C
+# CUI4CtrlFocusGroup's vtable (which control the D-pad works).
+kGroupVtable = 0x8202DA0C
+# The Kinect cursor singleton's pointer (Autovista's parts).
+kNatalCursorPointer = 0x82E10C1C
+# CCarPartSelect's vtable (an Autovista part marker).
+kCarPartVtable = 0x8204D9B4
+# CCarPartAnimate's vtable (the Autovista viewer's doors, bonnet, boot, spoiler: A opens or closes them).
+kCarPartAnimateVtable = 0x8204D78C
+# CUI4NatalCarWalkaroundCamera's vtable (Autovista's camera).
+kWalkaroundCameraVtable = 0x8202D9CC
+# CNatalHomespace's vtable.
+kHomespaceVtable = 0x8203F7EC
+# A prompt button's vtable.
+kHelpButtonVtable = 0x82050E1C
+# CButton's vtable.
+kButtonVtable = 0x8204D5B4
+# CButtonText's vtable.
+kButtonTextVtable = 0x820295A4
+# CButtonTexture's vtable.
+kButtonTextureVtable = 0x8202969C
+# CButtonTextAndTexture's vtable.
+kButtonTextAndTextureVtable = 0x8202A6B4

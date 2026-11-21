@@ -34,4 +34,7 @@ struct Rgba {
 Rgba RenderKeycap(std::span<const std::string> labels, uint32_t size,
                   const hostui::VectorFont& font, uint32_t cap_width = 0);
 
+// A mouse in the keycaps' colours, its left or right button dark: the prompt for a click (#76).
+Rgba RenderMouseButton(bool right, uint32_t size);
+
 }  // namespace fm4_static_recomp::input

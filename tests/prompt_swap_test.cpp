@@ -277,3 +277,43 @@ TEST_CASE("The telemetry exit hint's D-pad goes on keyboard", "[prompt_swap]") {
       CHECK(Bc3Alpha(image, x, y) == 0);
   }
 }
+
+TEST_CASE("After a click in a menu every icon is clear", "[prompt_swap]") {
+  REQUIRE_GAME_FILES();
+  FakeRegistry registry;
+  const auto textures = Textures();
+  PromptSwap swap(textures, *Font(), DefaultControls(), registry.Hook());
+  const uint64_t a = HashOf(textures, "A_Button_F3"), b = HashOf(textures, "B_Button_F3");
+  const uint64_t x = HashOf(textures, "X_Button_F3");
+  swap.Update(true, InputContext::kMenu);
+  const auto a_keycap = registry.images.at(a), x_keycap = registry.images.at(x);
+  swap.Update(false, InputContext::kMenu, true);  // even with a pad device: the mouse was last
+  REQUIRE(registry.images.contains(a));
+  REQUIRE(registry.images.contains(b));
+  CHECK(registry.images.at(a) != a_keycap);
+  CHECK_FALSE(Shows(*registry.images.at(a), {"ENTER"}));
+  // The title screen keeps A's icon, as the mouse: its line runs up to it.
+  const auto a_clear = registry.images.at(a);
+  swap.Update(false, InputContext::kMenu, true, true);
+  CHECK(registry.images.at(a) != a_clear);
+  CHECK(registry.images.at(x) != x_keycap);
+  swap.Update(false, InputContext::kMenu, true, false);
+  CHECK(registry.images.at(a) == a_clear);
+  // B shows the right button only where a right click goes back.
+  const auto b_clear = registry.images.at(b);
+  swap.Update(false, InputContext::kMenu, true, false, true);
+  CHECK(registry.images.at(b) != b_clear);
+  CHECK(registry.images.at(a) == a_clear);
+  swap.Update(false, InputContext::kMenu, true, false, false);
+  CHECK(registry.images.at(b) == b_clear);
+  REQUIRE(registry.images.contains(x));
+  CHECK(registry.images.at(x) != x_keycap);
+  CHECK_FALSE(Shows(*registry.images.at(x), {"X"}));
+  // Not while driving: the right button is mouse look there.
+  swap.Update(true, InputContext::kDriving, true);
+  CHECK(Shows(*registry.images.at(a), {"SPACE"}));
+  // A key press gives the keycaps back.
+  swap.Update(true, InputContext::kMenu, false);
+  CHECK(registry.images.at(a) == a_keycap);
+  CHECK(registry.images.at(x) == x_keycap);
+}

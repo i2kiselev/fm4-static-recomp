@@ -53,6 +53,13 @@ set(FM4_HOST_SOURCES
     src/input/controls.cpp
     src/input/input_context.cpp
     src/input/keyboard_ramp.cpp
+    src/input/wheel_taps.cpp
+    src/input/menu_hit.cpp
+    src/input/autovista_mouse.cpp
+    src/input/pointer_cursor.cpp
+    src/input/pointer_cursor_win.cpp
+    src/ui/prompt_highlight.cpp
+    src/menu_mouse.cpp
     src/input/keycap.cpp
     src/input/prompt_strings.cpp
     src/input/prompt_swap.cpp
@@ -98,6 +105,10 @@ if(FM4_BUILD_TESTS)
         tests/controls_test.cpp
         tests/dlc_licenses_test.cpp
         tests/keyboard_ramp_test.cpp
+        tests/wheel_taps_test.cpp
+        tests/menu_hit_test.cpp
+        tests/autovista_mouse_test.cpp
+        tests/pointer_cursor_test.cpp
         tests/input_context_test.cpp
         tests/bc3_encoder_test.cpp
         tests/keycap_test.cpp
@@ -132,6 +143,10 @@ if(FM4_BUILD_TESTS)
         src/input/controller_layout.cpp
         src/input/controls.cpp
         src/input/keyboard_ramp.cpp
+        src/input/wheel_taps.cpp
+        src/input/menu_hit.cpp
+        src/input/autovista_mouse.cpp
+        src/input/pointer_cursor.cpp
         src/input/input_context.cpp
         src/input/keycap.cpp
         src/input/prompt_swap.cpp

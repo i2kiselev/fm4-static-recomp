@@ -45,6 +45,11 @@
 #include "input/controls.h"
 #include "input/input_context.h"
 #include "input/keyboard_ramp.h"
+#include "input/menu_hit.h"
+#include "input/pointer_cursor.h"
+#include "ui/prompt_highlight.h"
+#include "input/wheel_taps.h"
+#include "menu_mouse.h"
 #include "input/prompt_strings.h"
 #include "input/prompt_swap.h"
 #include "mixer_options.h"
@@ -123,6 +128,119 @@ class KeyLog final : public rex::ui::WindowInputListener {
   }
 
   rex::ui::Window& window_;
+};
+
+// The mouse in menus (#76): left click selects (A), right click goes back (B), the wheel moves
+// through lists (D-pad up/down; with Shift, left/right for the car and track scrollers). Behind PC
+// OPTIONS, which handles the mouse itself while open; never in a race, where the right button is
+// mouse look. The taps reach the game through the keyboard filter.
+class MenuMouse final : public rex::ui::WindowInputListener, public rex::ui::WindowListener {
+ public:
+  // `picture`: where the game's picture is painted in the window (the presenter's rect), if known.
+  MenuMouse(rex::ui::Window& window,
+            std::function<std::optional<fm4_static_recomp::input::ContentRect>()> picture)
+      : window_(window), picture_(std::move(picture)) {
+    window_.AddInputListener(this, fm4_static_recomp::hostui::HostUi::kZOrder - 1);
+    window_.AddListener(this);
+    if (fm4_static_recomp::input::MenuMouseEnabled()) {
+      fm4_static_recomp::input::InstallPointerCursor(window_.GetNativeWindowHandle(),
+                                                      int(window_.GetActualPhysicalHeight()));
+    }
+  }
+  ~MenuMouse() override {
+    window_.RemoveListener(this);
+    window_.RemoveInputListener(this);
+  }
+
+  // The click that brings the window back to the front is not a menu click.
+  void OnGotFocus(rex::ui::UISetupEvent&) override { state_.Focused(std::chrono::steady_clock::now()); }
+
+  void OnMouseDown(rex::ui::MouseEvent& e) override {
+    if (!InMenus()) return;
+    if (!state_.ClickCounts(std::chrono::steady_clock::now())) return;
+    if (e.button() == rex::ui::MouseEvent::Button::kLeft) {
+      fm4_static_recomp::input::SetMouseLast(true);
+      // The game thread selects the item under the pointer (or presses A where there is no list).
+      fm4_static_recomp::menu_mouse::PointerMoved(ToUi(e));
+      fm4_static_recomp::menu_mouse::LeftClick();
+    } else if (e.button() == rex::ui::MouseEvent::Button::kRight) {
+      fm4_static_recomp::input::SetMouseLast(true);
+      fm4_static_recomp::menu_mouse::PointerMoved(ToUi(e));  // where it is pressed: a drag over the car turns it
+      fm4_static_recomp::menu_mouse::RightClick();
+    }
+  }
+  // The end of a slider drag.
+  void OnMouseUp(rex::ui::MouseEvent& e) override {
+    if (e.button() == rex::ui::MouseEvent::Button::kLeft) fm4_static_recomp::menu_mouse::LeftRelease();
+    if (e.button() == rex::ui::MouseEvent::Button::kRight) fm4_static_recomp::menu_mouse::RightRelease();
+  }
+
+  // The item under the pointer takes the focus (the game thread moves it there).
+  void OnMouseMove(rex::ui::MouseEvent& e) override {
+    if (!InMenus()) return;
+    const auto point = ToUi(e);
+    if (point && last_ && std::fabs(point->x - last_->x) < 1 && std::fabs(point->y - last_->y) < 1) return;
+    last_ = point;
+    fm4_static_recomp::input::SetMouseLast(true);
+    fm4_static_recomp::menu_mouse::PointerMoved(point);
+  }
+
+  void OnMouseWheel(rex::ui::MouseEvent& e) override {
+    if (!InMenus()) return;
+    // Whole notches; a touchpad's small steps add up.
+    wheel_ += e.scroll_y();
+    const int notches = wheel_ / int(rex::ui::MouseEvent::kScrollPerDetent);
+    wheel_ -= notches * int(rex::ui::MouseEvent::kScrollPerDetent);
+    if (notches != 0) fm4_static_recomp::input::SetMouseLast(true);
+    if (notches != 0) fm4_static_recomp::menu_mouse::WheelNotches(notches, state_.shift());
+  }
+
+ private:
+  // The pointer in the game's UI space, or nullopt off the picture.
+  std::optional<fm4_static_recomp::input::UiPoint> ToUi(const rex::ui::MouseEvent& e) const {
+    namespace input = fm4_static_recomp::input;
+    auto picture = picture_ ? picture_() : std::nullopt;
+    if (!picture) {
+      picture = input::PictureRect(float(window_.GetActualPhysicalWidth()),
+                                   float(window_.GetActualPhysicalHeight()), REXCVAR_GET(present_letterbox));
+    }
+    return input::ToUi(float(e.x()), float(e.y()), *picture);
+  }
+
+  static bool InMenus() {
+    return fm4_static_recomp::input::MenuMouseEnabled() &&
+           fm4_static_recomp::input::CurrentInputContext() == fm4_static_recomp::input::InputContext::kMenu;
+  }
+
+  // First in line, so it sees every key: Shift held (the wheel then moves left and right), and any
+  // other key gives the prompts back to the keys.
+  class KeyWatch final : public rex::ui::WindowInputListener {
+   public:
+    KeyWatch(rex::ui::Window& window, fm4_static_recomp::input::MenuMouseKeys& state)
+        : window_(window), state_(state) {
+      window_.AddInputListener(this, fm4_static_recomp::hostui::HostUi::kZOrder + 3);
+    }
+    ~KeyWatch() override { window_.RemoveInputListener(this); }
+    void OnKeyDown(rex::ui::KeyEvent& e) override {
+      if (state_.Key(IsShift(e.virtual_key()), true)) fm4_static_recomp::input::SetMouseLast(false);
+    }
+    void OnKeyUp(rex::ui::KeyEvent& e) override { state_.Key(IsShift(e.virtual_key()), false); }
+
+   private:
+    static bool IsShift(rex::ui::VirtualKey key) {
+      return key == rex::ui::VirtualKey::kShift || key == rex::ui::VirtualKey::kLShift ||
+             key == rex::ui::VirtualKey::kRShift;
+    }
+    rex::ui::Window& window_;
+    fm4_static_recomp::input::MenuMouseKeys& state_;
+  };
+
+  rex::ui::Window& window_;
+  std::function<std::optional<fm4_static_recomp::input::ContentRect>()> picture_;
+  std::optional<fm4_static_recomp::input::UiPoint> last_;
+  fm4_static_recomp::input::MenuMouseKeys state_;
+  KeyWatch keys_{window_, state_};
+  int wheel_ = 0;
 };
 
 class Fm4App final : public rex::ReXApp {
@@ -285,6 +403,15 @@ class Fm4App final : public rex::ReXApp {
     if (rex::ui::Window* const window = this->window()) {
       window->SetCursorVisibility(rex::ui::Window::CursorVisibility::kAutoHidden);
       fullscreen_toggle_ = std::make_unique<FullscreenToggle>(*window);
+      menu_mouse_ = std::make_unique<MenuMouse>(
+          *window, [this]() -> std::optional<fm4_static_recomp::input::ContentRect> {
+            rex::ui::Presenter* const presenter =
+                runtime() && runtime()->graphics_system() ? runtime()->graphics_system()->presenter() : nullptr;
+            const auto rect = presenter ? presenter->GetPaintedGuestOutputRectFromUIThread() : std::nullopt;
+            if (!rect || rect->width <= 0 || rect->height <= 0) return std::nullopt;
+            return fm4_static_recomp::input::ContentRect{float(rect->x), float(rect->y), float(rect->width),
+                                                         float(rect->height)};
+          });
       if (REXCVAR_GET(fm4_log_keys)) {
         key_log_ = std::make_unique<KeyLog>(*window);
       }
@@ -300,6 +427,13 @@ class Fm4App final : public rex::ReXApp {
         window->app_context().CallInUIThreadDeferred([this] { OpenGraphicsPage(); });
       }
     });
+    // The prompt under the pointer is highlighted (menu_mouse finds it; drawn on the UI thread).
+    fm4_static_recomp::menu_mouse::SetPromptHighlightListener(
+        [this](std::optional<fm4_static_recomp::input::UiRect> box) {
+          if (rex::ui::Window* const window = this->window()) {
+            window->app_context().CallInUIThreadDeferred([this, box] { ShowPromptHighlight(box); });
+          }
+        });
     InstallKeyboard();
     fm4_static_recomp::InitializeCustomMusic();
     if (!REXCVAR_GET(controller_vibration)) {
@@ -353,8 +487,11 @@ class Fm4App final : public rex::ReXApp {
       input_system->SetKeyboardStateFilter(nullptr);
       input_system->SetPadStateFilter(nullptr);
     }
+    fm4_static_recomp::menu_mouse::SetPromptHighlightListener(nullptr);
+    prompt_highlight_.reset();
     host_ui_.reset();
     fullscreen_toggle_.reset();
+    menu_mouse_.reset();
     key_log_.reset();
   }
 
@@ -409,11 +546,15 @@ class Fm4App final : public rex::ReXApp {
       const std::lock_guard lock(controls_mutex_);
       binding_switcher_->Update(context);
       if (input_system && prompt_swap_) {
-        prompt_swap_->Update(keyboard, context);
+        prompt_swap_->Update(keyboard, context, input::MouseLast(),
+                             fm4_static_recomp::menu_mouse::TitleScreenUp(),
+                             fm4_static_recomp::menu_mouse::SidebarBackIcon());
       }
     });
     fm4_static_recomp::SetPromptTextSource(
         [this](uint16_t key, std::u16string_view text) -> std::optional<std::u16string> {
+          // The title screen with the mouse in use: a click starts the game (menu_mouse).
+          if (input::MouseLast() && text == u"Press A to start the game.") return u"Click to start";
           if (!keyboard_prompts_.load(std::memory_order_relaxed)) {
             return std::nullopt;
           }
@@ -426,8 +567,9 @@ class Fm4App final : public rex::ReXApp {
     ramp_rates_ = controls_.ramp;
     input_system->SetKeyboardStateFilter(
         [this, ramp = input::KeyboardRamp(controls_.ramp),
-         last = std::chrono::steady_clock::now()](uint32_t user_index,
-                                                  rex::input::X_INPUT_GAMEPAD& pad) mutable {
+         last = std::chrono::steady_clock::now(),
+         gate = fm4_static_recomp::menu_mouse::FocusBackGate{},
+         back_is_ok = false](uint32_t user_index, rex::input::X_INPUT_GAMEPAD& pad) mutable {
           if (user_index != 0) {
             return;
           }
@@ -440,10 +582,44 @@ class Fm4App final : public rex::ReXApp {
           }
           ramp.Apply(pad, elapsed, input::CurrentInputContext() == input::InputContext::kDriving,
                      rex::input::mnk::IsHoldLookEngaged());
+          if (input::CurrentInputContext() == input::InputContext::kMenu) {
+            fm4_static_recomp::menu_mouse::GateFocusBack(gate, pad);
+            fm4_static_recomp::menu_mouse::AutovistaSticks(pad, elapsed);
+            const uint32_t taps = input::MenuWheelTaps().Buttons(elapsed);
+            pad.buttons = uint16_t(pad.buttons | (taps & 0xFFFF));
+            if (taps & input::kLeftTriggerBit) pad.left_trigger = 255;
+            if (taps & input::kRightTriggerBit) pad.right_trigger = 255;
+            // Esc or a right click on a message box that only has OK: OK. The press stays the box's until
+            // let go (still held when the box has closed, it would go back on the screen under it).
+            constexpr uint16_t kA = rex::input::X_INPUT_GAMEPAD_A, kB = rex::input::X_INPUT_GAMEPAD_B;
+            if (!(pad.buttons & kB)) {
+              back_is_ok = false;
+            } else if (back_is_ok || fm4_static_recomp::menu_mouse::DialogTakesOnlyOk()) {
+              const bool box = fm4_static_recomp::menu_mouse::DialogTakesOnlyOk();
+              back_is_ok = true;
+              pad.buttons = uint16_t((pad.buttons & ~kB) | (box ? kA : 0));
+            }
+          } else {
+            input::MenuWheelTaps().Clear();
+            fm4_static_recomp::menu_mouse::Reset();
+          }
         });
     // D-PAD STEERING: the game leaves the pad's D-pad up/down unused while driving; the
     // telemetry they are kept on (Fm4DpadSteeringTelemetry) is for the keyboard alone.
-    input_system->SetPadStateFilter([](uint32_t user_index, rex::input::X_INPUT_GAMEPAD& pad) {
+    input_system->SetPadStateFilter([last_buttons = uint16_t(0),
+                                     gate = fm4_static_recomp::menu_mouse::FocusBackGate{}](
+                                        uint32_t user_index, rex::input::X_INPUT_GAMEPAD& pad) mutable {
+      // A pad button pressed, or a stick pushed past halfway, gives the prompts back to the pad
+      // after the mouse (#76); a pad that only sits there does not.
+      if (user_index == 0) {
+        const bool pressed = (pad.buttons & ~last_buttons) != 0;
+        const bool stick = std::abs(int(pad.thumb_lx)) > 16384 || std::abs(int(pad.thumb_ly)) > 16384;
+        if (pressed || stick) input::SetMouseLast(false);
+        last_buttons = pad.buttons;
+        if (input::CurrentInputContext() == input::InputContext::kMenu) {
+          fm4_static_recomp::menu_mouse::GateFocusBack(gate, pad);
+        }
+      }
       if (user_index == 0 && input::DpadSteering() &&
           input::CurrentInputContext() == input::InputContext::kDriving) {
         pad.buttons = uint16_t(pad.buttons & ~(rex::input::X_INPUT_GAMEPAD_DPAD_UP |
@@ -580,6 +756,17 @@ class Fm4App final : public rex::ReXApp {
     return true;
   }
 
+  void ShowPromptHighlight(std::optional<fm4_static_recomp::input::UiRect> box) {
+    if (!prompt_highlight_) {
+      if (!box) return;
+      rex::ui::Presenter* const presenter =
+          runtime() && runtime()->graphics_system() ? runtime()->graphics_system()->presenter() : nullptr;
+      if (!presenter || !immediate_drawer()) return;
+      prompt_highlight_ = std::make_unique<fm4_static_recomp::ui::PromptHighlight>(*presenter, *immediate_drawer());
+    }
+    prompt_highlight_->Show(box);
+  }
+
   void OpenGraphicsPage() {
     if (host_ui_ && host_ui_->is_open()) {
       return;
@@ -659,6 +846,8 @@ class Fm4App final : public rex::ReXApp {
   std::unique_ptr<fm4_static_recomp::input::PromptSwap> prompt_swap_;
   std::atomic<bool> keyboard_prompts_{false};
   std::unique_ptr<fm4_static_recomp::hostui::HostUi> host_ui_;
+  std::unique_ptr<fm4_static_recomp::ui::PromptHighlight> prompt_highlight_;
   std::unique_ptr<FullscreenToggle> fullscreen_toggle_;
+  std::unique_ptr<MenuMouse> menu_mouse_;
   std::unique_ptr<KeyLog> key_log_;
 };

@@ -50,7 +50,11 @@ class PromptSwap {
   PromptSwap(std::vector<PromptTexture> textures, const hostui::VectorFont& font,
              const Controls& controls,
              Registry registry = rex::graphics::texture_replacement::SetRuntimeReplacement);
-  void Update(bool keyboard_active, InputContext context);
+  // mouse_last: the mouse was used last in a menu: every icon is clear, the prompts read as their labels (#76).
+  // mouse_title: on the title screen, whose line runs up to the icon: A shows the mouse there.
+  // mouse_back: BACK is in a side menu, where a right click does it: B shows the mouse's right button.
+  void Update(bool keyboard_active, InputContext context, bool mouse_last = false, bool mouse_title = false,
+              bool mouse_back = false);
 
  private:
   using Image = std::shared_ptr<const rex::graphics::texture_replacement::RuntimeImage>;
@@ -58,6 +62,10 @@ class PromptSwap {
   std::vector<PromptTexture> textures_;
   // Per context, per texture.
   std::array<std::vector<Image>, 2> keycaps_;
+  // Per texture: what it shows in menus with the mouse in use (clear).
+  std::vector<Image> mouse_;
+  Image mouse_title_;  // A on the title screen
+  Image mouse_back_;   // B where a right click goes back
   std::vector<Image> registered_;
   Registry registry_;
 };

@@ -278,4 +278,35 @@ Rgba RenderKeycap(std::span<const std::string> labels, uint32_t size,
   return out;
 }
 
+Rgba RenderMouseButton(bool right, uint32_t size) {
+  // The body: a tall rounded shape in the middle of the square, its outline the keycaps' edge.
+  const float s = float(size);
+  const float body_w = s * 0.62f, body_h = s * 0.92f;
+  const float left = (s - body_w) / 2, top = (s - body_h) / 2;
+  const float outline = std::max(1.0f, s / 16);
+  const float split_y = top + body_h * 0.42f;  // where the buttons end
+  const float mid_x = s / 2;
+  Rgba out{size, std::vector<uint8_t>(size_t(size) * size * 4)};
+  for (uint32_t y = 0; y < size; ++y) {
+    for (uint32_t x = 0; x < size; ++x) {
+      const float outer = RoundedRect(int(std::lround(x - left)), int(std::lround(y - top)), body_w, body_h, body_w / 2);
+      const float inner = RoundedRect(int(std::lround(x - left - outline)), int(std::lround(y - top - outline)),
+                                      body_w - 2 * outline, body_h - 2 * outline, body_w / 2 - outline);
+      const float px = x + 0.5f, py = y + 0.5f;
+      // The seams: under the buttons, and between them.
+      const bool seam = (std::abs(py - split_y) < outline / 2) || (py < split_y && std::abs(px - mid_x) < outline / 2);
+      const bool pressed = py < split_y && (right ? px > mid_x : px < mid_x);
+      float color = kFaceTop + (kFaceBottom - kFaceTop) * std::clamp((py - top) / body_h, 0.0f, 1.0f);
+      if (pressed) color = kText;
+      if (seam) color = kEdge;
+      const float alpha = outer;
+      const float value = inner * color + (1.0f - inner) * kEdge;
+      uint8_t* const pixel = &out.pixels[(size_t(y) * size + x) * 4];
+      pixel[0] = pixel[1] = pixel[2] = alpha > 0.0f ? uint8_t(std::lround(value)) : 0;
+      pixel[3] = uint8_t(std::lround(alpha * 255.0f));
+    }
+  }
+  return out;
+}
+
 }  // namespace fm4_static_recomp::input
