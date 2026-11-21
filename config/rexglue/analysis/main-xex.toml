@@ -280,10 +280,12 @@ registers = ["f1"]
 [[midasm_hook]]
 address = 0x8261D8A8
 name = "Fm4WorldTourIntroEnter"
+registers = ["r31"]
 
 [[midasm_hook]]
 address = 0x826355BC
 name = "Fm4WorldTourIntroPostRace"
+registers = ["r31"]
 
 # Back from a finished race (0x82635398, the race's result not yet shown: +0x315 of the career
 # state clear), the screen sends its scene POST_RACE_ANIMATE (the zoom out from the track, the
@@ -291,11 +293,12 @@ name = "Fm4WorldTourIntroPostRace"
 [[midasm_hook]]
 address = 0x8263544C
 name = "Fm4WorldTourPostRaceAnimate"
+registers = ["r31"]
 
 [[midasm_hook]]
 address = 0x826351D4
 name = "Fm4WorldTourSceneEvent"
-registers = ["r4"]
+registers = ["r3", "r4"]
 
 # The post-race XP screen (909_LEVEL_PROGRESS, vtable 0x8202C2D4): its factory (0x824D8D38)
 # has constructed it (r3); its update (slot 2, 0x82538A58) moves its bars by its stopwatch

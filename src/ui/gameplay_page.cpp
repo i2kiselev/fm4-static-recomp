@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <atomic>
 #include <vector>
 
 #include <rex/cvar.h>
@@ -22,6 +23,13 @@ REXCVAR_DEFINE_STRING(fm4_fast_post_race, "off", "Forza Motorsport 4",
 
 namespace fm4_static_recomp::ui {
 namespace {
+
+// fm4_fast_post_race as the guest's threads read it: the cvar is a string the UI thread sets.
+std::atomic<int> g_fast_post_race_mode{0};  // 0 off, 1 globe, 2 all
+
+void SetFastPostRaceMode(std::string_view mode) {
+  g_fast_post_race_mode.store(mode == "all" ? 2 : mode == "globe" ? 1 : 0, std::memory_order_relaxed);
+}
 
 using hostui::MenuRow;
 using hostui::MenuScreen;
@@ -114,6 +122,7 @@ struct Draft {
     for (const auto& [name, value] : pending) {
       rex::cvar::SetFlagByName(name, value);
       REXLOG_INFO("Gameplay page: {} = {}", name, value);
+      if (name == kFastPostRace) SetFastPostRaceMode(value);
     }
     pending.clear();
     leave_warned = false;
@@ -148,7 +157,7 @@ MenuRow FastPostRaceRow(const std::shared_ptr<Draft>& draft) {
       "Plays the waits after a race fast. GLOBE: the World Tour globe's spin and zoom to the "
       "next event, after a race and on opening World Tour, take a second or two. GLOBE + XP "
       "BARS: the post-race XP bars fill fast too. Level-up rewards, gift cars and every "
-      "other screen stay as they are. Changes apply at once.";
+      "other screen stay as they are. After SAVE & APPLY it works from the next race, with no restart.";
   row.value = [draft] {
     const std::string value = draft->Value(kFastPostRace);
     for (const auto& [name, label] : kFastPostRaceValues) {
@@ -207,6 +216,8 @@ std::unique_ptr<MenuScreen> CreateGameplayPage(config::HostConfig& config) {
   return screen;
 }
 
+int FastPostRaceMode() { return g_fast_post_race_mode.load(std::memory_order_relaxed); }
+
 void ApplySavedGameplaySettings(const config::HostConfig& config) {
   if (const auto value = config.Get(kLaps)) {
     if (FromCommandLine(kLaps)) {
@@ -220,13 +231,18 @@ void ApplySavedGameplaySettings(const config::HostConfig& config) {
     }
   }
   if (const auto value = config.Get(kFastPostRace); value && !FromCommandLine(kFastPostRace)) {
-    if (IsFastPostRaceValue(*value)) {
-      rex::cvar::SetFlagByName(kFastPostRace, *value);
+    if (IsFastPostRaceValue(*value) && rex::cvar::SetFlagByName(kFastPostRace, *value)) {
       REXLOG_INFO("Gameplay settings: {} = {}", kFastPostRace, *value);
     } else {
       REXLOG_WARN("Gameplay settings: ignored {} = {}", kFastPostRace, *value);
     }
   }
+  const std::string fast_post_race = REXCVAR_GET(fm4_fast_post_race);
+  if (!IsFastPostRaceValue(fast_post_race)) {
+    REXLOG_WARN("Gameplay settings: {} = {} is not one of off, globe, all: it stays off", kFastPostRace,
+                fast_post_race);
+  }
+  SetFastPostRaceMode(fast_post_race);
 }
 
 }  // namespace fm4_static_recomp::ui

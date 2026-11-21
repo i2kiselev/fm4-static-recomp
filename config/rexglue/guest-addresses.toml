@@ -20,6 +20,8 @@ kTextSetupGetTextReturn = 0x8234FDA4
 
 # Guest data the hooks read.
 [data]
+# The hash of READY_FOR_TROPHY, set by the game at start (a World Tour scene event).
+kWorldTourReadyForTrophy = 0x82DDEEDC
 # Holds the render scenario manager.
 kScenarioManagerPointer = 0x82DC3750
 # Each scenario control's offset, indexed by control id.

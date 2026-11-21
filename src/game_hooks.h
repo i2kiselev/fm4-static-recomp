@@ -36,6 +36,8 @@ void InstallAudioCompatibility();
 
 // Every guest file open, on the opening guest thread: the game's saving of a car
 // thumbnail ends the readback hold its render began.
+// Puts the guest clock back and ends the monitor: before the runtime goes away.
+void StopFastPostRace();
 void NoteGuestFileOpen(std::string_view guest_path);
 
 }  // namespace fm4_static_recomp

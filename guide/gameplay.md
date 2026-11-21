@@ -38,4 +38,4 @@ anything: each still plays to its normal end.
   (instead of about 6).
 
 Level-up rewards, the championship result, gift cars and every other screen are unchanged.
-Off by default; a change applies at once.
+Off by default. After SAVE & APPLY it works from the next race, with no restart.

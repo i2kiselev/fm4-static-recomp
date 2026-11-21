@@ -17,4 +17,7 @@ std::unique_ptr<hostui::MenuScreen> CreateGameplayPage(config::HostConfig& confi
 // Sets the saved values at startup, below a launch option for the same setting.
 void ApplySavedGameplaySettings(const config::HostConfig& config);
 
+// FAST POST-RACE as set now, safe from any thread: 0 off, 1 globe, 2 all.
+int FastPostRaceMode();
+
 }  // namespace fm4_static_recomp::ui
