@@ -5,6 +5,60 @@
 image = "rev1"
 
 [addresses]
+# kPhotoCameraVtable: data, 2 references in identical functions
+0x8202695C = { at = 0x8202717C, references = 2 }
+# kLiveryColorSelectVtable: data, 1 references in identical functions
+0x82027184 = { at = 0x820279A4, references = 1 }
+# kLiveryLayerSelectVtable: data, 1 references in identical functions
+0x8202728C = { at = 0x82027AAC, references = 1 }
+# kCarColorVtable: data, found by hand
+0x82027614 = { at = 0x82027E34, references = 1, reviewed = "CCarColorSelect's vtable: no reference in an identical function; every neighbouring vtable moved +0x820, and the table at 0x82027E34 holds the same functions (slots 2, 4, 5 match through the function map)" }
+# kLiveryPlacementVtable2: data, 1 references in identical functions
+0x82027918 = { at = 0x82028138, references = 1 }
+# kLiveryPlacementVtable: data, 1 references in identical functions
+0x82027924 = { at = 0x82028144, references = 1 }
+# kButtonTextVtable: data, 1 references in identical functions
+0x820295A4 = { at = 0x82029DC4, references = 1 }
+# kButtonTextureVtable: data, 1 references in identical functions
+0x8202969C = { at = 0x82029EBC, references = 1 }
+# kTuneSliderVtable: data, 1 references in identical functions
+0x8202A15C = { at = 0x8202A97C, references = 1 }
+# kButtonTextAndTextureVtable: data, 1 references in identical functions
+0x8202A6B4 = { at = 0x8202B03C, references = 1 }
+# kWalkaroundCameraVtable: data, 2 references in identical functions
+0x8202D9CC = { at = 0x8202DF1C, references = 2 }
+# kGroupVtable: data, 1 references in identical functions
+0x8202DA0C = { at = 0x8202DF60, references = 2 }
+# kMainMenuVtable: data, 1 references in identical functions
+0x8203E384 = { at = 0x8203E9C4, references = 1 }
+# kMainMenuInputVtable: data, 1 references in identical functions
+0x8203E478 = { at = 0x8203EAB8, references = 1 }
+# kHomespaceVtable: data, 1 references in identical functions
+0x8203F7EC = { at = 0x8203FE24, references = 1 }
+# kRacePhotoVtable: data, 1 references in identical functions
+0x820421A4 = { at = 0x820427DC, references = 1 }
+# kPreRaceVtable: data, 1 references in identical functions
+0x820438FC = { at = 0x82043F3C, references = 2 }
+# kSplashVtable: data, 1 references in identical functions
+0x8204649C = { at = 0x82046AD4, references = 1 }
+# kListVtable: data, 1 references in identical functions
+0x8204D1EC = { at = 0x8204D82C, references = 1 }
+# kButtonVtable: data, 1 references in identical functions
+0x8204D5B4 = { at = 0x8204DBF4, references = 1 }
+# kCarPartAnimateVtable: data, 1 references in identical functions
+0x8204D78C = { at = 0x8204DDCC, references = 1 }
+# kCarPartVtable: data, 1 references in identical functions
+0x8204D9B4 = { at = 0x8204DFF4, references = 1 }
+# kGridVtable: data, 2 references in identical functions
+0x82050B4C = { at = 0x8205118C, references = 2 }
+# kHelpButtonVtable: data, 1 references in identical functions
+0x82050E1C = { at = 0x8205145C, references = 1 }
+# kBarVtable: data, 1 references in identical functions
+0x82050F9C = { at = 0x820515DC, references = 1 }
+# kSpinnerVtable: data, 2 references in identical functions
+0x82052F1C = { at = 0x8205355C, references = 2 }
+# kSliderVtable: data, 1 references in identical functions
+0x82053E2C = { at = 0x8205446C, references = 1 }
 # hook Fm4UiSceneStep: identical function
 0x822A46D0 = { at = 0x822A48E0, fingerprint = "e9974b79bace224f" }
 # hook Fm4MusicUpdate: identical function
@@ -15,6 +69,8 @@ image = "rev1"
 0x822BC340 = { at = 0x822BBE70, fingerprint = "10c2c708eb082dc0" }
 # hook Fm4AngleSpringCut jump_address_on_true: identical function
 0x822BC348 = { at = 0x822BBE78, fingerprint = "1ec4f263cfebd711" }
+# kTimerRestart: identical function
+0x822D59C0 = { at = 0x822D5478, fingerprint = "304139d47b5d1f26" }
 # hook Fm4MainLoopSession: changed function, aligned
 0x822F7C30 = { at = 0x822F76D0, fingerprint = "a10a38dfed0f4a75", changed = "reviewed: only a vtable slot far after the hooks moved (+0x114 became +0x118 at 0x822F8128); the hooks' code and registers are unchanged" }
 # hook Fm4MainLoopStep: changed function, aligned
@@ -25,12 +81,18 @@ image = "rev1"
 0x82338DBC = { at = 0x82338874, fingerprint = "43ddd63cb7472886" }
 # hook Fm4TextElementUpdate: identical function
 0x8233FE4C = { at = 0x8233F904, fingerprint = "cfdee1e48e7be6d4" }
+# kGameTicks: fragment, neighbours' shift
+0x8234BD70 = { at = 0x8234B888, fingerprint = "bfb5d9e01b8b5738" }
 # kTextSetupGetTextReturn: identical function
 0x8234FDA4 = { at = 0x8234F8BC, fingerprint = "179f13f7aa8ec498" }
 # kTextAssign: identical function
 0x82360E98 = { at = 0x823609D0, fingerprint = "7ff1991ab3445723" }
 # hook Fm4CameraLookSpringStep: identical function
 0x8236560C = { at = 0x8236513C, fingerprint = "c81b5941282eb28b" }
+# kSetElementX: fragment, neighbours' shift
+0x8237B428 = { at = 0x8237AF98, fingerprint = "7fe6edc8d9d9871c" }
+# hook Fm4UiCursorFrame: identical function
+0x8238DE90 = { at = 0x8238D990, fingerprint = "f9b2d6166a65c273" }
 # hook Fm4CommandBufferClipRect: identical function
 0x82390B94 = { at = 0x82390694, fingerprint = "c7526e334b2f9c46" }
 # kStringLookup: identical function
@@ -43,6 +105,12 @@ image = "rev1"
 0x823C6AF4 = { at = 0x823C7154, fingerprint = "1a3fff1bd3c8a727" }
 # hook Fm4ThumbnailRenderDone: identical function
 0x823C6BA0 = { at = 0x823C7200, fingerprint = "fdcee8e5a396a703" }
+# kLiveryEditsGroup: fragment, neighbours' shift
+0x823E98D8 = { at = 0x823EC310, fingerprint = "f70b02e5574d3f0e" }
+# kLiveryAdjustGroup: identical function
+0x823F7CE8 = { at = 0x823FA6A0, fingerprint = "b601f13ec7fff67a" }
+# kLiveryAdjust: identical function
+0x823FCE08 = { at = 0x823FF768, fingerprint = "ab7219638006d9e1" }
 # hook Fm4DpadSteeringTelemetry: identical function
 0x82406D74 = { at = 0x824099DC, fingerprint = "b5e954e7998e9658" }
 # hook Fm4DpadSteeringTelemetry jump_address_on_true: identical function
@@ -65,16 +133,42 @@ image = "rev1"
 0x824B0100 = { at = 0x824B3D40, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4ShowroomCameraStep: identical function
 0x824B9D84 = { at = 0x824BDCE4, fingerprint = "66a87f7000537c3f" }
+# hook Fm4LiveryColorSelectCreated: identical function
+0x824BAA18 = { at = 0x824BE978, fingerprint = "1b6baf7bc6d3bb34" }
+# hook Fm4LiveryLayerSelectCreated: identical function
+0x824BAB3C = { at = 0x824BEA9C, fingerprint = "1b6baf7bc6d3bb34" }
+# hook Fm4IdleScreenCreated2: most similar function, aligned
+0x824BCDBC = { at = 0x824C0D34, fingerprint = "2b8e126745c550b6", changed = "reviewed: the constructor stores the same fields at the same offsets (0x1F4..0x20B, the idle timer 0x1F8 and hidden flag 0x201 the mouse reads) and adds two after them (0x20C, 0x210); the hooked epilogue and r31 are unchanged" }
+# hook Fm4LiveryPlacementCreated: identical function
+0x824BD078 = { at = 0x824C1120, fingerprint = "3de7f2a8059a3705" }
+# kGroupSetFocus: identical function
+0x824C2B10 = { at = 0x824C6BA0, fingerprint = "e4fbce0d535d894e" }
+# hook Fm4IdleScreenDestroyed2: identical function through its vtables
+0x824C41BC = { at = 0x824C824C, fingerprint = "567928576667365f" }
 # hook Fm4AutovistaCameraUpdate: identical function
 0x824C7308 = { at = 0x824CB4E8, fingerprint = "09c697f081670e17" }
+# hook Fm4PhotoModeCameraUpdate: identical function
+0x824C8A00 = { at = 0x824CCBE0, fingerprint = "bd197665bf6f3e6d" }
 # hook Fm4RaceSubmenuSceneCreated: identical function
 0x824CAAB0 = { at = 0x824CED18, fingerprint = "c19484aecd0e229b" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x824CBD90 = { at = 0x824D0070, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4QuickRaceSetupLaps: identical function
 0x824D38BC = { at = 0x824D7FEC, fingerprint = "98e320c7d4b82ce7" }
+# hook Fm4FocusGroupCreated: fragment, neighbours' shift
+0x824DF3D4 = { at = 0x824E2F7C, fingerprint = "f332ea5b5437103c" }
+# hook Fm4FocusGroupDestroyed: identical function
+0x824DF3EC = { at = 0x824E2F94, fingerprint = "b534fed01eb2c7b9" }
+# kScreenWake: identical function
+0x824E4A60 = { at = 0x824E8798, fingerprint = "8afe00ab240361db" }
+# kLiveryShowChange: identical function
+0x82515030 = { at = 0x8251A400, fingerprint = "3ec3b6d1b8f8a9e2" }
+# kLiveryChanged: identical function
+0x825221D0 = { at = 0x82527490, fingerprint = "dbffe5a67e24ea38" }
 # hook Fm4AddGraphicsOption: identical function
 0x8256CCF4 = { at = 0x82572C0C, fingerprint = "9b13a0c5611cb98b" }
+# hook Fm4MainMenuCreated: identical function
+0x8257BC58 = { at = 0x82581E40, fingerprint = "0666167ae65cf57e" }
 # hook Fm4OpenGraphicsOption: identical function
 0x82589460 = { at = 0x8258F868, fingerprint = "2e446f0b5b9f93e5" }
 # hook Fm4RaceMenuSceneCreated: identical function
@@ -85,10 +179,16 @@ image = "rev1"
 0x825A90A8 = { at = 0x825AF638, fingerprint = "53f6a43c2f460734" }
 # hook Fm4RaceMenuSceneDestroyed: identical function
 0x825A9100 = { at = 0x825AF690, fingerprint = "477c4ecd604792d3" }
+# hook Fm4IdleScreenDestroyed: identical function through its vtables
+0x825BEC90 = { at = 0x825C5798, fingerprint = "a7dbc6524569385a" }
+# kPreRaceShow: identical function
+0x825BED40 = { at = 0x825C5848, fingerprint = "4833c03b66668096" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x825BF700 = { at = 0x825C6278, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4RaceMenuSceneCreated: identical function
 0x825BF750 = { at = 0x825C62C8, fingerprint = "5d3a03bfaca4b0a2" }
+# hook Fm4IdleScreenCreated: identical function
+0x825BF7D0 = { at = 0x825C6348, fingerprint = "8743eb01a476ef83" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x825BF7E0 = { at = 0x825C6358, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4RaceMenuSceneCreated: identical function
@@ -123,8 +223,20 @@ image = "rev1"
 0x825DB968 = { at = 0x825E2268, fingerprint = "6b4589107dcc75a4" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x825DE0F0 = { at = 0x825E4818, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4SplashCreated: identical function
+0x825DF968 = { at = 0x825E6138, fingerprint = "9967980448dd68ce" }
 # hook Fm4QuickRaceTrackQuery: identical function
 0x825E7BB0 = { at = 0x825EE220, fingerprint = "bb2f4c0ea3bc95eb" }
+# kListSetFocus: identical function
+0x826209F0 = { at = 0x82626E28, fingerprint = "80c7b412c6eb7723" }
+# hook Fm4UiContainerCreated: identical function
+0x82635920 = { at = 0x8263B600, fingerprint = "601556b814d90082" }
+# hook Fm4UiContainerDestroyed: identical function
+0x82635948 = { at = 0x8263B628, fingerprint = "04a4abb03162d598" }
+# kGridGoTo: identical function
+0x82641858 = { at = 0x82647600, fingerprint = "197979cce3d87b16" }
+# kSliderSteps: identical function
+0x82649340 = { at = 0x8264F168, fingerprint = "f119a370abc2321a" }
 # kMenuAddItem: identical function
 0x8266FF00 = { at = 0x82675768, fingerprint = "45ef72de459a5a8c" }
 # hook Fm4SkipVblankCallback: identical function
@@ -163,6 +275,8 @@ image = "rev1"
 0x8297AA50 = { at = 0x82986018, fingerprint = "6b1a9754897b4f63" }
 # hook Fm4MusicMovieStarted: identical function
 0x829851AC = { at = 0x8298FF94, fingerprint = "6a89bc7dbeb283a1" }
+# kSetElementY: fragment, neighbours' shift
+0x8298DF70 = { at = 0x82998D60, fingerprint = "7fe6edc8d9d9871c" }
 # exact_single_fma_functions: identical function
 0x82B3FC08 = { at = 0x82B4A208, fingerprint = "f55ca4ffa79c0297" }
 # exact_single_fma_functions: identical function
@@ -193,3 +307,9 @@ image = "rev1"
 0x82D59FF0 = { at = 0x82D59FE0, references = 103 }
 # kScenarioManagerPointer: data, 79 references in identical functions
 0x82DC3750 = { at = 0x82DC3890, references = 112 }
+# kMoveForward: data, 4 references in identical functions
+0x82E023B4 = { at = 0x82E02534, references = 4 }
+# kMoveBack: data, 4 references in identical functions
+0x82E025B4 = { at = 0x82E02734, references = 4 }
+# kNatalCursorPointer: data, 62 references in identical functions
+0x82E10C1C = { at = 0x82E10D9C, references = 70 }
