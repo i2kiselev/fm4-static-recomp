@@ -191,5 +191,29 @@ image = "rev1"
 0x82C77CF8 = { at = 0x82C82C10, fingerprint = "97f3f29734d22b76" }
 # kControlOffsetTable: data, 103 references in identical functions
 0x82D59FF0 = { at = 0x82D59FE0, references = 103 }
+# kUiManagerPointer: data, 10 references in identical functions
+0x82DC36CC = { at = 0x82DC380C, references = 23, changed = "reviewed: all 10 references in identical functions agree; the count differs in functions Rev 1 changed. Neighbouring pointers moved +0x140" }
 # kScenarioManagerPointer: data, 79 references in identical functions
 0x82DC3750 = { at = 0x82DC3890, references = 112 }
+# kUiSoundSliderUp: data, 2 references in identical functions
+0x82E02148 = { at = 0x82E022C8, references = 2 }
+# kUiSoundMove: data, 3 references in identical functions
+0x82E022A8 = { at = 0x82E02428, references = 3, changed = "reviewed: all 3 references in identical functions agree, as the other UI sounds (+0x180); the count differs in functions Rev 1 changed" }
+# kUiSoundSliderDown: data, 2 references in identical functions
+0x82E02334 = { at = 0x82E024B4, references = 2, changed = "reviewed: both references in identical functions agree, as the other UI sounds (+0x180); the count differs in functions Rev 1 changed" }
+# kUiSoundCancel: data, 70 references in identical functions
+0x82E023A8 = { at = 0x82E02528, references = 72 }
+# kUiSoundTabRight: data, 4 references in identical functions
+0x82E023B4 = { at = 0x82E02534, references = 4 }
+# kUiSoundAccept: data, 63 references in identical functions
+0x82E024A0 = { at = 0x82E02620, references = 64 }
+# kUiSoundSliderEnd: data, 3 references in identical functions
+0x82E024D0 = { at = 0x82E02650, references = 3 }
+# kUiSoundSpinnerEnd: data, 3 references in identical functions
+0x82E024F4 = { at = 0x82E02674, references = 3 }
+# kUiSoundError: data, 8 references in identical functions
+0x82E024F8 = { at = 0x82E02678, references = 9 }
+# kUiSoundTabLeft: data, 4 references in identical functions
+0x82E025B4 = { at = 0x82E02734, references = 4 }
+# kUiSoundSpinner: data, 4 references in identical functions
+0x82E025C0 = { at = 0x82E02740, references = 4 }
