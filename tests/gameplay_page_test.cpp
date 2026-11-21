@@ -148,7 +148,7 @@ TEST_CASE("ONLINE MENU ITEMS are shown by default and HIDDEN saves and applies",
   page.Step(1, NavCommand::kRight);
   CHECK(page.Value(1) == "SHOWN");
   page.screen->Handle(NavCommand::kApply);
-  CHECK(page.File() == "fm4_hide_online_items = false\n");
+  CHECK(page.File().find("fm4_hide_online_items") == std::string::npos);  // SHOWN is the default: its line goes
   CHECK(rex::cvar::GetFlagByName("fm4_hide_online_items") == "false");
 }
 

@@ -91,7 +91,11 @@ struct Draft {
           config.Set(kLaps, value);
         }
       } else if (name == kHideOnlineItems) {
-        config.Set(kHideOnlineItems, value);
+        if (value == "false") {  // the default: no line
+          config.Remove(kHideOnlineItems);
+        } else {
+          config.Set(kHideOnlineItems, value);
+        }
       }
     }
     if (!config.Save()) {
@@ -135,7 +139,8 @@ MenuRow OnlineItemsRow(const std::shared_ptr<Draft>& draft) {
   row.description =
       "COMMUNITY and MARKETPLACE on the main menu, RIVALS, BUY TUNING SETUPS and BUY DESIGNS "
       "need Xbox LIVE or the Forza servers, so here they only say the service is unavailable. "
-      "HIDDEN leaves them off the menus; each menu shows the change the next time it opens.";
+      "HIDDEN leaves them off the menus. Each menu shows the change the next time the game "
+      "builds it: the main menu after you've been into another screen, or at the next start.";
   row.value = [draft] {
     return std::string(draft->Value(kHideOnlineItems) == "true" ? "HIDDEN" : "SHOWN");
   };
@@ -195,12 +200,14 @@ void ApplySavedGameplaySettings(const config::HostConfig& config) {
       REXLOG_INFO("Gameplay settings: {} = {}", kLaps, *laps);
     }
   }
-  if (const auto value = config.Get(kHideOnlineItems); value && !FromCommandLine(kHideOnlineItems)) {
-    if (*value == "true" || *value == "false") {
-      rex::cvar::SetFlagByName(kHideOnlineItems, *value);
-      REXLOG_INFO("Gameplay settings: {} = {}", kHideOnlineItems, *value);
+  if (const auto value = config.Get(kHideOnlineItems)) {
+    if (FromCommandLine(kHideOnlineItems)) {
+      REXLOG_INFO("Gameplay settings: {} comes from the command line, not {}", kHideOnlineItems,
+                  config.path().string());
+    } else if ((*value != "true" && *value != "false") || !rex::cvar::SetFlagByName(kHideOnlineItems, *value)) {
+      REXLOG_WARN("Gameplay settings: ignored {} = {} in {}", kHideOnlineItems, *value, config.path().string());
     } else {
-      REXLOG_WARN("Gameplay settings: ignored {} = {}", kHideOnlineItems, *value);
+      REXLOG_INFO("Gameplay settings: {} = {}", kHideOnlineItems, *value);
     }
   }
 }
