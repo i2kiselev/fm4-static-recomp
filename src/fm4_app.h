@@ -209,13 +209,13 @@ class Fm4App final : public rex::ReXApp {
     }
     if (gameplay_config_->Load()) {
       fm4_static_recomp::ui::ApplySavedGameplaySettings(*gameplay_config_);
-      // Track signage: pictures of <state>\signage on the track boards PC OPTIONS > SIGNAGE chose
-      // (config\signage.toml).
-      fm4_static_recomp::signage::Start(gameplay_config_->path().parent_path().parent_path() / "signage",
-                                        game_data_root(), gameplay_config_->path().parent_path() / "signage.toml");
     } else {
       REXLOG_ERROR("Gameplay settings: cannot read {}", gameplay_config_->path().string());
     }
+    // Track signage: pictures of <state>\signage on the track boards PC OPTIONS > SIGNAGE chose
+    // (config\signage.toml). Its own file: it starts whether or not gameplay.toml could be read.
+    fm4_static_recomp::signage::Start(gameplay_config_->path().parent_path().parent_path() / "signage",
+                                      game_data_root(), gameplay_config_->path().parent_path() / "signage.toml");
   }
 
   bool WantsPresentation() const override {
@@ -348,6 +348,7 @@ class Fm4App final : public rex::ReXApp {
   }
 
   void OnShutdown() override {
+    fm4_static_recomp::signage::Stop();
     rex::ui::UnregisterBind("bind_toggle_fullscreen");
     rex::ui::UnregisterBind("bind_game_menu");
     fm4_static_recomp::ShutdownCustomMusic();

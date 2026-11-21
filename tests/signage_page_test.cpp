@@ -2,11 +2,13 @@
 // BSD 3-Clause License: see LICENSE in the repository root.
 #include <catch2/catch_test_macros.hpp>
 
+#include <filesystem>
 #include <string>
 
 #include <rex/cvar.h>
 
 #include "track_signage.h"
+#include "track_signage_runtime.h"
 #include "ui/hostui/menu.h"
 #include "ui/signage_page.h"
 
@@ -19,9 +21,16 @@ namespace {
 struct Page {
   Page() {
     rex::cvar::SetFlagByName("fm4_track_signage", "true");
+    fm4_static_recomp::signage::SetChoicesFile(file);
     screen = ui::CreateSignagePage();
   }
-  ~Page() { rex::cvar::SetFlagByName("fm4_track_signage", "true"); }
+  ~Page() {
+    rex::cvar::SetFlagByName("fm4_track_signage", "true");
+    fm4_static_recomp::signage::SetChoicesFile({});
+    std::error_code ec;
+    std::filesystem::remove(file, ec);
+  }
+  std::filesystem::path file = std::filesystem::temp_directory_path() / "fm4_signage_page_test.toml";
   const std::vector<fm4_static_recomp::hostui::MenuRow>& Rows() const { return screen->rows(); }
   std::unique_ptr<MenuScreen> screen;
 };
@@ -82,4 +91,12 @@ TEST_CASE("TRACK SIGNAGE OFF is drafted, then applied with SAVE & APPLY", "[sign
   CHECK_FALSE(page.Rows()[0].unapplied());
   CHECK(page.screen->status().text == "SAVED. THE BOARDS CHANGE ON TRACK NOW.");
   CHECK(page.screen->Handle(NavCommand::kBack) == MenuScreen::Result::kBack);
+}
+
+TEST_CASE("Closing the menu on a track's boards closes it; only B steps back", "[signage_page]") {
+  Page page;
+  page.screen->Handle(NavCommand::kDown);
+  page.screen->Handle(NavCommand::kAccept);
+  REQUIRE(page.Rows()[0].label == "HOCKENHEIMRING");
+  CHECK(page.screen->Handle(NavCommand::kClose) == MenuScreen::Result::kBack);
 }

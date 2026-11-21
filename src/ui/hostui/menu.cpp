@@ -162,6 +162,9 @@ MenuScreen::Result MenuScreen::HandleNow(NavCommand command) {
   if (command == NavCommand::kPreviousTab || command == NavCommand::kNextTab) {
     return Result::kNone;
   }
+  if (command == NavCommand::kBack && back_ && back_()) {
+    return Result::kChanged;
+  }
   if (command == NavCommand::kBack || command == NavCommand::kClose) {
     return leave_ && !leave_() ? Result::kChanged : Result::kBack;
   }

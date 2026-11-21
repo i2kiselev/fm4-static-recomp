@@ -39,6 +39,12 @@ std::shared_ptr<const Image> BoardPreview(const Track& track, const Board& board
 
 // The choices in use, and their file.
 Choices CurrentChoices();
+// TRACK SIGNAGE as signage.toml has it, whatever a launch option says this session.
+bool SavedEnabled();
+// Ends the worker: before the runtime goes away.
+void Stop();
+// Where SaveChoices writes, without starting the worker (the page's tests).
+void SetChoicesFile(const std::filesystem::path& file);
 // Saves the choices and TRACK SIGNAGE on or off (signage.toml, written whole) and shows them;
 // false when it couldn't save.
 bool SaveChoices(const Choices& choices, bool enabled);

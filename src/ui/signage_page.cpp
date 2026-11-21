@@ -44,7 +44,8 @@ std::string Count(size_t n, const char* one, const char* many) {
 struct Draft {
   Choices saved = signage::CurrentChoices();
   Choices choices = saved;
-  bool saved_enabled = EnabledNow();
+  // The switch as saved: a launch option overrides it for the session, and is never written to the file.
+  bool saved_enabled = FromCommandLine() ? signage::SavedEnabled() : EnabledNow();
   bool enabled = saved_enabled;
   bool leave_warned = false;
   bool applied = false;
@@ -248,6 +249,8 @@ MenuRow ResetRow(const std::shared_ptr<Draft>& draft, const Track& track) {
   row.value = [] { return std::string("RESET"); };
   row.adjust = [draft, &track](int) {
     for (const Board& board : track.boards) draft->Choose(track, board, std::string());
+    // This row has nothing left to reset and greys out: the focus goes to the first board.
+    draft->screen->ReplaceRows(TrackRows(draft, track), 1);
   };
   row.enabled = [draft, &track] { return draft->ChosenOn(track) > 0; };
   return row;
@@ -279,17 +282,18 @@ std::unique_ptr<MenuScreen> CreateSignagePage() {
   auto screen = std::make_unique<MenuScreen>("SIGNAGE", MainRows(draft));
   draft->screen = screen.get();
   screen->set_apply([draft] { draft->Apply(); });
-  screen->set_leave([draft] {
-    // B on a track's boards goes back to the tracks (the draft stays).
-    if (draft->open_track) {
-      size_t focus = 2;
-      const auto tracks = signage::Tracks();
-      for (size_t i = 0; i < tracks.size(); ++i) {
-        if (&tracks[i] == draft->open_track) focus = 2 + i;
-      }
-      Open(draft, nullptr, focus);
-      return false;
+  // B on a track's boards goes back to the tracks (the draft stays); closing the menu or changing tab does not.
+  screen->set_back([draft] {
+    if (!draft->open_track) return false;
+    size_t focus = 2;
+    const auto tracks = signage::Tracks();
+    for (size_t i = 0; i < tracks.size(); ++i) {
+      if (&tracks[i] == draft->open_track) focus = 2 + i;
     }
+    Open(draft, nullptr, focus);
+    return true;
+  });
+  screen->set_leave([draft] {
     if (!draft->Pending() || draft->leave_warned) return true;
     draft->leave_warned = true;
     return false;
@@ -297,6 +301,9 @@ std::unique_ptr<MenuScreen> CreateSignagePage() {
   screen->set_status([draft] {
     if (draft->save_failed) return hostui::MenuStatus{.text = "COULD NOT SAVE SIGNAGE.TOML", .warning = true};
     if (draft->Pending()) return hostui::MenuStatus{.text = "UNSAVED CHANGES", .warning = draft->leave_warned};
+    if (draft->applied && FromCommandLine() && draft->enabled != EnabledNow()) {
+      return hostui::MenuStatus{.text = "SAVED. A LAUNCH OPTION KEEPS THE SWITCH THIS SESSION."};
+    }
     if (draft->applied) return hostui::MenuStatus{.text = "SAVED. THE BOARDS CHANGE ON TRACK NOW."};
     return hostui::MenuStatus{};
   });

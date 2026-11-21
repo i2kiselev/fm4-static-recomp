@@ -300,6 +300,7 @@ void HostUi::Close() {
     screen_->Update(true);
   }
   screen_.reset();
+  picture_textures_.clear();  // the drawer releases them once the frames using them are done
   row_rects_.clear();
   pointer_first_.reset();
   tab_rects_.clear();
@@ -995,8 +996,9 @@ void HostUi::DrawMenu(rex::ui::UIDrawContext& context) {
     DrawRect(kPanelX - 5.0f, accent_top, 4.0f, kPanelAccentHeight, kRed);
     float baseline = kPanelFirstBaseline;
     // The row's pictures first (previews), each as wide as the text at most, its caption under it.
+    ++picture_frame_;
     if (row.pictures) {
-      ++picture_frame_;
+      bool drew_picture = false;
       constexpr float kPictureMaxHeight = 96.0f;
       float top = kPanelFirstBaseline - kTextSize * 0.8f;
       for (const MenuPicture& picture : row.pictures()) {
@@ -1013,17 +1015,18 @@ void HostUi::DrawMenu(rex::ui::UIDrawContext& context) {
         }
         DrawRect(kPanelTextLeft - 1.0f, top - 1.0f, width + 2.0f, height + 2.0f, kLine);
         DrawRect(kPanelTextLeft, top, width, height, 0xFFFFFFFFu, texture);
+        drew_picture = true;
         top += height + kPanelLinePitch * 0.9f;
         if (!picture.caption.empty()) {
           DrawText(Face::kMedium, kTextSize * 0.85f, picture.caption, kPanelTextLeft, top - 4.0f, kHeader);
           top += kPanelLinePitch * 0.6f;
         }
       }
-      baseline = std::max(baseline, top + kPanelLinePitch);
-      // Pictures not shown for a while give their textures back.
-      for (auto it = picture_textures_.begin(); it != picture_textures_.end();) {
-        it = picture_frame_ - it->second.used > 600 ? picture_textures_.erase(it) : std::next(it);
-      }
+      if (drew_picture) baseline = std::max(baseline, top + kPanelLinePitch);
+    }
+    // Pictures not shown for a while give their textures back, whichever row has the focus.
+    for (auto it = picture_textures_.begin(); it != picture_textures_.end();) {
+      it = picture_frame_ - it->second.used > 600 ? picture_textures_.erase(it) : std::next(it);
     }
     const auto paragraph = [&](const std::string& text, uint32_t color) {
       if (text.empty()) {

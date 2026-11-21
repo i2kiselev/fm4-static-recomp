@@ -135,6 +135,8 @@ class MenuScreen {
   bool has_apply() const { return bool(apply_); }
   // Asked as back or close would leave the screen; false keeps it open.
   void set_leave(std::function<bool()> leave) { leave_ = std::move(leave); }
+  // Back only (not closing the menu or changing tab): true when the page took it, going up a level of its own.
+  void set_back(std::function<bool()> back) { back_ = std::move(back); }
   void set_status(std::function<MenuStatus()> status) { status_ = std::move(status); }
   MenuStatus status() const { return status_ ? status_() : MenuStatus{}; }
   size_t focus() const { return focus_; }
@@ -176,6 +178,7 @@ class MenuScreen {
   std::function<void(bool closing)> update_;
   std::function<void()> apply_;
   std::function<bool()> leave_;
+  std::function<bool()> back_;
   std::function<MenuStatus()> status_;
   MenuKeyCapture capture_;
   std::vector<std::string> headers_;

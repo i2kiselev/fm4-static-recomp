@@ -28,6 +28,9 @@
 #include <rex/logging.h>
 #include <rex/ui/image_decode.h>
 
+#include <atomic>
+#include <thread>
+
 #include "config/host_config.h"
 #include "ui/hostui/ui_archive.h"
 
@@ -64,6 +67,10 @@ struct State {
   std::set<std::string> preview_wanted;
   size_t shown = 0;
   bool started = false;
+  bool saved_enabled = true;  // the switch in signage.toml
+  bool dirty = false;         // something asked for a pass while one was running
+  std::atomic<bool> stop{false};
+  std::thread thread;
 };
 
 State& GetState() {
@@ -101,8 +108,9 @@ std::map<std::string, std::pair<std::filesystem::path, FileStamp>> ScanFolder(co
     if (!it->is_regular_file(item)) continue;
     const std::string name = rex::path_to_utf8(it->path().filename());
     if (Lower(rex::path_to_utf8(it->path().extension())) != ".png") continue;
-    FileStamp stamp{it->last_write_time(item), it->file_size(item)};
-    if (item) continue;
+    std::error_code time_error, size_error;
+    FileStamp stamp{it->last_write_time(time_error), it->file_size(size_error)};
+    if (time_error || size_error) continue;
     found[Lower(name)] = {it->path(), stamp};
   }
   return found;
@@ -128,6 +136,8 @@ void Run() {
     std::set<std::string> wanted;
     {
       std::lock_guard lock(state.mutex);
+      if (state.stop) return;
+      state.dirty = false;
       folder = state.folder;
       game_root = state.game_root;
       choices = state.choices;
@@ -144,6 +154,7 @@ void Run() {
       it = found.contains(it->first) ? std::next(it) : pictures.erase(it);
     }
     for (const auto& [key, entry] : found) {
+      if (state.stop) return;
       const auto& [path, stamp] = entry;
       auto known = pictures.find(key);
       if (known != pictures.end() && known->second.stamp == stamp) continue;
@@ -171,6 +182,7 @@ void Run() {
       }
     }
     for (const auto& [hash, want] : desired) {
+      if (state.stop) return;
       const auto& [board, key] = want;
       LoadedPicture& picture = pictures[key];
       const auto shown = applied.find(hash);
@@ -226,7 +238,7 @@ void Run() {
         state.preview_wanted.erase(key);
       }
       state.shown = applied.size();
-      state.wake.wait_for(lock, std::chrono::seconds(1));
+      state.wake.wait_for(lock, std::chrono::seconds(1), [&] { return state.stop.load() || state.dirty; });
     }
   }
 }
@@ -249,15 +261,38 @@ void Start(const std::filesystem::path& folder, const std::filesystem::path& gam
     const std::string_view view = text ? std::string_view(reinterpret_cast<const char*>(text->data()), text->size())
                                        : std::string_view();
     state.choices = ParseChoices(view);
+    state.saved_enabled = config::GetValue(view, "fm4_track_signage") != std::optional<std::string>("false");
     // TRACK SIGNAGE off is saved beside the choices; a launch option wins.
     if (config::GetValue(view, "fm4_track_signage") == std::optional<std::string>("false") &&
         rex::cvar::GetFlagSource("fm4_track_signage") != rex::cvar::Source::kCommandLine) {
       rex::cvar::SetFlagByName("fm4_track_signage", "false");
     }
+    state.thread = std::thread(Run);
   }
-  std::thread(Run).detach();
   REXLOG_INFO("Track signage: {} choices from {}, pictures from {}", state.choices.size(),
               rex::path_to_utf8(choices_file), rex::path_to_utf8(folder));
+}
+
+void Stop() {
+  State& state = GetState();
+  {
+    std::lock_guard lock(state.mutex);
+    state.stop = true;
+  }
+  state.wake.notify_all();
+  if (state.thread.joinable()) state.thread.join();
+}
+
+void SetChoicesFile(const std::filesystem::path& file) {
+  State& state = GetState();
+  std::lock_guard lock(state.mutex);
+  state.choices_file = file;
+}
+
+bool SavedEnabled() {
+  State& state = GetState();
+  std::lock_guard lock(state.mutex);
+  return state.saved_enabled;
 }
 
 std::filesystem::path Folder() {
@@ -302,7 +337,10 @@ std::shared_ptr<const Image> BoardPreview(const Track& track, const Board& board
   std::lock_guard lock(state.mutex);
   const auto found = state.previews.find(key);
   if (found != state.previews.end()) return found->second;
-  if (state.preview_wanted.insert(key).second) state.wake.notify_one();
+  if (state.preview_wanted.insert(key).second) {
+    state.dirty = true;
+    state.wake.notify_one();
+  }
   return nullptr;
 }
 
@@ -319,15 +357,15 @@ bool SaveChoices(const Choices& choices, bool enabled) {
     std::lock_guard lock(state.mutex);
     file = state.choices_file;
   }
-  bool saved = true;
-  if (!file.empty()) {
-    std::error_code ec;
-    std::filesystem::create_directories(file.parent_path(), ec);
-    std::string text = FormatChoices(choices);
-    if (!enabled) text += "fm4_track_signage = false\n";
-    saved = config::WriteAtomically(file, text);
+  if (file.empty()) {
+    REXLOG_ERROR("Track signage: not started, nothing saved");
+    return false;
   }
-  if (!saved) {
+  std::error_code ec;
+  std::filesystem::create_directories(file.parent_path(), ec);
+  std::string text = FormatChoices(choices);
+  if (!enabled) text += "fm4_track_signage = false\n";
+  if (!config::WriteAtomically(file, text)) {
     REXLOG_ERROR("Track signage: could not write {}", rex::path_to_utf8(file));
     return false;
   }
@@ -337,6 +375,8 @@ bool SaveChoices(const Choices& choices, bool enabled) {
   {
     std::lock_guard lock(state.mutex);
     state.choices = choices;
+    state.saved_enabled = enabled;
+    state.dirty = true;
   }
   state.wake.notify_one();
   REXLOG_INFO("Track signage: {} choices saved", choices.size());
