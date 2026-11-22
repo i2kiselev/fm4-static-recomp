@@ -28,6 +28,9 @@ enum class SettingRow {
   kDecalsFolder,
   kAllSponsors,
   kTrackSignage,
+  kTrackTextures,
+  kRoadSurface,
+  kGrassTexture,
   kModMenu,
 };
 
@@ -58,8 +61,8 @@ inline const std::array<SettingsLayout, 3>& SettingsLayouts() {
         {{"RACE SETTINGS", {kQuickRestart, kQuickRestartButton, kQuickRestartTrigger}},
          {"DIFFICULTY", {kRacePayouts, kRepairCosts, kResaleValue, kAutoRestart}},
          {"MENUS/UI", {kFastPostRace, kOnlineItems, kNarrator}},
-         {"LIVERY", {kDecalsFolder, kAllSponsors}},
-         {"TRACK CUSTOMISATION", {kTrackSignage}}}}},
+         {"DECALS", {kDecalsFolder, kAllSponsors}},
+         {"TRACK CUSTOMISATION", {kTrackSignage, kTrackTextures, kRoadSurface, kGrassTexture}}}}},
       // 1. Quick restart stays with the everyday race settings; the rest in MODS.
       {{"GAME",
         {{"RACE SETTINGS", {kQuickRaceLaps, kQuickRestart, kQuickRestartButton, kQuickRestartTrigger}},
@@ -68,7 +71,7 @@ inline const std::array<SettingsLayout, 3>& SettingsLayouts() {
         {{"DIFFICULTY", {kRacePayouts, kRepairCosts, kResaleValue, kAutoRestart}},
          {"MENUS/UI", {kFastPostRace, kOnlineItems, kNarrator}},
          {"PAINT", {kDecalsFolder, kAllSponsors}},
-         {"TRACK CUSTOMISATION", {kTrackSignage}}}}},
+         {"TRACK CUSTOMISATION", {kTrackSignage, kTrackTextures, kRoadSurface, kGrassTexture}}}}},
       // 2. MODS named after the game's own menus, so each is where a player expects it.
       {{"GAME",
         {{"RACE SETTINGS", {kQuickRaceLaps}},
@@ -78,7 +81,7 @@ inline const std::array<SettingsLayout, 3>& SettingsLayouts() {
          {"DIFFICULTY", {kRacePayouts, kRepairCosts, kResaleValue, kAutoRestart}},
          {"MENUS/UI", {kFastPostRace, kOnlineItems, kNarrator}},
          {"PAINT", {kDecalsFolder, kAllSponsors}},
-         {"TRACK CUSTOMISATION", {kTrackSignage}}}}},
+         {"TRACK CUSTOMISATION", {kTrackSignage, kTrackTextures, kRoadSurface, kGrassTexture}}}}},
   }};
   return layouts;
 }
@@ -92,7 +95,7 @@ inline SettingsTab EverySettingOnOnePage() {
           {{nullptr,
             {kQuickRaceLaps, kQuickRestart, kQuickRestartButton, kQuickRestartTrigger, kNarrator, kOnlineItems,
              kFastPostRace, kRacePayouts, kRepairCosts, kResaleValue, kDecalsFolder, kAllSponsors, kTrackSignage,
-             kModMenu, kAutoRestart}}}};
+             kModMenu, kAutoRestart, kTrackTextures, kRoadSurface, kGrassTexture}}}};
 }
 
 }  // namespace fm4_static_recomp::ui
