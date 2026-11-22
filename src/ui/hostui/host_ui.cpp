@@ -289,6 +289,12 @@ bool HostUi::Open(std::vector<MenuTab> tabs, size_t tab) {
   return true;
 }
 
+void HostUi::SetTabs(std::vector<MenuTab> tabs) {
+  if (tab_ >= tabs.size()) return;
+  tabs_ = std::move(tabs);
+  RequestPaint();
+}
+
 void HostUi::Close() {
   if (applying_) {
     // A row's adjust is running; destroying its screen now would destroy the

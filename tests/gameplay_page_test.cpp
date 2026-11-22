@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <filesystem>
+#include <map>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -14,6 +15,7 @@
 #include "config/host_config.h"
 #include "quick_race_laps.h"
 #include "ui/gameplay_page.h"
+#include "ui/settings_layout.h"
 #include "ui/hostui/menu.h"
 
 namespace {
@@ -89,7 +91,7 @@ TEST_CASE("Track select's query gives the setting under the same column name",
 
 TEST_CASE("QUICK RACE LAPS steps from DEFAULT to 99 and saves on apply", "[gameplay_page]") {
   Page page("");
-  CHECK(page.screen->title() == "GAMEPLAY");
+  CHECK(page.screen->title() == "GAME");
   CHECK(page.screen->rows()[0].label == "QUICK RACE LAPS");
   CHECK(page.Value() == "DEFAULT");
   page.screen->Handle(NavCommand::kLeft);
@@ -121,4 +123,48 @@ TEST_CASE("A saved count out of range is ignored", "[gameplay_page]") {
   Page page("fm4_quick_race_laps = 150\n");
   ui::ApplySavedGameplaySettings(page.config);
   CHECK(QuickRaceLapsSetting() == 0);
+}
+
+TEST_CASE("Every layout has every setting exactly once", "[gameplay_page]") {
+  using ui::SettingRow;
+  for (const ui::SettingsLayout& layout : ui::SettingsLayouts()) {
+    std::map<SettingRow, int> count;
+    for (const ui::SettingsTab* tab : {&layout.game, &layout.mod}) {
+      for (const ui::SettingsSection& section : tab->sections) {
+        for (const SettingRow row : section.rows) ++count[row];
+      }
+    }
+    for (int row = 0; row <= int(SettingRow::kModMenu); ++row) CHECK(count[SettingRow(row)] == 1);
+  }
+}
+
+TEST_CASE("GAME shows the rows this build has, under their headings; no MODS tab without its rows",
+          "[gameplay_page]") {
+  Page page("");
+  const auto pages = ui::SettingsPages();
+  REQUIRE(pages.size() == 1);
+  CHECK(pages[0].title == "GAME");
+  CHECK_FALSE(pages[0].mod);
+  auto game = ui::CreateSettingsPage(false, page.config);
+  CHECK(game->title() == "GAME");
+  REQUIRE(game->rows().size() == 2);
+  CHECK(game->rows()[0].label == "RACE SETTINGS");
+  CHECK(game->rows()[0].heading);
+  CHECK_FALSE(game->rows()[0].divider_above);  // the first heading, at the top
+  CHECK(game->rows()[1].label == "QUICK RACE LAPS");
+  // MODS's rows are in features not in this build: its tab and its switch stay away, even switched on.
+  rex::cvar::SetFlagByName("fm4_mod_menu", "true");
+  CHECK(ui::SettingsPages().size() == 1);
+  rex::cvar::SetFlagByName("fm4_mod_menu", "false");
+  CHECK(ui::CreateSettingsPage(true, page.config)->rows().empty());
+}
+
+TEST_CASE("A saved MODS switch is applied at startup, a bad one ignored", "[gameplay_page]") {
+  Page page("fm4_mod_menu = true\n");
+  ui::ApplySavedGameplaySettings(page.config);
+  CHECK(rex::cvar::GetFlagByName("fm4_mod_menu") == "true");
+  rex::cvar::SetFlagByName("fm4_mod_menu", "false");
+  Page bad("fm4_mod_menu = maybe\n");
+  ui::ApplySavedGameplaySettings(bad.config);
+  CHECK(rex::cvar::GetFlagByName("fm4_mod_menu") == "false");
 }

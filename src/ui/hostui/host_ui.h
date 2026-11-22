@@ -64,6 +64,8 @@ class HostUi final : public rex::ui::UIDrawer, public rex::ui::WindowInputListen
   // Opens on `tab`; LB and RB (or a click on a title) switch tabs, leaving the shown one as
   // back would. Fails (and logs) when the title's UI assets cannot be loaded.
   bool Open(std::vector<MenuTab> tabs, size_t tab);
+  // The tab strip of an open menu, changed (a settings switch adds or removes a tab); the shown page stays.
+  void SetTabs(std::vector<MenuTab> tabs);
   void SetMenuKeys(MenuKeys keys);
   // The guest gets its input back only once no pad button or key is held,
   // so the press that closed the menu does not also reach the title.
