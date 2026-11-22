@@ -5,6 +5,12 @@
 image = "rev1"
 
 [addresses]
+# kPromptGap: data, 407 references in identical functions
+0x82000F28 = { at = 0x82000F30, references = 479 }
+# kHelpButtonsTable: data, 145 references in identical functions
+0x8200A364 = { at = 0x8200A344, references = 147 }
+# kSplashVtable: data, 1 references in identical functions
+0x8204649C = { at = 0x82046AD4, references = 1 }
 # hook Fm4UiSceneStep: identical function
 0x822A46D0 = { at = 0x822A48E0, fingerprint = "e9974b79bace224f" }
 # hook Fm4MusicUpdate: identical function
@@ -33,6 +39,8 @@ image = "rev1"
 0x82360E98 = { at = 0x823609D0, fingerprint = "7ff1991ab3445723" }
 # hook Fm4CameraLookSpringStep: identical function
 0x8236560C = { at = 0x8236513C, fingerprint = "c81b5941282eb28b" }
+# hook Fm4MainMenuFrame: identical function
+0x8238DE90 = { at = 0x8238D990, fingerprint = "f9b2d6166a65c273" }
 # hook Fm4CommandBufferClipRect: identical function
 0x82390B94 = { at = 0x82390694, fingerprint = "c7526e334b2f9c46" }
 # hook Fm4WheelUpdate: identical function
@@ -67,6 +75,8 @@ image = "rev1"
 0x824B0008 = { at = 0x824B3C48, fingerprint = "1acdb4bc6de2dff7", changed = "reviewed: only relocated addresses differ (base constructor, the CHudOptions vtable 0x820255CC from RTTI, a string, calls); the hook is the entry and reads only r3" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x824B0100 = { at = 0x824B3D40, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4TitleSceneCreated: identical function through its vtables
+0x824B4EE8 = { at = 0x824B8DB0, fingerprint = "686aad04dcb14b1b" }
 # hook Fm4ShowroomCameraStep: identical function
 0x824B9D84 = { at = 0x824BDCE4, fingerprint = "66a87f7000537c3f" }
 # hook Fm4AutovistaCameraUpdate: identical function
@@ -77,6 +87,12 @@ image = "rev1"
 0x824CBD90 = { at = 0x824D0070, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4QuickRaceSetupLaps: identical function
 0x824D38BC = { at = 0x824D7FEC, fingerprint = "98e320c7d4b82ce7" }
+# hook Fm4ScreenAnswer: identical function
+0x824E48B8 = { at = 0x824E85F0, fingerprint = "13f92c157680902b" }
+# kMakeScreenCallback: identical function
+0x824EDDE8 = { at = 0x824F1DD0, fingerprint = "aacce03581425507" }
+# kShowYesNo: identical function
+0x824EF660 = { at = 0x824F3588, fingerprint = "b2435a953e4a58ed" }
 # hook Fm4AddGraphicsOption: identical function
 0x8256CCF4 = { at = 0x82572C0C, fingerprint = "9b13a0c5611cb98b" }
 # hook Fm4OpenGraphicsOption: identical function
@@ -127,10 +143,20 @@ image = "rev1"
 0x825DB968 = { at = 0x825E2268, fingerprint = "6b4589107dcc75a4" }
 # hook Fm4RaceMenuSceneDestroyed: identical function through its vtables
 0x825DE0F0 = { at = 0x825E4818, fingerprint = "59e63f9ae9a5584c" }
+# hook Fm4TitleSceneDestroyed: identical function through its vtables
+0x825E3EEC = { at = 0x825EA55C, fingerprint = "5a013ad05b0ba2a7" }
 # hook Fm4QuickRaceTrackQuery: identical function
 0x825E7BB0 = { at = 0x825EE220, fingerprint = "bb2f4c0ea3bc95eb" }
+# hook Fm4MainMenuBack: identical function
+0x826114D0 = { at = 0x82617950, fingerprint = "754ad12347d48056" }
+# hook Fm4MainMenuBack jump_address_on_true: identical function
+0x826114F0 = { at = 0x82617970, fingerprint = "354f17b79eacf663" }
+# kPromptSourceRemove: identical function
+0x8266FB20 = { at = 0x82675388, fingerprint = "a0bc9a4d3492bcd7" }
 # kMenuAddItem: identical function
 0x8266FF00 = { at = 0x82675768, fingerprint = "45ef72de459a5a8c" }
+# kPromptSourceInsert: identical function
+0x82673AD8 = { at = 0x826792F8, fingerprint = "e850f872ddd0eb01" }
 # hook Fm4SkipVblankCallback: identical function
 0x826CB760 = { at = 0x826D1938, fingerprint = "1e84f7b7b0bc725c" }
 # hook Fm4SplashIntroOption: most similar function, aligned
@@ -195,5 +221,11 @@ image = "rev1"
 0x82C77CF8 = { at = 0x82C82C10, fingerprint = "97f3f29734d22b76" }
 # kControlOffsetTable: data, 103 references in identical functions
 0x82D59FF0 = { at = 0x82D59FE0, references = 103 }
+# kPromptIcons: data, 1 references in identical functions
+0x82D6EDC0 = { at = 0x82D6EEA8, references = 2 }
 # kScenarioManagerPointer: data, 79 references in identical functions
 0x82DC3750 = { at = 0x82DC3890, references = 112 }
+# kBackStringKey: data, found by hand
+0x82DE05C4 = { at = 0x82DE0720, references = 67, changed = "reviewed: 65 of the 66 references in identical functions agree (the other splits its lis/addi); the count differs in functions Rev 1 changed", reviewed = "IDS_Back's key: every identical function referencing it agrees on 0x82DE0720 but one, whose lis/addi pair is split; the neighbours moved +0x15C" }
+# kYesNoSound: data, 21 references in identical functions
+0x82E025D4 = { at = 0x82E02754, references = 22 }

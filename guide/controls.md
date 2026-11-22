@@ -48,6 +48,15 @@ The pre-race screen, pause menu, replays and results use these keys too.
 In photo mode, as on a controller, **Numpad 8 4 2 6** (left stick) move the camera, **I J K L**
 (right stick) pan it, and **W A S D** or the arrow keys (D-pad) rotate and zoom it.
 
+### The main menu
+
+The game starts straight on the main menu: the title screen ("Press A to start the game") is passed on its
+own, with your profile and career loaded as if you had pressed A. The main menu's Back is **EXIT**, to the desktop:
+**Esc** or a controller's **BACK** button asks in the game's own box, **YES** closes the game and **NO** (or
+Esc) stays. A controller's **B** does nothing there, so it can't be pressed by mistake, and Back no longer signs
+the profile out. In FREE PLAY's menu, Back goes back to the main menu as before.
+`--fm4_skip_title_screen=false` keeps the game's own front end ([Launch options](launch-options.md)).
+
 ## Looking around with the mouse
 
 In a race, hold the **right mouse button** and move the mouse left or right: the camera turns
