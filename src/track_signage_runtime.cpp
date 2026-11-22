@@ -32,6 +32,7 @@
 #include <thread>
 
 #include "config/host_config.h"
+#include "track_textures.h"
 #include "ui/hostui/ui_archive.h"
 
 REXCVAR_DECLARE(bool, fm4_track_signage);
@@ -66,6 +67,7 @@ struct State {
   std::map<std::string, std::shared_ptr<const Image>> previews;  // ChoiceKey -> the game's board
   std::set<std::string> preview_wanted;
   size_t shown = 0;
+  std::set<uint64_t> shown_hashes;
   bool started = false;
   bool saved_enabled = true;  // the switch in signage.toml
   bool dirty = false;         // something asked for a pass while one was running
@@ -203,7 +205,8 @@ void Run() {
         ++it;
         continue;
       }
-      SetRuntimeReplacement(it->first, nullptr);
+      // Back to the game's own, or to its upscaled copy when TRACK TEXTURES has one.
+      SetRuntimeReplacement(it->first, track_textures::ImageFor(it->first));
       REXLOG_INFO("Track signage: board {:016X} shows the game's again", it->first);
       it = applied.erase(it);
     }
@@ -238,6 +241,8 @@ void Run() {
         state.preview_wanted.erase(key);
       }
       state.shown = applied.size();
+      state.shown_hashes.clear();
+      for (const auto& entry : applied) state.shown_hashes.insert(entry.first);
       state.wake.wait_for(lock, std::chrono::seconds(1), [&] { return state.stop.load() || state.dirty; });
     }
   }
@@ -381,6 +386,12 @@ bool SaveChoices(const Choices& choices, bool enabled) {
   state.wake.notify_one();
   REXLOG_INFO("Track signage: {} choices saved", choices.size());
   return true;
+}
+
+bool ShowsPicture(uint64_t hash) {
+  State& state = GetState();
+  std::lock_guard lock(state.mutex);
+  return state.shown_hashes.contains(hash);
 }
 
 size_t ShownCount() {

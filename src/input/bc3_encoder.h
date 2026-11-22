@@ -12,5 +12,8 @@ namespace fm4_static_recomp::input {
 // and height are multiples of 4. Endpoints are each block's colour and alpha
 // range: enough for the flat greys of keycaps.
 std::vector<uint8_t> EncodeBc3(std::span<const uint8_t> rgba, uint32_t width, uint32_t height);
+// BC1 (DXT1) blocks the same way. A block with a texel under half alpha uses BC1's three-colour mode,
+// whose fourth index is transparent black: the cut-out edges of fences and leaves stay cut out.
+std::vector<uint8_t> EncodeBc1(std::span<const uint8_t> rgba, uint32_t width, uint32_t height);
 
 }  // namespace fm4_static_recomp::input

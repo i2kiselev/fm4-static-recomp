@@ -233,6 +233,66 @@ Image Fit(const Image& image, uint32_t max_width, uint32_t max_height) {
   return Resample(source, dw, dh);
 }
 
+std::shared_ptr<const RuntimeImage> BuildTexture(const Image& picture, uint32_t width, uint32_t height, bool dxt1) {
+  auto image = std::make_shared<RuntimeImage>();
+  image->format = dxt1 ? rex::graphics::xenos::TextureFormat::k_DXT1 : rex::graphics::xenos::TextureFormat::k_DXT4_5;
+  image->width = width;
+  image->height = height;
+  Image level = picture.width == width && picture.height == height ? picture : Resample(picture, width, height);
+  for (;;) {
+    const Image padded = PadToBlocks(level);
+    const std::vector<uint8_t> blocks = dxt1 ? input::EncodeBc1(padded.rgba, padded.width, padded.height)
+                                             : input::EncodeBc3(padded.rgba, padded.width, padded.height);
+    image->data.insert(image->data.end(), blocks.begin(), blocks.end());
+    ++image->levels;
+    if (level.width == 1 && level.height == 1) break;
+    level = Halve(level);
+  }
+  return image;
+}
+
+Image DecodeTiledDxt1(std::span<const uint8_t> data, uint32_t width, uint32_t height) {
+  const uint32_t bw = std::max(1u, width / 4), bh = std::max(1u, height / 4);
+  Image out{bw * 4, bh * 4, std::vector<uint8_t>(size_t(bw) * 4 * bh * 4 * 4)};
+  for (uint32_t by = 0; by < bh; ++by) {
+    for (uint32_t bx = 0; bx < bw; ++bx) {
+      const uint32_t at = TiledOffset(bx, by, bw, 3);
+      if (size_t(at) + 8 > data.size()) continue;
+      uint8_t b[8];
+      for (int k = 0; k < 8; k += 2) {  // 16-bit words, byte-swapped against the PC layout
+        b[k] = data[at + k + 1];
+        b[k + 1] = data[at + k];
+      }
+      const uint16_t c0 = uint16_t(b[0] | b[1] << 8), c1 = uint16_t(b[2] | b[3] << 8);
+      int pal[4][4];
+      Rgb565(c0, pal[0]);
+      Rgb565(c1, pal[1]);
+      pal[0][3] = pal[1][3] = pal[2][3] = 255;
+      if (c0 > c1) {
+        for (int c = 0; c < 3; ++c) {
+          pal[2][c] = (2 * pal[0][c] + pal[1][c]) / 3;
+          pal[3][c] = (pal[0][c] + 2 * pal[1][c]) / 3;
+        }
+        pal[3][3] = 255;
+      } else {
+        for (int c = 0; c < 3; ++c) {
+          pal[2][c] = (pal[0][c] + pal[1][c]) / 2;
+          pal[3][c] = 0;
+        }
+        pal[3][3] = 0;
+      }
+      const uint32_t bits = uint32_t(b[4]) | uint32_t(b[5]) << 8 | uint32_t(b[6]) << 16 | uint32_t(b[7]) << 24;
+      for (int p = 0; p < 16; ++p) {
+        const int px = int(bx) * 4 + p % 4, py = int(by) * 4 + p / 4;
+        uint8_t* o = &out.rgba[(size_t(py) * out.width + px) * 4];
+        const int ci = (bits >> (2 * p)) & 3;
+        for (int c = 0; c < 4; ++c) o[c] = uint8_t(pal[ci][c]);
+      }
+    }
+  }
+  return out;
+}
+
 std::shared_ptr<const RuntimeImage> BuildImage(const Board& board, const Image& picture) {
   const uint32_t scale = ScaleFor(board, picture.width, picture.height);
   auto image = std::make_shared<RuntimeImage>();

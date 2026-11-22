@@ -74,5 +74,11 @@ std::shared_ptr<const rex::graphics::texture_replacement::RuntimeImage> BuildIma
                                                                                 const Image& picture);
 // The base level of an Xbox 360 tiled DXT5 texture (as a track archive's _B.bix holds it) as RGBA.
 Image DecodeTiledDxt5(std::span<const uint8_t> data, uint32_t width, uint32_t height);
+// The same for DXT1 (three-colour blocks keep their transparent texels).
+Image DecodeTiledDxt1(std::span<const uint8_t> data, uint32_t width, uint32_t height);
+// A replacement of any texture: the picture at width x height, DXT1 or DXT5, every level down to 1x1.
+std::shared_ptr<const rex::graphics::texture_replacement::RuntimeImage> BuildTexture(const Image& picture,
+                                                                                    uint32_t width, uint32_t height,
+                                                                                    bool dxt1);
 
 }  // namespace fm4_static_recomp::signage

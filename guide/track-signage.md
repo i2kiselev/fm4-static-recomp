@@ -78,6 +78,28 @@ track, so a seamless texture (one that repeats without visible edges) looks best
 | INFO BOARD ON A POLE | 128 × 64 |
 | AUSFAHRT SIGN, PIT EXIT | 256 × 64 |
 
+## Sharper track textures
+
+The SIGNAGE page's **TEXTURES** rows make the track's own textures sharper, Hockenheimring for now:
+
+| Row | What it does |
+|---|---|
+| **TRACK TEXTURES** | DEFAULT, 2X or 4X: the textures worth it (373 of Hockenheimring's 783: not normal maps, flat colours or masks). |
+| **ROAD SURFACE** | The road alone, over TRACK TEXTURES. |
+| **GRASS** | The grass alone, over TRACK TEXTURES. |
+
+- The first time a size is chosen, the game upscales the textures from **your own disc**, in the background. The
+  row's note counts them ("UPSCALING 2X: 120 OF 373"), and they show as soon as they're done. On the test PC the
+  whole track took under four minutes. After that a size shows at once.
+- It uses [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) (BSD 3-Clause), downloaded once (45 MB) at a pinned
+  version and checked against its SHA-256 before use, into `tools\realesrgan` beside the config folder. Each
+  texture is upscaled 4x with a border of its own wrapped edges, so it stays seamless when tiled, and keeps the
+  game's colours and alpha (cut-out fences and leaves stay cut out). 2X is the 4X result halved.
+- The results are kept in `track-textures` beside the config folder, the settings in `config\track-textures.toml`.
+  Delete the folder to make them again. They come from your disc: nothing of the game's is downloaded or shared.
+- A picture of your own on the road or grass (above) is shown instead of the sharper texture.
+- 4X takes more video memory: about four times 2X's.
+
 ## Turning it off
 
 **TRACK SIGNAGE: OFF** on the page, or `--fm4_track_signage=false` (a

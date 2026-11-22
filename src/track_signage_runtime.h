@@ -50,5 +50,7 @@ void SetChoicesFile(const std::filesystem::path& file);
 bool SaveChoices(const Choices& choices, bool enabled);
 // The boards showing a picture now.
 size_t ShownCount();
+// Whether a picture of the player's own is on this texture now (track_textures leaves it alone then).
+bool ShowsPicture(uint64_t hash);
 
 }  // namespace fm4_static_recomp::signage

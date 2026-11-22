@@ -11,6 +11,7 @@
 #include <rex/filesystem.h>
 #include <rex/logging.h>
 
+#include "track_textures.h"
 #include "track_signage.h"
 #include "track_signage_runtime.h"
 
@@ -52,8 +53,11 @@ struct Draft {
   bool save_failed = false;
   const Track* open_track = nullptr;  // the track whose boards the page lists, or the main list
   MenuScreen* screen = nullptr;
+  bool with_textures = true;
+  track_textures::Settings textures_saved = track_textures::CurrentSettings();
+  track_textures::Settings textures = textures_saved;
 
-  bool Pending() const { return choices != saved || enabled != saved_enabled; }
+  bool Pending() const { return choices != saved || enabled != saved_enabled || textures != textures_saved; }
   void Changed() {
     leave_warned = false;
     applied = false;
@@ -78,12 +82,17 @@ struct Draft {
   }
   void Apply() {
     if (!Pending()) return;
-    if (!signage::SaveChoices(choices, enabled)) {
+    if ((choices != saved || enabled != saved_enabled) && !signage::SaveChoices(choices, enabled)) {
+      save_failed = true;
+      return;
+    }
+    if (textures != textures_saved && !track_textures::SaveSettings(textures)) {
       save_failed = true;
       return;
     }
     saved = choices;
     saved_enabled = enabled;
+    textures_saved = textures;
     leave_warned = false;
     applied = true;
   }
@@ -256,6 +265,34 @@ MenuRow ResetRow(const std::shared_ptr<Draft>& draft, const Track& track) {
   return row;
 }
 
+MenuRow TextureRow(const std::shared_ptr<Draft>& draft, track_textures::Scale track_textures::Settings::*field,
+                   const char* label, const char* description, track_textures::Row which) {
+  using track_textures::Scale;
+  static constexpr Scale kSizes[] = {Scale::kDefault, Scale::k2x, Scale::k4x};
+  MenuRow row;
+  row.label = label;
+  row.description = description;
+  const auto index = [draft, field] {
+    return int(std::find(std::begin(kSizes), std::end(kSizes), draft->textures.*field) - std::begin(kSizes));
+  };
+  row.value = [draft, field] { return track_textures::ScaleLabel(draft->textures.*field); };
+  row.adjust = [draft, field, index](int direction) {
+    const Scale next = kSizes[std::clamp(index() + std::clamp(direction, -1, 1), 0, 2)];  // stops at its ends
+    if (next == draft->textures.*field) return;
+    draft->textures.*field = next;
+    draft->Changed();
+  };
+  row.note = [draft, field, which] {
+    if (draft->textures.*field != draft->textures_saved.*field) {
+      return draft->textures.*field == Scale::kDefault ? std::string()
+                                                       : std::string("Upscaled from your disc the first time.");
+    }
+    return track_textures::Note(which);
+  };
+  row.unapplied = [draft, field] { return draft->textures.*field != draft->textures_saved.*field; };
+  return row;
+}
+
 std::vector<MenuRow> MainRows(const std::shared_ptr<Draft>& draft) {
   std::vector<MenuRow> rows;
   rows.push_back(EnabledRow(draft));
@@ -263,6 +300,15 @@ std::vector<MenuRow> MainRows(const std::shared_ptr<Draft>& draft) {
   for (const Track& track : signage::Tracks()) rows.push_back(TrackRow(draft, track));
   rows.push_back(Heading("PICTURES"));
   rows.push_back(FolderRow());
+  if (draft->with_textures) {
+    using track_textures::Row;
+    using track_textures::Settings;
+    rows.push_back(Heading("TEXTURES"));
+    rows.push_back(TextureRow(draft, &Settings::track, "TRACK TEXTURES",
+                              "The track's textures, sharper. Hockenheimring for now.", Row::kTrack));
+    rows.push_back(TextureRow(draft, &Settings::road, "ROAD SURFACE", "Just the road, sharper.", Row::kRoad));
+    rows.push_back(TextureRow(draft, &Settings::grass, "GRASS", "Just the grass, sharper.", Row::kGrass));
+  }
   return rows;
 }
 
@@ -277,8 +323,9 @@ std::vector<MenuRow> TrackRows(const std::shared_ptr<Draft>& draft, const Track&
 
 }  // namespace
 
-std::unique_ptr<MenuScreen> CreateSignagePage() {
+std::unique_ptr<MenuScreen> CreateSignagePage(bool textures) {
   auto draft = std::make_shared<Draft>();
+  draft->with_textures = textures;
   auto screen = std::make_unique<MenuScreen>("SIGNAGE", MainRows(draft));
   draft->screen = screen.get();
   screen->set_apply([draft] { draft->Apply(); });

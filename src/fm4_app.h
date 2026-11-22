@@ -49,6 +49,7 @@
 #include "input/prompt_swap.h"
 #include "mixer_options.h"
 #include "track_signage_runtime.h"
+#include "track_textures.h"
 #include "ui/signage_page.h"
 #include "scripted_input.h"
 #include "shader_cache/cache_writer.h"
@@ -216,6 +217,9 @@ class Fm4App final : public rex::ReXApp {
     // (config\signage.toml). Its own file: it starts whether or not gameplay.toml could be read.
     fm4_static_recomp::signage::Start(gameplay_config_->path().parent_path().parent_path() / "signage",
                                       game_data_root(), gameplay_config_->path().parent_path() / "signage.toml");
+    // Sharper track textures (PC OPTIONS > SIGNAGE > TEXTURES): kept in <state>	rack-textures.
+    fm4_static_recomp::track_textures::Start(gameplay_config_->path().parent_path().parent_path(), game_data_root(),
+                                             gameplay_config_->path().parent_path() / "track-textures.toml");
   }
 
   bool WantsPresentation() const override {
@@ -348,6 +352,7 @@ class Fm4App final : public rex::ReXApp {
   }
 
   void OnShutdown() override {
+    fm4_static_recomp::track_textures::Stop();
     fm4_static_recomp::signage::Stop();
     rex::ui::UnregisterBind("bind_toggle_fullscreen");
     rex::ui::UnregisterBind("bind_game_menu");

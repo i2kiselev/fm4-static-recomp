@@ -91,7 +91,78 @@ void EncodeColor(const std::array<const uint8_t*, 16>& pixels, uint8_t* out) {
     out[4 + i] = uint8_t(indices >> (8 * i));
 }
 
+// Three colours and transparent black: c0 <= c1, palette c0, c1, their middle; index 3 transparent.
+void EncodeColorPunchThrough(const std::array<const uint8_t*, 16>& pixels, uint8_t* out) {
+  std::array<int, 3> low{255, 255, 255}, high{0, 0, 0};
+  bool any = false;
+  for (const uint8_t* p : pixels) {
+    if (p[3] < 128)
+      continue;
+    any = true;
+    for (size_t c = 0; c < 3; ++c) {
+      low[c] = std::min(low[c], int(p[c]));
+      high[c] = std::max(high[c], int(p[c]));
+    }
+  }
+  if (!any)
+    low = high = {0, 0, 0};
+  uint16_t c0 = To565(low), c1 = To565(high);
+  if (c0 > c1)
+    std::swap(c0, c1);
+  const auto e0 = From565(c0), e1 = From565(c1);
+  std::array<std::array<int, 3>, 3> palette{e0, e1};
+  for (size_t c = 0; c < 3; ++c)
+    palette[2][c] = (e0[c] + e1[c]) / 2;
+  uint32_t indices = 0;
+  for (size_t i = 0; i < 16; ++i) {
+    uint32_t best = 3;
+    if (pixels[i][3] >= 128) {
+      int best_distance = INT32_MAX;
+      for (uint32_t k = 0; k < 3; ++k) {
+        int distance = 0;
+        for (size_t c = 0; c < 3; ++c) {
+          const int d = int(pixels[i][c]) - palette[k][c];
+          distance += d * d;
+        }
+        if (distance < best_distance) {
+          best_distance = distance;
+          best = k;
+        }
+      }
+    }
+    indices |= best << (2 * i);
+  }
+  out[0] = uint8_t(c0);
+  out[1] = uint8_t(c0 >> 8);
+  out[2] = uint8_t(c1);
+  out[3] = uint8_t(c1 >> 8);
+  for (size_t i = 0; i < 4; ++i)
+    out[4 + i] = uint8_t(indices >> (8 * i));
+}
+
 }  // namespace
+
+std::vector<uint8_t> EncodeBc1(std::span<const uint8_t> rgba, uint32_t width, uint32_t height) {
+  std::vector<uint8_t> blocks(size_t(width / 4) * (height / 4) * 8);
+  uint8_t* out = blocks.data();
+  for (uint32_t by = 0; by < height / 4; ++by) {
+    for (uint32_t bx = 0; bx < width / 4; ++bx, out += 8) {
+      std::array<const uint8_t*, 16> pixels;
+      bool cut = false;
+      for (uint32_t i = 0; i < 16; ++i) {
+        pixels[i] = &rgba[((size_t(by) * 4 + i / 4) * width + bx * 4 + i % 4) * 4];
+        cut = cut || pixels[i][3] < 128;
+      }
+      if (cut) {
+        EncodeColorPunchThrough(pixels, out);
+      } else {
+        // Four-colour mode needs c0 > c1; with them equal, every index 0 is still that colour.
+        EncodeColor(pixels, out);
+      }
+    }
+  }
+  return blocks;
+}
 
 std::vector<uint8_t> EncodeBc3(std::span<const uint8_t> rgba, uint32_t width, uint32_t height) {
   std::vector<uint8_t> blocks(size_t(width / 4) * (height / 4) * 16);

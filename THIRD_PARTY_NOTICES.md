@@ -57,6 +57,14 @@ DLSS loader under NVIDIA's licence). Its code generator, `rexglue.exe`, also hol
 binutils' PowerPC disassembler under the GPL 2 or later. The same release publishes their
 complete source: the SDK's own source archive and one of every submodule at its pinned commit.
 
+## Real-ESRGAN (downloaded on first use, not distributed)
+
+TRACK TEXTURES downloads the Windows build of Real-ESRGAN (realesrgan-ncnn-vulkan, with its models) from
+https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.2.5.0 the first time a size is chosen, and checks it against
+its SHA-256 before use. Real-ESRGAN is licensed under the BSD 3-Clause License, Copyright (c) 2021, Xintao Wang;
+realesrgan-ncnn-vulkan under the MIT License, Copyright (c) 2021 Xintao Wang. Their licence files come with the
+download.
+
 ## LLVM
 
 Setup downloads the part of the official LLVM 20.1.8 release for 64-bit Windows that the build

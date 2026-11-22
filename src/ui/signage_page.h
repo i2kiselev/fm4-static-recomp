@@ -12,6 +12,8 @@ namespace fm4_static_recomp::ui {
 // boards with the picture each one shows (any PNG of the signage folder, or the game's), previewed
 // in the description panel. Changes are drafted until SAVE & APPLY, which saves signage.toml and
 // shows them on track at once.
-std::unique_ptr<hostui::MenuScreen> CreateSignagePage();
+// `textures`: with the TEXTURES section (TRACK TEXTURES, ROAD SURFACE, GRASS); left out where another page
+// has those rows.
+std::unique_ptr<hostui::MenuScreen> CreateSignagePage(bool textures = true);
 
 }  // namespace fm4_static_recomp::ui

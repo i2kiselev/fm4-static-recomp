@@ -41,7 +41,7 @@ TEST_CASE("SIGNAGE lists the switch, the tracks and the folder", "[signage_page]
   Page page;
   CHECK(page.screen->title() == "SIGNAGE");
   const auto& rows = page.Rows();
-  REQUIRE(rows.size() == 5);
+  REQUIRE(rows.size() == 9);  // the switch, TRACKS, a track, PICTURES, the folder, TEXTURES and its three
   CHECK(rows[0].label == "TRACK SIGNAGE");
   CHECK(rows[0].value() == "ON");
   CHECK(rows[1].label == "TRACKS");
@@ -72,7 +72,7 @@ TEST_CASE("A track opens its boards, and B comes back to it", "[signage_page]") 
   page.screen->Handle(NavCommand::kRight);
   CHECK(rows[1].value() == "DEFAULT");
   CHECK(page.screen->Handle(NavCommand::kBack) == MenuScreen::Result::kChanged);  // stays open
-  REQUIRE(page.Rows().size() == 5);
+  REQUIRE(page.Rows().size() == 9);
   CHECK(page.screen->focus() == 2);  // on the track again
 }
 
