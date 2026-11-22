@@ -206,15 +206,25 @@ std::vector<uint8_t> EncodePng(const Image& image) {
 }
 
 std::shared_ptr<const RuntimeImage> Finish(const Image& original, const Image& upscaled, uint32_t border,
-                                           Scale scale, bool dxt1) {
+                                           Scale scale, bool dxt1, float detail) {
   Image image = Crop(upscaled, border * 4, border * 4, original.width * 4, original.height * 4);
   MatchColours(image, original);
+  if (detail < 1.0f) {
+    const Image smooth = signage::Resample(original, image.width, image.height);
+    const float keep = std::clamp(detail, 0.0f, 1.0f);
+    for (size_t i = 0; i < image.rgba.size(); ++i) {
+      if (i % 4 == 3) continue;
+      image.rgba[i] = uint8_t(std::lround(image.rgba[i] * keep + smooth.rgba[i] * (1.0f - keep)));
+    }
+  }
   // The original's alpha (cut-out edges, blend masks), at the new size.
   const Image alpha = signage::Resample(original, image.width, image.height);
   for (size_t i = 3; i < image.rgba.size(); i += 4) image.rgba[i] = alpha.rgba[i];
   const uint32_t s = uint32_t(scale);
   return signage::BuildTexture(image, original.width * s, original.height * s, dxt1);
 }
+
+float DetailFor(uint64_t hash) { return hash == kRoadHash ? 0.5f : 1.0f; }
 
 std::vector<uint8_t> SerializeImage(const RuntimeImage& image) {
   std::vector<uint8_t> out = {'F', 'M', '4', 'T', 'E', 'X', '1', 0};
@@ -379,8 +389,10 @@ Scale Wanted(const Texture& texture) {
 }
 
 std::filesystem::path CachePath(const State& state, Scale scale, uint64_t hash) {
-  char name[32];
-  std::snprintf(name, sizeof(name), "%016llX.tex", static_cast<unsigned long long>(hash));
+  char name[48];
+  // The detail kept is in the name, so a change to it makes the texture again.
+  std::snprintf(name, sizeof(name), DetailFor(hash) < 1.0f ? "%016llX-d%02d.tex" : "%016llX.tex",
+                static_cast<unsigned long long>(hash), int(std::lround(DetailFor(hash) * 100)));
   return state.state_root / "track-textures" / kTrackKey / std::string(ScaleName(scale)) / name;
 }
 
@@ -603,7 +615,7 @@ void Pass(State& state, std::vector<Texture>& textures, const hostui::UiArchive&
     if (upscaled.width != (original.width + 2 * border) * 4) continue;
     const Scale scale = Wanted(*texture);
     if (scale == Scale::kDefault) continue;
-    const auto image = Finish(original, upscaled, border, scale, texture->dxt1);
+    const auto image = Finish(original, upscaled, border, scale, texture->dxt1, DetailFor(texture->hash));
     if (WriteFile(CachePath(state, scale, texture->hash), SerializeImage(*image))) ++made;
   }
   std::filesystem::remove_all(work, ec);

@@ -50,10 +50,15 @@ void MatchColours(signage::Image& image, const signage::Image& reference);
 // RGBA as a PNG (stored, no compression: written only for the upscaler to read).
 std::vector<uint8_t> EncodePng(const signage::Image& image);
 // The upscaled replacement of `original` from the upscaler's result of WrapPad(original, border) at 4x: the
-// centre cropped, the original's colours and alpha, halved for 2x.
+// centre cropped, the original's colours and alpha, halved for 2x. `detail` mixes the upscaler's detail with the
+// original's, smoothly enlarged: 1 all of it, 0.5 half (a small texture tiled far, as the road, shows its repeats
+// and shimmers with all of it).
 std::shared_ptr<const rex::graphics::texture_replacement::RuntimeImage> Finish(const signage::Image& original,
                                                                               const signage::Image& upscaled,
-                                                                              uint32_t border, Scale scale, bool dxt1);
+                                                                              uint32_t border, Scale scale, bool dxt1,
+                                                                              float detail = 1.0f);
+// How much of the upscaler's detail a texture keeps (Finish).
+float DetailFor(uint64_t hash);
 // A replacement kept on disk, and read back.
 std::vector<uint8_t> SerializeImage(const rex::graphics::texture_replacement::RuntimeImage& image);
 std::shared_ptr<const rex::graphics::texture_replacement::RuntimeImage> DeserializeImage(std::span<const uint8_t> data);

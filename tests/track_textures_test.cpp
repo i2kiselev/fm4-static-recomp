@@ -138,3 +138,18 @@ TEST_CASE("The texture settings' file: a line per setting not at default, read b
   CHECK(tt::ParseSettings("fm4_road_surface = \"3x\"\r\nnonsense\nfm4_track_textures = 4x\r\n").track == tt::Scale::k4x);
   CHECK(tt::ParseSettings("fm4_road_surface = \"3x\"\n").road == tt::Scale::kDefault);
 }
+
+TEST_CASE("The road keeps half the upscaler's detail, the rest all of it", "[track_textures]") {
+  CHECK(tt::DetailFor(tt::kRoadHash) == 0.5f);
+  CHECK(tt::DetailFor(tt::kGrassHash) == 1.0f);
+  const Image original = Pattern(8, 8);
+  const Image padded = tt::WrapPad(original, 2);
+  Image noisy{padded.width * 4, padded.height * 4, std::vector<uint8_t>(size_t(padded.width) * 16 * padded.height * 4)};
+  for (size_t i = 0; i < noisy.rgba.size(); ++i) noisy.rgba[i] = (i % 4 == 3) ? 255 : uint8_t((i * 37) % 251);
+  const auto full = tt::Finish(original, noisy, 2, tt::Scale::k4x, false, 1.0f);
+  const auto half = tt::Finish(original, noisy, 2, tt::Scale::k4x, false, 0.5f);
+  REQUIRE(full);
+  REQUIRE(half);
+  CHECK(half->width == full->width);
+  CHECK(half->data != full->data);
+}

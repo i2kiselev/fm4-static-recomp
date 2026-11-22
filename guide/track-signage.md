@@ -98,7 +98,8 @@ The SIGNAGE page's **TEXTURES** rows make the track's own textures sharper, Hock
 - The results are kept in `track-textures` beside the config folder, the settings in `config\track-textures.toml`.
   Delete the folder to make them again. They come from your disc: nothing of the game's is downloaded or shared.
 - A picture of your own on the road or grass (above) is shown instead of the sharper texture.
-- 4X takes more video memory: about four times 2X's.
+- The road keeps half the upscaler's detail: with all of it, its repeats showed and it shimmered.
+- 4X takes more video memory: on the test PC, Hockenheimring at 4X used about 0.5 GB more than DEFAULT.
 
 ## Turning it off
 
