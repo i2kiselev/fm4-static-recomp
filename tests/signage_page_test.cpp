@@ -47,7 +47,7 @@ TEST_CASE("SIGNAGE lists the switch, the tracks and the folder", "[signage_page]
   CHECK(rows[1].label == "TRACKS");
   CHECK_FALSE(rows[1].is_enabled());
   CHECK(rows[2].label == "HOCKENHEIMRING");
-  CHECK(rows[2].value() == "31 BOARDS");
+  CHECK(rows[2].value() == "33 BOARDS");
   CHECK(rows[2].note() == "Every board shows its default.");
   CHECK(rows[3].label == "PICTURES");
   CHECK(rows[4].label == "SIGNAGE FOLDER");
@@ -60,7 +60,7 @@ TEST_CASE("A track opens its boards, and B comes back to it", "[signage_page]") 
   REQUIRE(page.screen->SetFocus(2));
   page.screen->Handle(NavCommand::kAccept);
   const auto& rows = page.Rows();
-  REQUIRE(rows.size() == 1 + 31 + 2);
+  REQUIRE(rows.size() == 1 + 33 + 2);
   CHECK(rows[0].label == "HOCKENHEIMRING");
   CHECK_FALSE(rows[0].is_enabled());
   CHECK(page.screen->focus() == 1);  // the first board

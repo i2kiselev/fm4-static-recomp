@@ -39,10 +39,13 @@ install: `.local\state\signage`). The choices are saved in `config\signage.toml`
 ## Hockenheimring
 
 Named by what each board is and where it is on the circuit. Many are painted on the run-off or are
-barriers and flags.
+barriers and flags. The first two are the circuit's surfaces: one picture each, tiled over the whole
+track, so a seamless texture (one that repeats without visible edges) looks best.
 
 | Board | Size |
 |---|---|
+| ROAD SURFACE | 512 × 512 |
+| GRASS | 512 × 512 |
 | SANTANDER WALL, START STRAIGHT | 1024 × 128 |
 | SANTANDER SIGN, PIT BUILDING | 512 × 64 |
 | SANTANDER LOGO ON THE RUN-OFF | 1024 × 256 |

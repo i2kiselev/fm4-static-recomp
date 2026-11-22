@@ -50,10 +50,10 @@ const signage::Track& Hockenheim() {
 
 }  // namespace
 
-TEST_CASE("Hockenheim lists its 31 boards, each its own texture and name", "[signage]") {
+TEST_CASE("Hockenheim lists its road, grass and 31 boards, each its own texture and name", "[signage]") {
   const auto& track = Hockenheim();
   CHECK(track.name == "HOCKENHEIMRING");
-  CHECK(track.boards.size() == 31);
+  CHECK(track.boards.size() == 33);
   std::set<std::string> keys, names;
   std::set<uint64_t> hashes;
   std::set<uint32_t> textures;

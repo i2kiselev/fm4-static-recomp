@@ -19,8 +19,11 @@ namespace {
 
 using rex::graphics::texture_replacement::RuntimeImage;
 
-// Hockenheim's boards: every sign texture of Media\Tracks\Hockenheim\bin.zip (all DXT5).
+// Hockenheim's boards: its road and grass (each one texture, tiled over the whole circuit), then every sign
+// texture of Media\Tracks\Hockenheim\bin.zip (all DXT5).
 constexpr std::array kHockenheim = {
+    Board{"road", "ROAD SURFACE", 0x00000159, 0x5E1088ECE2F85B61, 512, 512, 10},
+    Board{"grass", "GRASS", 0x000001FB, 0xBB1899D1710E3C0E, 512, 512, 10},
     Board{"santander-wall", "SANTANDER WALL, START STRAIGHT", 0x000000D8, 0x2D9F71FDE6D7A955, 1024, 128, 11},
     Board{"santander-small", "SANTANDER SIGN, PIT BUILDING", 0x000002E7, 0x1678DF29672849B0, 512, 64, 10},
     Board{"santander-large", "SANTANDER LOGO ON THE RUN-OFF", 0x000001C8, 0xB70F9761CF8DD84D, 1024, 256, 11},
