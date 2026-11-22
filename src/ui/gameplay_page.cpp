@@ -25,7 +25,7 @@ using hostui::MenuScreen;
 
 constexpr const char* kLaps = "fm4_quick_race_laps";
 
-// The CAREER DIFFICULTY settings (src/hardcore.h), each a few choices, the first the default.
+// The DIFFICULTY settings (src/hardcore.h), each a few choices, the first the default.
 struct Choice {
   const char* value;  // as fm4_* takes it
   const char* label;
@@ -125,7 +125,7 @@ struct Draft {
           config.Set(kLaps, value);
         }
       } else {
-        // A CAREER DIFFICULTY setting; the default (100) is no line at all.
+        // A DIFFICULTY setting; the default (100) is no line at all.
         if (value == "100") {
           config.Remove(name);
         } else {
@@ -207,7 +207,7 @@ std::unique_ptr<MenuScreen> CreateGameplayPage(config::HostConfig& config) {
   auto draft = std::make_shared<Draft>(config);
   std::vector<MenuRow> rows;
   rows.push_back(LapsRow(draft));
-  rows.push_back(Heading("CAREER DIFFICULTY"));
+  rows.push_back(Heading("DIFFICULTY"));
   for (const HardcoreSetting& setting : HardcoreSettings()) rows.push_back(HardcoreRow(draft, setting));
   auto screen = std::make_unique<MenuScreen>("GAMEPLAY", std::move(rows));
   screen->set_apply([draft] { draft->SaveAndApply(); });

@@ -26,9 +26,9 @@ memory use; the AI races the whole distance. What to expect on a long race:
 - Rewinding more than about 25 laps back shows a loading screen instead of rewinding on
   screen; it still takes you back.
 
-## Career difficulty
+## Difficulty
 
-The **CAREER DIFFICULTY** rows change how the game itself plays, to make the career harder. Each is off (the
+The **DIFFICULTY** rows change how the game itself plays, to make the career harder. Each is off (the
 game's own behaviour) by default, and each only ever makes a race harder.
 
 They work on the game's own data as it loads it: with an option on, the game is given an edited

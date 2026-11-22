@@ -11,7 +11,7 @@ namespace fm4_static_recomp::ui {
 
 // The GAMEPLAY tab after MOUSE, kept in gameplay.toml: the experimental Quick Race lap count
 // (fm4_quick_race_laps; DEFAULT removes the line, the next track select and race take it) and
-// the CAREER DIFFICULTY options (fm4_race_payouts, fm4_repair_costs, fm4_resale_value;
+// the DIFFICULTY options (fm4_race_payouts, fm4_repair_costs, fm4_resale_value;
 // from the next start). SAVE & APPLY (Y) writes them and
 // sets them at once.
 std::unique_ptr<hostui::MenuScreen> CreateGameplayPage(config::HostConfig& config);
