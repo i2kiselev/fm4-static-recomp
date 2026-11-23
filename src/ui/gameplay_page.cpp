@@ -18,7 +18,7 @@
 
 REXCVAR_DEFINE_BOOL(fm4_hide_online_items, false, "Forza Motorsport 4",
                     "Leaves the menu items that need Xbox LIVE or the Forza servers off the "
-                    "menus (COMMUNITY, MARKETPLACE, RIVALS, BUY TUNING SETUPS, BUY DESIGNS), from "
+                    "menus (COMMUNITY unless online play is on, MARKETPLACE, RIVALS, BUY TUNING SETUPS, BUY DESIGNS), from "
                     "the next time each menu is built");
 
 namespace fm4_static_recomp::ui {
@@ -139,8 +139,8 @@ MenuRow OnlineItemsRow(const std::shared_ptr<Draft>& draft) {
   row.description =
       "COMMUNITY and MARKETPLACE on the main menu, RIVALS, BUY TUNING SETUPS and BUY DESIGNS "
       "need Xbox LIVE or the Forza servers, so here they only say the service is unavailable. "
-      "HIDDEN leaves them off the menus. Each menu shows the change the next time the game "
-      "builds it: the main menu after you've been into another screen, or at the next start.";
+      "HIDDEN leaves them off the menus. With ONLINE PLAY on, COMMUNITY stays, with only RACE "
+      "ONLINE and MY PROFILE. Menus update the next time they open, or at the next start.";
   row.value = [draft] {
     return std::string(draft->Value(kHideOnlineItems) == "true" ? "HIDDEN" : "SHOWN");
   };

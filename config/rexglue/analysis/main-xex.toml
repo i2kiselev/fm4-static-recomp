@@ -266,6 +266,50 @@ context = true
 registers = ["r1"]
 jump_address_on_true = 0x825E40A0
 
+# With online play on, COMMUNITY stays and these items of its menu (builder 0x8250F320) are skipped instead: MY CLUB,
+# RIVALS, LEADERBOARDS, AUCTION HOUSE, STOREFRONT and MESSAGE CENTER. RACE ONLINE and MY PROFILE stay.
+[[midasm_hook]]
+address = 0x8250F510
+name = "Fm4CommunityClubItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x8250F514
+
+[[midasm_hook]]
+address = 0x8250F568
+name = "Fm4CommunityRivalsItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x8250F56C
+
+[[midasm_hook]]
+address = 0x8250F5BC
+name = "Fm4CommunityLeaderboardsItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x8250F5C0
+
+[[midasm_hook]]
+address = 0x8250F610
+name = "Fm4CommunityAuctionHouseItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x8250F614
+
+[[midasm_hook]]
+address = 0x8250F664
+name = "Fm4CommunityStorefrontItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x8250F668
+
+[[midasm_hook]]
+address = 0x8250F70C
+name = "Fm4CommunityMessageCenterItem"
+context = true
+registers = ["r1"]
+jump_address_on_true = 0x8250F710
+
 [[midasm_hook]]
 address = 0x825E41A4
 name = "Fm4MainMenuMarketplaceItem"

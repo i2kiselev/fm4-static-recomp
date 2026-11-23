@@ -73,6 +73,30 @@ image = "rev1"
 0x824CBD90 = { at = 0x824D0070, fingerprint = "59e63f9ae9a5584c" }
 # hook Fm4QuickRaceSetupLaps: identical function
 0x824D38BC = { at = 0x824D7FEC, fingerprint = "98e320c7d4b82ce7" }
+# hook Fm4CommunityClubItem: identical function
+0x8250F510 = { at = 0x825146F8, fingerprint = "52ab6a76977c47cd" }
+# hook Fm4CommunityClubItem jump_address_on_true: identical function
+0x8250F514 = { at = 0x825146FC, fingerprint = "15c66c1a77b0198d" }
+# hook Fm4CommunityRivalsItem: identical function
+0x8250F568 = { at = 0x82514750, fingerprint = "c7cecd7beaca258b" }
+# hook Fm4CommunityRivalsItem jump_address_on_true: identical function
+0x8250F56C = { at = 0x82514754, fingerprint = "08bbc7438f8d6e38" }
+# hook Fm4CommunityLeaderboardsItem: identical function
+0x8250F5BC = { at = 0x825147A4, fingerprint = "bc2bda3fea220f9e" }
+# hook Fm4CommunityLeaderboardsItem jump_address_on_true: identical function
+0x8250F5C0 = { at = 0x825147A8, fingerprint = "25d54906367ee642" }
+# hook Fm4CommunityAuctionHouseItem: identical function
+0x8250F610 = { at = 0x825147F8, fingerprint = "598010d4f2272648" }
+# hook Fm4CommunityAuctionHouseItem jump_address_on_true: identical function
+0x8250F614 = { at = 0x825147FC, fingerprint = "7e68b17f7359687b" }
+# hook Fm4CommunityStorefrontItem: identical function
+0x8250F664 = { at = 0x8251484C, fingerprint = "b7b0ecfbfe1b1859" }
+# hook Fm4CommunityStorefrontItem jump_address_on_true: identical function
+0x8250F668 = { at = 0x82514850, fingerprint = "783075e00c267490" }
+# hook Fm4CommunityMessageCenterItem: identical function
+0x8250F70C = { at = 0x825148F4, fingerprint = "8cfaa0a7011f8a3c" }
+# hook Fm4CommunityMessageCenterItem jump_address_on_true: identical function
+0x8250F710 = { at = 0x825148F8, fingerprint = "576a3b1d4456512b" }
 # hook Fm4AddGraphicsOption: identical function
 0x8256CCF4 = { at = 0x82572C0C, fingerprint = "9b13a0c5611cb98b" }
 # hook Fm4CareerRivalsItem: most similar function, aligned

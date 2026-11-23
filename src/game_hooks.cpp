@@ -1528,6 +1528,9 @@ bool SkipOnlineItem(PPCContext& ctx, uint8_t* base, uint32_t stack, uint32_t lab
   return true;
 }
 
+// With online play on, COMMUNITY is the way into RACE ONLINE: it stays, without the items that need the Forza servers.
+bool OnlinePlayOn() { return rex::cvar::GetFlagByName("fm4_online_play") == "true"; }
+
 // Where each builder keeps the item's label.
 constexpr uint32_t kMainMenuLabel = 0x78;
 constexpr uint32_t kCareerMenuLabel = 0xC0;
@@ -1536,7 +1539,37 @@ constexpr uint32_t kCareerMenuLabel = 0xC0;
 
 bool Fm4MainMenuCommunityItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
   FM4_HOOK_CENSUS();
-  return SkipOnlineItem(ctx, base, r1.u32, kMainMenuLabel);
+  return !OnlinePlayOn() && SkipOnlineItem(ctx, base, r1.u32, kMainMenuLabel);
+}
+
+bool Fm4CommunityClubItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return OnlinePlayOn() && SkipOnlineItem(ctx, base, r1.u32, 96);
+}
+
+bool Fm4CommunityRivalsItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return OnlinePlayOn() && SkipOnlineItem(ctx, base, r1.u32, 100);
+}
+
+bool Fm4CommunityLeaderboardsItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return OnlinePlayOn() && SkipOnlineItem(ctx, base, r1.u32, 104);
+}
+
+bool Fm4CommunityAuctionHouseItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return OnlinePlayOn() && SkipOnlineItem(ctx, base, r1.u32, 108);
+}
+
+bool Fm4CommunityStorefrontItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return OnlinePlayOn() && SkipOnlineItem(ctx, base, r1.u32, 112);
+}
+
+bool Fm4CommunityMessageCenterItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
+  FM4_HOOK_CENSUS();
+  return OnlinePlayOn() && SkipOnlineItem(ctx, base, r1.u32, 120);
 }
 
 bool Fm4MainMenuMarketplaceItem(PPCContext& ctx, uint8_t* base, PPCRegister& r1) {
