@@ -2347,11 +2347,21 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
   }
   bool any_list = false;
   bool on_item = false;
+  // Two lists can both claim the point (a row's label reach over the column beside it): one takes it.
+  int list_under = -1;
+  if (pointer) {
+    std::vector<const input::MenuList*> in_play(controls.size(), nullptr);
+    for (size_t i = 0; i < controls.size(); ++i) {
+      if (active.active[i] && controls[i].list && !input::IsTabHeader(*controls[i].list)) in_play[i] = &*controls[i].list;
+    }
+    list_under = input::ListUnder(in_play, *pointer);
+  }
   for (size_t i = 0; i < controls.size(); ++i) {
     if (!active.active[i] || !controls[i].list) continue;
     const input::MenuList& list = *controls[i].list;
     if (input::IsTabHeader(list)) continue;  // tabs change by click only (LB / RB), never by D-pad
     any_list = true;
+    if (list_under >= 0 && int(i) != list_under) continue;
     const int item = pointer ? input::ItemAt(list, *pointer) : -1;
     if (item < 0) continue;
     on_item = true;

@@ -97,6 +97,10 @@ struct UiRect {
   bool operator==(const UiRect&) const = default;
 };
 // The prompt's clickable box (PromptHit), which the pointer's highlight covers too.
+// Of lists side by side (null: not in play), the one the point is on. A row's reach to the left for its label can run
+// over the column beside it: a list whose rows are really under the point comes first. -1: on none.
+int ListUnder(const std::vector<const MenuList*>& lists, UiPoint point);
+
 UiRect PromptBox(const Prompt& prompt);
 // Whether a click on an item of the list chooses it (A): not when every shown item is a value to step or
 // slide (ASSISTS & DIFFICULTY, TUNE SETUP): a click there changes the value, and OK is the prompt's.

@@ -399,3 +399,29 @@ TEST_CASE("Two screens on one layer: the one opened last covers the lists it ove
   CHECK(b.active[0]);
   CHECK(b.active[1]);
 }
+
+TEST_CASE("Of two lists under a point, the one whose rows are there takes it", "[menu_hit]") {
+  const auto column = [](float left, float right) {
+    fm4_static_recomp::input::MenuList list;
+    for (int row = 0; row < 3; ++row) {
+      fm4_static_recomp::input::MenuItem item;
+      item.shown = true;
+      item.min_x = left;
+      item.max_x = right;
+      item.min_y = 200.0f - row * 40.0f;
+      item.max_y = 240.0f - row * 40.0f;
+      list.items.push_back(item);
+    }
+    return list;
+  };
+  // The player panel, first in the list of controls, reaches left over the menu column for its labels.
+  const auto panel = column(-315, 389);
+  const auto menu = column(-584, -320);
+  const fm4_static_recomp::input::UiPoint on_menu{-400, 180};
+  REQUIRE(fm4_static_recomp::input::ItemAt(panel, on_menu) >= 0);
+  CHECK(fm4_static_recomp::input::ListUnder({&panel, &menu}, on_menu) == 1);
+  CHECK(fm4_static_recomp::input::ListUnder({&menu, &panel}, on_menu) == 0);
+  CHECK(fm4_static_recomp::input::ListUnder({&panel, &menu}, {100, 180}) == 0);
+  CHECK(fm4_static_recomp::input::ListUnder({&panel, nullptr}, on_menu) == 0);  // only a label's reach: still that list
+  CHECK(fm4_static_recomp::input::ListUnder({&panel, &menu}, {100, -500}) == -1);
+}

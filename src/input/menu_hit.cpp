@@ -135,6 +135,21 @@ int ItemAt(const MenuList& list, UiPoint point) {
   return -1;
 }
 
+int ListUnder(const std::vector<const MenuList*>& lists, UiPoint point) {
+  int first = -1;
+  for (int i = 0; i < int(lists.size()); ++i) {
+    if (!lists[size_t(i)] || ItemAt(*lists[size_t(i)], point) < 0) continue;
+    if (first < 0) first = i;
+    const auto& items = lists[size_t(i)]->items;
+    if (std::any_of(items.begin(), items.end(), [&](const MenuItem& item) {
+          return item.shown && point.x >= item.min_x && point.x <= item.max_x;
+        })) {
+      return i;
+    }
+  }
+  return first;
+}
+
 UiRect PromptBox(const Prompt& prompt) {
   // As the bar lays them out: the label's element starts 10 units after the icon's edge.
   constexpr float kPad = 8, kLabelGap = 10;
