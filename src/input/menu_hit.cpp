@@ -2,6 +2,8 @@
 // BSD 3-Clause License: see LICENSE in the repository root.
 #include "input/menu_hit.h"
 
+#include <set>
+#include <map>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -282,6 +284,37 @@ Active ChooseActive(const std::vector<Candidate>& candidates) {
                              : dialog_bar(c);
     } else {
       out.active[i] = c.list ? c.layer == list_top : true;
+    }
+  }
+  if (!out.modal && !dialog_list) {
+    // The layer byte is no stacking order between screens either (PARTY LOBBY can sit on a higher one than the
+    // FIND RACE opened over it): of the current screens, one whose list overlaps a list of a screen opened later
+    // is covered by it, whatever their layers, and the screen covering it takes its place.
+    std::map<uint32_t, uint64_t> opened;
+    for (const Candidate& c : candidates) {
+      if (c.list && current(c) && c.screen) opened[c.screen] = std::max(opened[c.screen], c.opened);
+    }
+    std::set<uint32_t> covered, covering;
+    constexpr float kOverlap = 8;
+    for (const Candidate& a : candidates) {
+      if (!a.list || !current(a) || !a.screen) continue;
+      for (const Candidate& b : candidates) {
+        if (!b.list || !current(b) || !b.screen || a.screen == b.screen) continue;
+        if (opened[a.screen] < opened[b.screen] && std::min(a.max_x, b.max_x) - std::max(a.min_x, b.min_x) > kOverlap &&
+            std::min(a.max_y, b.max_y) - std::max(a.min_y, b.min_y) > kOverlap) {
+          covered.insert(a.screen);
+          covering.insert(b.screen);
+        }
+      }
+    }
+    for (size_t i = 0; i < candidates.size(); ++i) {
+      const Candidate& c = candidates[i];
+      if (!c.list || !current(c) || !c.screen) continue;
+      if (covered.contains(c.screen)) {
+        out.active[i] = false;
+      } else if (covering.contains(c.screen)) {
+        out.active[i] = true;
+      }
     }
   }
   return out;

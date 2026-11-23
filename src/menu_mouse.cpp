@@ -10,6 +10,7 @@
 #include <cstring>
 #include <limits>
 #include <mutex>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -317,6 +318,8 @@ bool OverCarView(const std::optional<input::UiPoint>& point) {
 
 std::mutex g_containers_mutex;
 std::unordered_set<uint32_t> g_containers;
+std::unordered_map<uint32_t, uint64_t> g_container_opened;  // under g_containers_mutex: the order they were made
+uint64_t g_containers_made = 0;
 // The screens' focus groups (CUI4CtrlFocusGroup): its controls [+0x18, +0x1C), the one the D-pad works +0x28.
 // kGroupSetFocus(group, control, true) is what the D-pad does on moving to another control (it takes the
 // others' focus away and tells the screen, which then follows that control: the livery colour screen's
@@ -1022,6 +1025,14 @@ bool CarViewUp() {
   std::lock_guard lock(g_containers_mutex);
   return std::any_of(g_idle_screens.begin(), g_idle_screens.end(),
                      [&](uint32_t screen) { return GuestPointer(screen) && Word(base, screen) == kCarColorVtable; });
+}
+
+// The scene (screen) a control belongs to.
+uint32_t ScreenOfControl(const uint8_t* base, uint32_t container) {
+  if (SliderGroup(base, container)) container = Word(base, Word(base, container + kGroupControlsBegin));
+  const uint32_t object = Word(base, container + kItemObject);
+  const uint32_t scene = GuestPointer(object) ? Word(base, object + kObjectScene) : 0;
+  return GuestPointer(scene) ? scene : 0;
 }
 
 Layer LayerOf(const uint8_t* base, uint32_t container) {
@@ -1761,12 +1772,14 @@ bool MainMenuState() {
 void ContainerCreated(uint32_t container) {
   std::lock_guard lock(g_containers_mutex);
   g_containers.insert(container);
+  g_container_opened[container] = ++g_containers_made;
 }
 
 void ContainerDestroyed(uint32_t container) {
   {
     std::lock_guard lock(g_containers_mutex);
     g_containers.erase(container);
+    g_container_opened.erase(container);
   }
   // Game thread, as Frame: a freed list is not given its focus back.
   std::erase_if(g_unlit, [&](const Unlit& u) { return u.container == container; });
@@ -2019,7 +2032,14 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
         candidate.min_x = any ? std::min(candidate.min_x, item.min_x) : item.min_x;
         candidate.max_x = any ? std::max(candidate.max_x, item.max_x) : item.max_x;
         candidate.min_y = any ? std::min(candidate.min_y, item.min_y) : item.min_y;
+        candidate.max_y = any ? std::max(candidate.max_y, item.max_y) : item.max_y;
         any = true;
+      }
+      candidate.screen = ScreenOfControl(base, container);
+      {
+        std::lock_guard lock(g_containers_mutex);
+        const auto made = g_container_opened.find(container);
+        candidate.opened = made != g_container_opened.end() ? made->second : 0;
       }
     } else {
       input::DialogSpan(control.prompts, candidate.min_x, candidate.max_x, &candidate.min_y);

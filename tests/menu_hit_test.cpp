@@ -373,3 +373,29 @@ TEST_CASE("A dialog's box runs left from its rightmost prompt", "[menu_hit]") {
   CHECK(left == 0);
   CHECK(right == 0);
 }
+
+TEST_CASE("Two screens on one layer: the one opened last covers the lists it overlaps", "[menu_hit]") {
+  using namespace fm4_static_recomp::input;
+  Candidate party{true, 0x6A, 100, false, -584, -238, 98};
+  party.max_y = 320, party.screen = 1, party.opened = 10;
+  Candidate party_panel{true, 0x6A, 100, false, -315, 389, 160};
+  party_panel.max_y = 304, party_panel.screen = 1, party_panel.opened = 11;
+  Candidate hoppers{true, 0x6A, 100, false, -584, -238, 98};
+  hoppers.max_y = 280, hoppers.screen = 2, hoppers.opened = 20;
+  const Active a = ChooseActive({party, party_panel, hoppers});
+  CHECK_FALSE(a.active[0]);
+  CHECK_FALSE(a.active[1]);  // the whole covered screen
+  CHECK(a.active[2]);
+  // The layer is no stacking order: the older screen on the higher layer is still the covered one.
+  Candidate party_high = party;
+  party_high.layer = 0x6B;
+  const Active c = ChooseActive({party_high, hoppers});
+  CHECK_FALSE(c.active[0]);
+  CHECK(c.active[1]);
+  // Side by side, they do not cover each other.
+  Candidate right = hoppers;
+  right.min_x = 100, right.max_x = 300;
+  const Active b = ChooseActive({party, right});
+  CHECK(b.active[0]);
+  CHECK(b.active[1]);
+}
