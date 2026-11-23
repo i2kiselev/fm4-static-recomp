@@ -17,6 +17,10 @@ kTextAssign = 0x82360E98
 # Where a scene text element's setup resumes after its string's GetText (the string lookup's
 # caller's return address); the element is the caller's r31.
 kTextSetupGetTextReturn = 0x8234FDA4
+# The aspect helper's return addresses in the race camera's slot publication (Rev 1 822CA758):
+# the camera's aspect, then the CPU visibility record's.
+kRaceCameraAspectReturn = 0x822CAC2C
+kRaceVisibilityAspectReturn = 0x822CAE8C
 
 # Guest data the hooks read.
 [data]

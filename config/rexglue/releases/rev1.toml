@@ -5,6 +5,10 @@
 image = "rev1"
 
 [addresses]
+# hook Fm4UltrawideUiViewportQuery: identical function
+0x822A2DB0 = { at = 0x822A2FB8, fingerprint = "fc727b106b4a0ec4" }
+# hook Fm4UltrawideUiViewport: identical function
+0x822A2DC4 = { at = 0x822A2FCC, fingerprint = "8f062ed12a8aa944" }
 # hook Fm4UiSceneStep: identical function
 0x822A46D0 = { at = 0x822A48E0, fingerprint = "e9974b79bace224f" }
 # hook Fm4MusicUpdate: identical function
@@ -13,18 +17,30 @@ image = "rev1"
 0x822B0818 = { at = 0x822B0748, fingerprint = "4b447497ce897f41" }
 # kMakeLocString: identical function
 0x822B1AE8 = { at = 0x822B1A18, fingerprint = "9d447230fd4d8cc0" }
+# hook Fm4ViewportAspect: fragment, neighbours' shift
+0x822B63AC = { at = 0x822B5E34, fingerprint = "f332ea5b5437103c" }
 # hook Fm4AngleSpringCut: identical function
 0x822BC340 = { at = 0x822BBE70, fingerprint = "10c2c708eb082dc0" }
 # hook Fm4AngleSpringCut jump_address_on_true: identical function
 0x822BC348 = { at = 0x822BBE78, fingerprint = "1ec4f263cfebd711" }
+# kRaceCameraAspectReturn: identical function
+0x822CAC2C = { at = 0x822CA7FC, fingerprint = "e1996fe5f0463f97" }
+# kRaceVisibilityAspectReturn: identical function
+0x822CAE8C = { at = 0x822CAA5C, fingerprint = "e30d9014ff1fca80" }
 # hook Fm4MainLoopSession: changed function, aligned
 0x822F7C30 = { at = 0x822F76D0, fingerprint = "a10a38dfed0f4a75", changed = "reviewed: only a vtable slot far after the hooks moved (+0x114 became +0x118 at 0x822F8128); the hooks' code and registers are unchanged" }
 # hook Fm4MainLoopStep: changed function, aligned
 0x822F7D48 = { at = 0x822F77E8, fingerprint = "b595d62fce737a00", changed = "reviewed: only a vtable slot far after the hooks moved (+0x114 became +0x118 at 0x822F8128); the hooks' code and registers are unchanged" }
+# hook Fm4UltrawideUiText: most similar function, aligned
+0x822FA650 = { at = 0x822FA110, fingerprint = "a4f9e464951cab68", changed = "entry hook: prologue identical in both, r4 = the text element" }
 # hook Fm4MusicStreamGain: identical function
 0x82338D2C = { at = 0x823387E4, fingerprint = "baf8b444f4af153d" }
 # hook Fm4MusicStreamPlaying: identical function
 0x82338DBC = { at = 0x82338874, fingerprint = "43ddd63cb7472886" }
+# hook Fm4UltrawideUi: identical function
+0x8233D594 = { at = 0x8233D04C, fingerprint = "a118772ebb9d9799" }
+# hook Fm4UltrawideUiDraw: identical function
+0x8233E688 = { at = 0x8233E140, fingerprint = "5086badaad66ac3f" }
 # hook Fm4TextElementUpdate: identical function
 0x8233FE4C = { at = 0x8233F904, fingerprint = "cfdee1e48e7be6d4" }
 # kTextSetupGetTextReturn: identical function
@@ -143,6 +159,8 @@ image = "rev1"
 0x828223C4 = { at = 0x828289A4, fingerprint = "3b141171cf1a9caf" }
 # hook Fm4PhysicsLogCar: identical function
 0x82822D28 = { at = 0x828292F0, fingerprint = "a7fb129dbb9c7ea2" }
+# hook Fm4MotionBlurAspect: identical function
+0x8287B488 = { at = 0x82882838, fingerprint = "7bdc82374bedf104" }
 # hook Fm4ReflectionCubeSetup: identical function
 0x828D15B0 = { at = 0x828DC988, fingerprint = "4892515488a5bb94" }
 # hook Fm4ReflectionCubeMemory: identical function

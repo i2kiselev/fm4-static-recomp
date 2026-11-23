@@ -99,6 +99,26 @@ class FullscreenToggle final : public rex::ui::WindowInputListener {
   rex::ui::Window& window_;
 };
 
+// Feeds the window's client size to fm4_ultrawide.
+class UltrawideResize final : public rex::ui::WindowListener {
+ public:
+  explicit UltrawideResize(rex::ui::Window& window) : window_(window) {
+    window_.AddListener(this);
+    Update();
+  }
+  ~UltrawideResize() override { window_.RemoveListener(this); }
+
+  void OnResize(rex::ui::UISetupEvent&) override { Update(); }
+
+ private:
+  void Update() {
+    fm4_static_recomp::SetUltrawideWindowSize(window_.GetActualPhysicalWidth(),
+                                              window_.GetActualPhysicalHeight());
+  }
+
+  rex::ui::Window& window_;
+};
+
 // fm4_log_keys: first in line, so it sees every key even when a later listener takes it.
 class KeyLog final : public rex::ui::WindowInputListener {
  public:
@@ -313,6 +333,7 @@ class Fm4App final : public rex::ReXApp {
     if (rex::ui::Window* const window = this->window()) {
       window->SetCursorVisibility(rex::ui::Window::CursorVisibility::kAutoHidden);
       fullscreen_toggle_ = std::make_unique<FullscreenToggle>(*window);
+      ultrawide_resize_ = std::make_unique<UltrawideResize>(*window);
       if (REXCVAR_GET(fm4_log_keys)) {
         key_log_ = std::make_unique<KeyLog>(*window);
       }
@@ -383,6 +404,7 @@ class Fm4App final : public rex::ReXApp {
     }
     host_ui_.reset();
     fullscreen_toggle_.reset();
+    ultrawide_resize_.reset();
     key_log_.reset();
   }
 
@@ -703,5 +725,6 @@ class Fm4App final : public rex::ReXApp {
   std::atomic<bool> keyboard_prompts_{false};
   std::unique_ptr<fm4_static_recomp::hostui::HostUi> host_ui_;
   std::unique_ptr<FullscreenToggle> fullscreen_toggle_;
+  std::unique_ptr<UltrawideResize> ultrawide_resize_;
   std::unique_ptr<KeyLog> key_log_;
 };

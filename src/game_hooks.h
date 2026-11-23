@@ -34,6 +34,10 @@ void InstallPixelShaderSwitches();
 void InstallAudioPopFix();
 void InstallAudioCompatibility();
 
+// The game window's client size in physical pixels, from the UI thread at start and on every
+// resize: fm4_ultrawide widens the race view by its aspect over 16:9.
+void SetUltrawideWindowSize(uint32_t width, uint32_t height);
+
 // Every guest file open, on the opening guest thread: the game's saving of a car
 // thumbnail ends the readback hold its render began.
 void NoteGuestFileOpen(std::string_view guest_path);

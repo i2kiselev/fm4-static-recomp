@@ -56,6 +56,61 @@ registers = ["r4"]
 address = 0x822B0818
 name = "Fm4GuestFenceWait"
 
+# The viewport aspect helper's return (r3 = viewport: width +8, height +12; f1 = width / height).
+# fm4_ultrawide widens the race camera's 1280x720 view there, for its projection and for the CPU
+# visibility record alike; the caller's return address tells them from mirrors and menus.
+[[midasm_hook]]
+address = 0x822B63AC
+name = "Fm4ViewportAspect"
+context = true
+registers = ["r3", "f1"]
+
+# Motion blur's reprojection has just loaded its fixed 9/16 into f28 (its projection's X scale is
+# the Y scale times f28): fm4_ultrawide divides it by the race camera's widening.
+[[midasm_hook]]
+address = 0x8287B488
+name = "Fm4MotionBlurAspect"
+registers = ["f28"]
+
+# Each Anark UI node after its inherited matrix is pushed (r30 traversal, r31 node):
+# fm4_ultrawide places race UI at the wide window's edges and stretches full-width quads.
+[[midasm_hook]]
+address = 0x8233D594
+name = "Fm4UltrawideUi"
+registers = ["r30", "r31"]
+
+# The UI geometry submit (r4 = renderer element), before its prologue: in wide race frames it
+# skips quads lying wholly off the canvas that no traversal placed (scenes the game keeps drawing
+# without re-traversing them), which the squeeze would otherwise bring into view.
+[[midasm_hook]]
+address = 0x8233E688
+name = "Fm4UltrawideUiDraw"
+registers = ["r4"]
+return_on_true = true
+
+# The UI text draw (r4 = renderer element), before its prologue: the same for text placed off
+# the canvas (the loading screen's FORZA MOTORSPORT).
+[[midasm_hook]]
+address = 0x822FA650
+name = "Fm4UltrawideUiText"
+registers = ["r4"]
+return_on_true = true
+
+# A UI control's viewport query, before the element (r31) is projected through its matrix copy at
+# r1+90 into the base viewport: fm4_ultrawide undoes the element's placement in that copy, as the
+# projection clamps at the 16:9 edge.
+[[midasm_hook]]
+address = 0x822A2DB0
+name = "Fm4UltrawideUiViewportQuery"
+registers = ["r1", "r31"]
+
+# After it (r3 = the integer viewport, r28 = the query engine): fm4_ultrawide places and squeezes
+# the viewport's x span (the race minimap draws its map into it).
+[[midasm_hook]]
+address = 0x822A2DC4
+name = "Fm4UltrawideUiViewport"
+registers = ["r3", "r28", "r31"]
+
 # The render thread's present interval setter (thread, interval): 1 in races, 2
 # in the showroom, pre-race and other scenes the game draws at half the frame
 # rate. Besides the swap's vblank interval, 2 makes the render thread draw only

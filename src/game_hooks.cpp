@@ -20,6 +20,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -49,6 +50,7 @@
 #include "scripted_input.h"
 #include "shadow_map.h"
 #include "string_log.h"
+#include "ultrawide.h"
 
 REXCVAR_DEFINE_BOOL(fm4_road_detail_blur, true, "Forza Motorsport 4",
                     "Blur the road detail texture with camera motion, as the game does; off "
@@ -77,6 +79,12 @@ REXCVAR_DEFINE_BOOL(fm4_guest_fence_wait, true, "Forza Motorsport 4",
                     "Windows: the game's GPU fence wait sleeps in short steps once it lasts "
                     "longer than 50 us instead of polling one core at 100 %; false polls as "
                     "the console code does")
+    .lifecycle(rex::cvar::Lifecycle::kHotReload);
+REXCVAR_DEFINE_BOOL(fm4_ultrawide, false, "Forza Motorsport 4",
+                    "Experimental: races, hot laps and replays fill a window wider than 16:9, up "
+                    "to 32:9 (the race camera sees more to the sides, the HUD and race menus move "
+                    "to the window's edges); other screens keep 16:9 with bars. A window needs "
+                    "--window_aspect_ratio=free to take a wider shape")
     .lifecycle(rex::cvar::Lifecycle::kHotReload);
 REXCVAR_DEFINE_INT32(fm4_menu_vblank_hz, 0, "Forza Motorsport 4",
                      "Diagnostics: vblanks per second the game's main loop sees outside races, "
@@ -191,6 +199,14 @@ void NoteHookHit(const char* hook) {
 }
 
 std::atomic<bool> g_race_session{false};
+// fm4_ultrawide: the window's widening over 16:9 (UI thread), the race camera's while frames are
+// wide (else 1; set once a main loop tick, read by the aspect hooks), and whether the race camera
+// computed its aspect since the last tick.
+std::atomic<float> g_window_aspect_scale{1.0f};
+std::atomic<float> g_race_aspect_scale{1.0f};
+std::atomic<bool> g_race_view_seen{false};
+// Main loop ticks, for the UI placement's per-tick content extents.
+std::atomic<uint64_t> g_ui_tick{0};
 // Set when the switches below own gpu_pixel_shader_constant_override (none was given at launch).
 std::atomic<bool> g_switches_own_override{false};
 std::atomic<bool> g_applied_replay_blur{true};
@@ -257,6 +273,8 @@ fm4_static_recomp::StringShownLog g_string_log;
 
 using fm4_guest::kStringLookup;
 using fm4_guest::kTextAssign;
+using fm4_guest::kRaceCameraAspectReturn;
+using fm4_guest::kRaceVisibilityAspectReturn;
 using fm4_guest::kTextSetupGetTextReturn;
 
 // Scene text elements built from a prompt string (element data -> its key, the table's text,
@@ -755,6 +773,32 @@ void ApplyPixelShaderConstantOverride() {
                                REXCVAR_GET(fm4_road_detail_blur), REXCVAR_GET(fm4_car_dirt),
                                replay_blur));
 }
+
+// Once a main loop tick: frames with the race camera are stretched over the window and the HUD
+// squeezed back to 16:9 in their middle; the game's other screens are letterboxed as it draws them.
+void UpdateUltrawide() {
+  static fm4_static_recomp::WideViewSwitch view;
+  static float applied = 1.0f;
+  static std::string letterbox;
+  const bool on = REXCVAR_GET(fm4_ultrawide);
+  g_ui_tick.fetch_add(1, std::memory_order_relaxed);
+  view.Tick(g_race_view_seen.exchange(false, std::memory_order_relaxed) && on);
+  const float scale =
+      on && view.wide() ? g_window_aspect_scale.load(std::memory_order_relaxed) : 1.0f;
+  g_race_aspect_scale.store(scale, std::memory_order_relaxed);
+  if (scale == applied) {
+    return;
+  }
+  if (applied == 1.0f) {
+    letterbox = rex::cvar::GetFlagByName("present_letterbox");
+  }
+  rex::cvar::SetFlagByName("present_letterbox", scale == 1.0f ? letterbox : "false");
+  rex::cvar::SetFlagByName("fh1_hud_squeeze", std::to_string(scale));
+  if ((applied == 1.0f) != (scale == 1.0f)) {
+    REXLOG_INFO("Ultrawide: {} (x{:.3f})", scale == 1.0f ? "16:9 screens" : "race view", scale);
+  }
+  applied = scale;
+}
 }  // namespace
 
 void Fm4MainLoopStep(PPCRegister& r30, PPCRegister& f31) {
@@ -862,6 +906,33 @@ void Fm4DepthOfFieldOption(PPCRegister& r4) {
   FM4_HOOK_CENSUS();
   if (!REXCVAR_GET(fm4_depth_of_field)) {
     r4.u64 = 0;
+  }
+}
+
+// The viewport aspect helper's return (Rev 1 822B5E34): the race camera's 1280x720 view widens
+// with fm4_ultrawide, for its projection and the CPU visibility record alike. Mirrors (384x128),
+// menus' and thumbnails' views come from other callers or sizes.
+void Fm4ViewportAspect(PPCContext& ctx, uint8_t* base, PPCRegister& r3, PPCRegister& f1) {
+  FM4_HOOK_CENSUS();
+  const uint32_t caller = uint32_t(ctx.lr);
+  if ((caller != kRaceCameraAspectReturn && caller != kRaceVisibilityAspectReturn) ||
+      LoadGuestWord(base, r3.u32 + 8) != 1280 || LoadGuestWord(base, r3.u32 + 12) != 720) {
+    return;
+  }
+  g_race_view_seen.store(true, std::memory_order_relaxed);
+  const float scale = g_race_aspect_scale.load(std::memory_order_relaxed);
+  if (scale != 1.0f) {
+    f1.f64 = double(float(f1.f64) * scale);
+  }
+}
+
+// Motion blur rebuilds the camera's projection with a fixed 9/16 for its X scale (Rev 1
+// 82882838, in f28): the widened race camera's is 9/16 divided by its widening.
+void Fm4MotionBlurAspect(PPCRegister& f28) {
+  FM4_HOOK_CENSUS();
+  const float scale = g_race_aspect_scale.load(std::memory_order_relaxed);
+  if (scale != 1.0f) {
+    f28.f64 = double(float(f28.f64) / scale);
   }
 }
 
@@ -1237,6 +1308,7 @@ void Fm4MainLoopSession(PPCRegister& r11) {
       ReplayBlur() != g_applied_replay_blur.load(std::memory_order_relaxed)) {
     ApplyPixelShaderConstantOverride();
   }
+  UpdateUltrawide();
 }
 
 void Fm4RaceMenuSceneCreated(PPCRegister& r3) {
@@ -1375,6 +1447,10 @@ void SetPromptTextSource(
 void SetInputTick(std::function<void()> tick) {
   const std::lock_guard lock(g_input_tick_mutex);
   g_input_tick = std::move(tick);
+}
+
+void SetUltrawideWindowSize(uint32_t width, uint32_t height) {
+  g_window_aspect_scale.store(UltrawideScale(width, height), std::memory_order_relaxed);
 }
 
 void SetGraphicsPageOpener(std::function<void()> opener) {
@@ -1673,4 +1749,318 @@ bool Fm4AudioStableGain(PPCContext&, uint8_t* base, PPCRegister& r21, PPCRegiste
   r21.u64 -= processed;
   r28.u64 += uint64_t(processed) * r23.u32 * 4;
   return r21.u32 == 0;
+}
+
+namespace {
+float LoadGuestFloat(const uint8_t* base, uint32_t address) {
+  return std::bit_cast<float>(LoadGuestWord(base, address));
+}
+
+void StoreGuestFloat(uint8_t* base, uint32_t address, float value) {
+  const uint32_t word = std::byteswap(std::bit_cast<uint32_t>(value));
+  std::memcpy(base + address, &word, 4);
+}
+
+// x' = scale * x + offset on a row-vector world matrix: its X column scales, its translation maps.
+void MapMatrixX(uint8_t* base, uint32_t matrix, fm4_static_recomp::XMap map) {
+  for (uint32_t row = 0; row < 3; ++row) {
+    StoreGuestFloat(base, matrix + 0x10 * row, map.scale * LoadGuestFloat(base, matrix + 0x10 * row));
+  }
+  StoreGuestFloat(base, matrix + 0x30, map(LoadGuestFloat(base, matrix + 0x30)));
+}
+
+// A drawn quad's box on the canvas: its mesh's vertices (stride 0x20, position first) through a
+// world matrix (the node's +7C, or the published copy at the element's +10, same X column).
+// Renderer element E = Q[0]; mesh record = E[5C][E8] + 0x60 * E[98], vertex count at +0, vertex
+// fetch constant at +48 (physical address, size in words).
+fm4_static_recomp::UiBox ElementBox(uint8_t* base, uint32_t element, uint32_t matrix) {
+  fm4_static_recomp::UiBox box;
+  const uint32_t context = element ? LoadGuestWord(base, element + 0x5C) : 0;
+  if (context == 0) return box;
+  const uint32_t mesh = LoadGuestWord(base, context + 0xE8) + 0x60 * LoadGuestWord(base, element + 0x98);
+  const uint32_t fetch0 = LoadGuestWord(base, mesh + 0x48), fetch1 = LoadGuestWord(base, mesh + 0x4C);
+  const uint32_t physical = fetch0 & 0x1FFFFFFC;
+  if ((fetch0 & 3) != 3 || physical == 0) return box;
+  const uint32_t count = std::min({LoadGuestWord(base, mesh), ((fetch1 >> 2) & 0xFFFFFF) / 8, 64u});
+  const uint8_t* vertices = rex::system::kernel_state()->memory()->TranslatePhysical<uint8_t*>(physical);
+  float m[3][2];
+  for (uint32_t row = 0; row < 3; ++row) {
+    m[row][0] = LoadGuestFloat(base, matrix + 0x10 * row);
+    m[row][1] = LoadGuestFloat(base, matrix + 0x10 * row + 4);
+  }
+  const float tx = LoadGuestFloat(base, matrix + 0x30), ty = LoadGuestFloat(base, matrix + 0x34);
+  for (uint32_t i = 0; i < count; ++i) {
+    const float x = LoadGuestFloat(vertices, 0x20 * i), y = LoadGuestFloat(vertices, 0x20 * i + 4),
+                z = LoadGuestFloat(vertices, 0x20 * i + 8);
+    const float wx = x * m[0][0] + y * m[1][0] + z * m[2][0] + tx;
+    const float wy = x * m[0][1] + y * m[1][1] + z * m[2][1] + ty;
+    box.x.Add(wx, wx);
+    box.y.Add(wy, wy);
+  }
+  return box;
+}
+
+fm4_static_recomp::UiBox QuadBox(uint8_t* base, uint32_t node) {
+  return ElementBox(base, LoadGuestWord(base, node), node + 0x7C);
+}
+
+// A text's box on the canvas: the layout its element caches (alignment +DC/+E0, measured size
+// +108/+10C, layout offset +110/+114; RE 8233F5A0) through a world matrix; its origin alone until
+// the text is first measured.
+fm4_static_recomp::UiBox TextBox(uint8_t* base, uint32_t element, uint32_t matrix) {
+  using fm4_static_recomp::TextSpan;
+  fm4_static_recomp::XSpan lx = TextSpan(LoadGuestWord(base, element + 0xDC), LoadGuestFloat(base, element + 0x108),
+                                         LoadGuestFloat(base, element + 0x110), false);
+  fm4_static_recomp::XSpan ly = TextSpan(LoadGuestWord(base, element + 0xE0), LoadGuestFloat(base, element + 0x10C),
+                                         LoadGuestFloat(base, element + 0x114), true);
+  if (lx.empty() || ly.empty()) lx = ly = {0.0f, 0.0f};
+  fm4_static_recomp::UiBox box;
+  for (const float x : {lx.lo, lx.hi}) {
+    for (const float y : {ly.lo, ly.hi}) {
+      const float wx = x * LoadGuestFloat(base, matrix) + y * LoadGuestFloat(base, matrix + 0x10) +
+                       LoadGuestFloat(base, matrix + 0x30);
+      const float wy = x * LoadGuestFloat(base, matrix + 4) + y * LoadGuestFloat(base, matrix + 0x14) +
+                       LoadGuestFloat(base, matrix + 0x34);
+      box.x.Add(wx, wx);
+      box.y.Add(wy, wy);
+    }
+  }
+  return box;
+}
+
+// fm4_ultrawide's UI placement state per Anark traversal: the open path from the root, each
+// subtree's content box before placement, from the last tick (decides) and this one (grows), and
+// the placements its children got when their parent was visited.
+struct UiPathEntry {
+  uint32_t node = 0;
+  uint32_t depth = 0;
+  fm4_static_recomp::XMap map;  // placement of this node, its ancestors' included
+  bool placed = false;          // this node or an ancestor took a placement
+};
+struct UiScene {
+  uint64_t tick = 0;
+  std::unordered_map<uint32_t, fm4_static_recomp::UiBox> last, current;
+  std::unordered_map<uint32_t, fm4_static_recomp::UiPlacement> decided;
+  std::vector<UiPathEntry> path;
+};
+
+// A traversed quad's or text's renderer element: its node and the placement it took.
+struct UiPlacedElement {
+  uint32_t node;
+  fm4_static_recomp::XMap map;
+};
+
+// The UI placement's state, under one lock: scenes by traversal, and the renderer elements
+// traversed this tick and the last, for the draw hooks.
+struct UiPlacementState {
+  std::mutex mutex;
+  std::unordered_map<uint32_t, UiScene> scenes;
+  uint64_t tick = 0;
+  std::unordered_map<uint32_t, UiPlacedElement> elements, last_elements;
+};
+UiPlacementState g_ui;
+
+// Places the children of a group that took no placement itself (child at +DC, sibling at +D8).
+void PlaceUiChildren(const uint8_t* base, UiScene& scene, uint32_t node) {
+  std::vector<uint32_t> children;
+  std::vector<fm4_static_recomp::UiSibling> siblings;
+  for (uint32_t child = LoadGuestWord(base, node + 0xDC); child != 0 && children.size() < 1024;
+       child = LoadGuestWord(base, child + 0xD8)) {
+    const auto last = scene.last.find(child);
+    const uint8_t kind = base[child + 0xA];
+    children.push_back(child);
+    siblings.push_back({last == scene.last.end() ? fm4_static_recomp::UiBox{} : last->second,
+                        kind == 2 || kind == 9});
+  }
+  const auto placed = fm4_static_recomp::PlaceUiSiblings(siblings);
+  for (size_t i = 0; i < children.size(); ++i) scene.decided[children[i]] = placed[i];
+}
+}  // namespace
+
+// Each Anark node after its inherited matrix is pushed (Rev 1 8233D04C in 8233CFF8; r30 = the
+// traversal, its stack {matrix 0x40, opacity +40, dirty +44} at +2C, r31 = the node: kind +A,
+// inherited opacity +E4, world +7C, flags +FB). In wide race frames every group's children are
+// placed together (PlaceUiSiblings) from their content in the last tick: a placed node's world
+// and its pushed matrix are mapped, its children recompute from that, and flags 10 (publish
+// now) and 20 (rebuild next tick, so the mapping never accumulates) are set. Cameras stay.
+void Fm4UltrawideUi(PPCRegister& r30, PPCRegister& r31) {
+  using fm4_static_recomp::UiBox;
+  using fm4_static_recomp::UiPlacement;
+  const float scale = g_race_aspect_scale.load(std::memory_order_relaxed);
+  const std::lock_guard lock(g_ui.mutex);
+  if (scale == 1.0f) {
+    g_ui.scenes.clear();
+    g_ui.elements.clear();
+    g_ui.last_elements.clear();
+    return;
+  }
+  uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
+  const uint32_t stack = r30.u32 + 0x2C;
+  const uint32_t depth = LoadGuestWord(base, stack + 0x28);
+  const uint32_t pushed = LoadGuestWord(base, stack + 0x20) + 0x48 * (depth - 1);
+  const uint32_t node = r31.u32;
+  UiScene& scene = g_ui.scenes[r30.u32];
+  const uint64_t tick = g_ui_tick.load(std::memory_order_relaxed);
+  if (g_ui.tick != tick) {
+    g_ui.last_elements.swap(g_ui.elements);
+    g_ui.elements.clear();
+    g_ui.tick = tick;
+  }
+  if (scene.tick != tick) {
+    scene.last.swap(scene.current);
+    scene.current.clear();
+    scene.decided.clear();
+    scene.tick = tick;
+  }
+  while (!scene.path.empty() && scene.path.back().depth >= depth) scene.path.pop_back();
+  const UiPathEntry parent = scene.path.empty() ? UiPathEntry{} : scene.path.back();
+  const uint8_t kind = base[node + 0xA];
+  const bool quad = kind == 2 || kind == 9;
+  fm4_static_recomp::XMap own;
+  bool placed = parent.placed;
+  UiPlacement placement = UiPlacement::kUnknown;
+  if (!placed) {
+    const auto decided = scene.decided.find(node);
+    placement = decided == scene.decided.end() ? UiPlacement::kUnknown : decided->second;
+    if (placement != UiPlacement::kUnknown && placement != UiPlacement::kContainer) {
+      placed = true;
+      own = fm4_static_recomp::UiPlacementMap(placement, scene.last[node].x, scale);
+    } else {
+      PlaceUiChildren(base, scene, node);
+    }
+  }
+  if (!own.identity()) {
+    MapMatrixX(base, node + 0x7C, own);
+    MapMatrixX(base, pushed, own);
+    base[pushed + 0x44] = 1;
+    base[node + 0xFB] |= 0x30;
+  }
+  // A scene's camera (kind 3) under a placed group (the pre-race menu's) would move with it, and
+  // its view, the inverse of its world, would cancel the placement: it keeps its unplaced world.
+  if (kind == 3 && !parent.map.identity()) {
+    MapMatrixX(base, node + 0x7C, parent.map.Inverted());
+    base[node + 0xFB] |= 0x30;
+  }
+  const UiPathEntry entry{node, depth, parent.map.Then(own), placed};
+  if (quad || kind == 5) g_ui.elements[LoadGuestWord(base, node)] = {node, entry.map};
+  UiBox drawn;
+  if (LoadGuestFloat(base, node + 0xE4) >= 0.01f) {
+    if (quad) {
+      const UiBox box = QuadBox(base, node);
+      // A quad without area (a stray point) is not content.
+      if (!box.empty() && box.x.hi - box.x.lo >= 0.5f && box.y.hi - box.y.lo >= 0.5f) {
+        drawn.x.Add(entry.map.Inverse(box.x.lo), entry.map.Inverse(box.x.hi));
+        drawn.y = box.y;
+      }
+    } else if (kind == 5) {
+      const UiBox box = TextBox(base, LoadGuestWord(base, node), node + 0x7C);
+      drawn.x.Add(entry.map.Inverse(box.x.lo), entry.map.Inverse(box.x.hi));
+      drawn.y = box.y;
+    }
+  }
+  if (!drawn.empty()) {
+    scene.current[node].Add(drawn);
+    for (const UiPathEntry& ancestor : scene.path) scene.current[ancestor.node].Add(drawn);
+  }
+  scene.path.push_back(entry);
+}
+
+namespace {
+// Whether a UI element drawn now lies wholly off the canvas, before any placement: from its node's
+// world and the placement it took when traversed (the element's published copy can lag a tick),
+// else from the published copy at +10 (a scene the game keeps drawing without re-traversing it).
+// Off-canvas UI was outside the 16:9 frame; the squeeze would bring it into view.
+bool OffUiCanvas(uint32_t element, bool text) {
+  uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
+  std::optional<UiPlacedElement> placed;
+  {
+    const std::lock_guard lock(g_ui.mutex);
+    if (const auto now = g_ui.elements.find(element); now != g_ui.elements.end()) {
+      placed = now->second;
+    } else if (const auto last = g_ui.last_elements.find(element); last != g_ui.last_elements.end()) {
+      placed = last->second;
+    }
+  }
+  const uint32_t matrix = placed ? placed->node + 0x7C : element + 0x10;
+  fm4_static_recomp::XSpan x;
+  if (text) {
+    x = TextBox(base, element, matrix).x;
+  } else {
+    x = ElementBox(base, element, matrix).x;
+  }
+  if (x.empty()) return false;
+  if (placed) x = {placed->map.Inverse(x.lo), placed->map.Inverse(x.hi)};
+  return x.hi < -fm4_static_recomp::kUiCanvasHalfWidth || x.lo > fm4_static_recomp::kUiCanvasHalfWidth;
+}
+}  // namespace
+
+// The UI geometry submit for one renderer element (Rev 1 8233E140, before its prologue): in wide
+// race frames it skips quads lying wholly off the canvas.
+bool Fm4UltrawideUiDraw(PPCRegister& r4) {
+  return g_race_aspect_scale.load(std::memory_order_relaxed) != 1.0f && OffUiCanvas(r4.u32, false);
+}
+
+// The UI text draw (Rev 1 822FA110, before its prologue): the same for text whose origin is off
+// the canvas.
+bool Fm4UltrawideUiText(PPCRegister& r4) {
+  return g_race_aspect_scale.load(std::memory_order_relaxed) != 1.0f && OffUiCanvas(r4.u32, true);
+}
+
+namespace {
+// A UI control's viewport query in progress on this thread (Fm4UltrawideUiViewportQuery to
+// Fm4UltrawideUiViewport): its element and the placement taken out of its projection.
+struct UiViewportQuery {
+  uint32_t element = 0;
+  fm4_static_recomp::XMap map;
+};
+thread_local UiViewportQuery t_ui_viewport_query;
+}  // namespace
+
+// A UI control's viewport query (Rev 1 822A2FB8 in 822A2EE8, before 8233F228 projects the element
+// at r31 through its world matrix, copied to r1+90, into the base viewport and clamps it there):
+// in wide race frames the copy gets the element's placement undone, so a control moved past the
+// 16:9 edge (the minimap) is not clamped and refitted by the game.
+void Fm4UltrawideUiViewportQuery(PPCRegister& r1, PPCRegister& r31) {
+  UiViewportQuery& query = t_ui_viewport_query;
+  query = {};
+  if (g_race_aspect_scale.load(std::memory_order_relaxed) == 1.0f) return;
+  std::optional<UiPlacedElement> placed;
+  {
+    const std::lock_guard lock(g_ui.mutex);
+    if (const auto now = g_ui.elements.find(r31.u32); now != g_ui.elements.end()) {
+      placed = now->second;
+    } else if (const auto last = g_ui.last_elements.find(r31.u32); last != g_ui.last_elements.end()) {
+      placed = last->second;
+    }
+  }
+  query.element = r31.u32;
+  if (!placed || placed->map.identity()) return;
+  uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
+  const uint32_t matrix = r1.u32 + 0x90;
+  // The element's published matrix can lag its node by a tick: undo only a placement it carries.
+  if (std::abs(LoadGuestFloat(base, matrix + 0x30) - LoadGuestFloat(base, placed->node + 0x7C + 0x30)) > 0.01f) {
+    return;
+  }
+  query.map = placed->map;
+  MapMatrixX(base, matrix, query.map.Inverted());
+}
+
+// After the projection (Rev 1 822A2FCC; r3 = the 24-byte integer viewport x, y, width, height,
+// r28 = the query engine, its base viewport at +1C): the viewport's centre is placed like the
+// element and squeezed as the HUD draws are, its width kept (PlaceUiViewportX). The control's
+// draws use it as viewport and scissor, and the SDK's HUD squeeze (fh1_hud_squeeze) narrows both
+// about its centre.
+void Fm4UltrawideUiViewport(PPCRegister& r3, PPCRegister& r28, PPCRegister& r31) {
+  UiViewportQuery& query = t_ui_viewport_query;
+  const float scale = g_race_aspect_scale.load(std::memory_order_relaxed);
+  if (query.element == r31.u32 && scale != 1.0f) {
+    uint8_t* const base = rex::system::kernel_state()->memory()->virtual_membase();
+    const uint32_t viewport = LoadGuestWord(base, r28.u32 + 0x1C);
+    const auto placed = fm4_static_recomp::PlaceUiViewportX(
+        int32_t(LoadGuestWord(base, r3.u32)), int32_t(LoadGuestWord(base, r3.u32 + 8)),
+        LoadGuestWord(base, viewport), LoadGuestWord(base, viewport + 8), query.map, scale);
+    StoreGuestWord(base + r3.u32, uint32_t(placed.x));
+    StoreGuestWord(base + r3.u32 + 8, uint32_t(placed.width));
+  }
+  query = {};
 }
