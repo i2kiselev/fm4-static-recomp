@@ -324,10 +324,10 @@ Active ChooseActive(const std::vector<Candidate>& candidates) {
     }
     for (size_t i = 0; i < candidates.size(); ++i) {
       const Candidate& c = candidates[i];
-      if (!c.list || !current(c) || !c.screen) continue;
+      if (!current(c) || !c.screen) continue;
       if (covered.contains(c.screen)) {
-        out.active[i] = false;
-      } else if (covering.contains(c.screen)) {
+        out.active[i] = false;  // its lists and its bottom bar: nothing of it is drawn any more
+      } else if (c.list && covering.contains(c.screen)) {
         out.active[i] = true;
       }
     }

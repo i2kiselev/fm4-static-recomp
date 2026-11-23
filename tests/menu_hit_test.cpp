@@ -386,6 +386,14 @@ TEST_CASE("Two screens on one layer: the one opened last covers the lists it ove
   CHECK_FALSE(a.active[0]);
   CHECK_FALSE(a.active[1]);  // the whole covered screen
   CHECK(a.active[2]);
+  // The covered screen's bottom bar goes with it (its prompts would be invisible buttons); the new one's stays.
+  Candidate party_bar{false, 0x6A, 100};
+  party_bar.screen = 1;
+  Candidate hoppers_bar{false, 0x6A, 100};
+  hoppers_bar.screen = 2;
+  const Active bars = ChooseActive({party, party_bar, hoppers, hoppers_bar});
+  CHECK_FALSE(bars.active[1]);
+  CHECK(bars.active[3]);
   // The layer is no stacking order: the older screen on the higher layer is still the covered one.
   Candidate party_high = party;
   party_high.layer = 0x6B;

@@ -2043,6 +2043,7 @@ void Frame(PPCContext& ctx, uint8_t* base, uint32_t stack) {
       }
     } else {
       input::DialogSpan(control.prompts, candidate.min_x, candidate.max_x, &candidate.min_y);
+      candidate.screen = ScreenOfControl(base, container);
     }
     controls.push_back(std::move(control));
     candidates.push_back(candidate);

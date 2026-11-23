@@ -140,7 +140,7 @@ struct Candidate {
   bool above_bottom_row = false;  // a bar with a prompt above the bottom row (a dialog's)
   float min_x = 0, max_x = 0;     // a list: its shown items' extent; a dialog's bar: its box (UI x)
   float min_y = 0;                // a list: its lowest shown item's bottom; a dialog's bar: its prompts' row
-  // A list: its screen, when each opened, and its top. Two screens can share a layer (PARTY LOBBY under FIND RACE
+  // A list or bar: its screen. A list: when it opened, and its top. Two screens can share a layer (PARTY LOBBY under FIND RACE
   // when reached by mouse): where their lists overlap, the one opened last is the one on top.
   uint32_t screen = 0;
   uint64_t opened = 0;
