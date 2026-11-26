@@ -65,6 +65,19 @@ name = "Fm4ViewportAspect"
 context = true
 registers = ["r3", "f1"]
 
+# The race camera's slot publication (r31 = slot: viewport width +10, height +14) has its vertical
+# field of view in radians in f1, before converting it to degrees for the camera, and again for
+# the CPU visibility record: fm4_ultrawide widens the 1280x720 view's for Vert+ (16:10).
+[[midasm_hook]]
+address = 0x822CABF8
+name = "Fm4RaceCameraFov"
+registers = ["r31", "f1"]
+
+[[midasm_hook]]
+address = 0x822CAE7C
+name = "Fm4RaceCameraFov"
+registers = ["r31", "f1"]
+
 # Motion blur's reprojection has just loaded its fixed 9/16 into f28 (its projection's X scale is
 # the Y scale times f28): fm4_ultrawide divides it by the race camera's widening.
 [[midasm_hook]]

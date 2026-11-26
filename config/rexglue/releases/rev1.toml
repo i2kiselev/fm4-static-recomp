@@ -23,8 +23,12 @@ image = "rev1"
 0x822BC340 = { at = 0x822BBE70, fingerprint = "10c2c708eb082dc0" }
 # hook Fm4AngleSpringCut jump_address_on_true: identical function
 0x822BC348 = { at = 0x822BBE78, fingerprint = "1ec4f263cfebd711" }
+# hook Fm4RaceCameraFov: identical function
+0x822CABF8 = { at = 0x822CA7C8, fingerprint = "0406dd3508ccac62" }
 # kRaceCameraAspectReturn: identical function
 0x822CAC2C = { at = 0x822CA7FC, fingerprint = "e1996fe5f0463f97" }
+# hook Fm4RaceCameraFov: identical function
+0x822CAE7C = { at = 0x822CAA4C, fingerprint = "31b0160e6ba7bc54" }
 # kRaceVisibilityAspectReturn: identical function
 0x822CAE8C = { at = 0x822CAA5C, fingerprint = "e30d9014ff1fca80" }
 # hook Fm4MainLoopSession: changed function, aligned

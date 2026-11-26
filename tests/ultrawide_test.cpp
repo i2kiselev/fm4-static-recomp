@@ -3,6 +3,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <cmath>
 #include <vector>
 
 #include "ultrawide.h"
@@ -14,7 +15,9 @@ using fm4_static_recomp::TextSpan;
 using fm4_static_recomp::UiPlacement;
 using fm4_static_recomp::UiPlacementMap;
 using fm4_static_recomp::UiSibling;
+using fm4_static_recomp::UltrawideOutputsFor;
 using fm4_static_recomp::UltrawideScale;
+using fm4_static_recomp::VertPlusFov;
 using fm4_static_recomp::XMap;
 using fm4_static_recomp::XSpan;
 using fm4_static_recomp::WideViewSwitch;
@@ -29,10 +32,60 @@ TEST_CASE("A window wider than 32:9 keeps the 32:9 view", "[ultrawide]") {
   CHECK(UltrawideScale(7680, 1440) == Catch::Approx(2.0));
 }
 
-TEST_CASE("A 16:9-or-narrower or unsized window keeps the console's view", "[ultrawide]") {
-  CHECK(UltrawideScale(1280, 1024) == 1.0f);
+TEST_CASE("A 16:9 or unsized window keeps the console's view", "[ultrawide]") {
+  CHECK(UltrawideScale(1920, 1080) == 1.0f);
+  CHECK(UltrawideScale(1280, 720) == 1.0f);
+  CHECK(UltrawideScale(0, 0) == 1.0f);
   CHECK(UltrawideScale(0, 1080) == 1.0f);
   CHECK(UltrawideScale(2560, 0) == 1.0f);
+}
+
+TEST_CASE("A 16:10 window narrows the race view, a narrower one keeps 16:10", "[ultrawide]") {
+  CHECK(UltrawideScale(1920, 1200) == Catch::Approx(0.9));
+  CHECK(UltrawideScale(1900, 1200) == Catch::Approx(0.9));
+  CHECK(UltrawideScale(1600, 1200) == Catch::Approx(0.9));
+  CHECK(UltrawideScale(1280, 1024) == Catch::Approx(0.9));
+  CHECK(UltrawideScale(5760, 1080) == Catch::Approx(2.0));
+}
+
+TEST_CASE("Vert+ widens the vertical field of view to keep the horizontal one", "[ultrawide]") {
+  CHECK(VertPlusFov(1.0f, 1.0f) == 1.0f);
+  CHECK(VertPlusFov(1.0f, 2.0f) == 1.0f);
+  const float fov = VertPlusFov(1.0f, 0.9f);
+  CHECK(fov > 1.0f);
+  CHECK(1.0 / std::tan(fov / 2.0) == Catch::Approx(0.9 / std::tan(0.5)));
+}
+
+TEST_CASE("ultrawide squeezes one axis at a time", "[ultrawide]") {
+  for (const float scale : {0.9f, 1.0f, 1.5f, 2.0f}) {
+    const auto out = UltrawideOutputsFor(scale);
+    CHECK_FALSE((out.squeeze_x > 1.0f && out.squeeze_y > 1.0f));
+  }
+  const auto narrow = UltrawideOutputsFor(0.9f);
+  CHECK(narrow.squeeze_x == 1.0f);
+  CHECK(narrow.squeeze_y == Catch::Approx(1.0 / 0.9));
+  CHECK(narrow.source_aspect == Catch::Approx(1.6));
+  const auto plain = UltrawideOutputsFor(1.0f);
+  CHECK(plain.squeeze_x == 1.0f);
+  CHECK(plain.squeeze_y == 1.0f);
+  CHECK(plain.source_aspect == 0.0f);
+  const auto wide = UltrawideOutputsFor(1.5f);
+  CHECK(wide.squeeze_x == Catch::Approx(1.5));
+  CHECK(wide.squeeze_y == 1.0f);
+  CHECK(wide.source_aspect == Catch::Approx(16.0 / 9.0 * 1.5));
+}
+
+TEST_CASE("An older runtime keeps wide presentation without enabling a tall view", "[ultrawide]") {
+  const auto wide = UltrawideOutputsFor(1.5f, false, false);
+  CHECK(wide.scale == 1.5f);
+  CHECK(wide.squeeze_x == 1.5f);
+  CHECK(wide.legacy_stretch);
+  const auto tall = UltrawideOutputsFor(0.9f, false, false);
+  CHECK(tall.scale == 1.0f);
+  CHECK(tall.squeeze_y == 1.0f);
+  CHECK_FALSE(tall.legacy_stretch);
+  CHECK(UltrawideOutputsFor(0.9f, false, true).scale == 1.0f);
+  CHECK(UltrawideOutputsFor(0.9f, true, false).scale == 1.0f);
 }
 
 TEST_CASE("The race view goes wide on its first tick", "[ultrawide]") {
@@ -166,6 +219,51 @@ TEST_CASE("UI near the middle stays there", "[ultrawide]") {
   const auto placed =
       PlaceUiSiblings({Group(5, 5, 21, 21), Group(-574, -380, -324, -138), Group(338, 579, -326, -138)});
   CHECK(placed == std::vector{UiPlacement::kCentre, UiPlacement::kLeft, UiPlacement::kRight});
+}
+
+TEST_CASE("Taller race UI anchors whole groups vertically", "[ultrawide]") {
+  const auto placed = fm4_static_recomp::PlaceUiSiblingsY(
+      {Group(-180, 180, -340, -290), Group(-80, 80, -30, 30), Quad(-30, 30, 30, 46),
+       Group(-220, 240, 290, 340), Quad(-640, 640, -360, 360), Group(-640, 640, -350, 350)});
+  REQUIRE(placed == std::vector{UiPlacement::kLeft, UiPlacement::kCentre, UiPlacement::kCentre,
+                                UiPlacement::kRight, UiPlacement::kStretch, UiPlacement::kContainer});
+  using fm4_static_recomp::UiPlacementMapY;
+  const auto bottom = UiPlacementMapY(placed[0], Span(-340, -290), 0.9f);
+  CHECK(bottom(-340.0f) == Catch::Approx(-380.0f));
+  CHECK(bottom(-290.0f) == Catch::Approx(-330.0f));
+  const auto top = UiPlacementMapY(placed[3], Span(290, 340), 0.9f);
+  CHECK(top(290.0f) == Catch::Approx(330.0f));
+  CHECK(top(340.0f) == Catch::Approx(380.0f));
+  CHECK(UiPlacementMapY(placed[1], Span(-30, 30), 0.9f)(0.0f) == 0.0f);
+  const auto full = UiPlacementMapY(placed[4], Span(-360, 360), 0.9f);
+  CHECK(full(-360.0f) == Catch::Approx(-400.0f));
+  CHECK(full(360.0f) == Catch::Approx(400.0f));
+}
+
+TEST_CASE("A HUD layer reaching from the countdown to an edge lets its children anchor", "[ultrawide]") {
+  const auto placed = fm4_static_recomp::PlaceUiSiblingsY(
+      {Group(-205, 205, 21, 318), Group(-205, 205, -318, -21), Group(-205, 205, 230, 318)});
+  CHECK(placed == std::vector{UiPlacement::kContainer, UiPlacement::kContainer, UiPlacement::kRight});
+}
+
+TEST_CASE("A taller race footer keeps its edge when the steering telemetry overlaps it", "[ultrawide]") {
+  using fm4_static_recomp::PlaceUiSiblingsY;
+  using fm4_static_recomp::UiPlacementMapY;
+  const auto footer = Group(-576.0f, 576.0f, -324.0f, -293.5f);
+  for (const float panel_bottom : {-284.4f, -309.0f}) {
+    const auto placed = PlaceUiSiblingsY({Group(-567.4f, -444.6f, panel_bottom, 230.0f), footer});
+    CHECK(placed[0] == UiPlacement::kCentre);
+    const auto map = UiPlacementMapY(placed[1], footer.box.y, 0.9f);
+    CHECK(map(-294.0f) == Catch::Approx(-334.0f));
+    CHECK(map(-314.0f) == Catch::Approx(-354.0f));
+  }
+}
+
+TEST_CASE("A taller HUD control's viewport follows its anchor without changing height", "[ultrawide]") {
+  using fm4_static_recomp::PlaceUiViewportY;
+  CHECK(PlaceUiViewportY(50, 60, 0, 720, {1, 40}, 0.9f) == PixelSpan{42, 60});
+  CHECK(PlaceUiViewportY(610, 60, 10, 720, {1, -40}, 0.9f) == PixelSpan{619, 60});
+  CHECK(PlaceUiViewportY(790, 30, 100, 720, {1, -40}, 0.9f) == PixelSpan{790, 30});
 }
 
 TEST_CASE("A text spans its measured width by its alignment", "[ultrawide]") {
