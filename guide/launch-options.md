@@ -23,6 +23,7 @@ or in the launcher's SETTINGS.
 | `--fm4_audio_pop_fix=false` | AUDIO POP FIX off: the engine sounds pop where their loops start over and click when revving and shifting, as on a console. In the launcher: SETTINGS → ADVANCED → AUDIO POP FIX |
 | `--fm4_keep_music_on_crash=true` | The race music, your own music folder too, keeps playing when you crash hard; by default it stops for a few seconds, as on a console. In the launcher: SETTINGS → ADVANCED → MUSIC ON CRASH. Restart the game after changing it |
 | `--fm4_music_filter=light` | On some parts of each track the game thins out the bass of its own soundtrack (`default`); `light` keeps more of it. Your own music folders are not filtered. In the launcher: SETTINGS → ADVANCED → MUSIC FILTER. Restart the game after changing it |
+| `--fm4_hide_online_items=true` | Leaves the menu items that need Xbox LIVE or the Forza servers off the menus: COMMUNITY, MARKETPLACE, RIVALS, BUY TUNING SETUPS and BUY DESIGNS. In the game: PC OPTIONS → GAMEPLAY → ONLINE MENU ITEMS ([Online menu items](gameplay.md#online-menu-items)) |
 | `--fm4_quick_race_laps=<1-99>` | Experimental: the number of laps of every Quick Race; `0` (default) keeps each track's own count. In the game: PC OPTIONS → GAMEPLAY → QUICK RACE LAPS ([Quick Race laps](gameplay.md#quick-race-laps-experimental)) |
 | `--fm4_menu_music_folder=<folder>` | Shuffled menu MP3/WAV playlist; empty uses original music. See [Custom soundtrack](#custom-soundtrack) |
 | `--fm4_race_music_folder=<folder>` | Shuffled race MP3/WAV playlist; empty uses original music |

@@ -36,7 +36,7 @@ struct Page {
   explicit Page(std::string_view text)
       : path(std::filesystem::temp_directory_path() / "fm4_gameplay_page_test.toml"),
         config(path) {
-    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    ResetFlags();
     std::ofstream(path, std::ios::binary | std::ios::trunc) << text;
     REQUIRE(config.Load());
     screen = ui::CreateGameplayPage(config);
@@ -44,10 +44,20 @@ struct Page {
   }
   ~Page() {
     std::filesystem::remove(path);
-    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    ResetFlags();
   }
 
-  std::string Value() const { return screen->rows()[0].value(); }
+  static void ResetFlags() {
+    rex::cvar::SetFlagByName("fm4_quick_race_laps", "0");
+    rex::cvar::SetFlagByName("fm4_hide_online_items", "false");
+  }
+
+  std::string Value(size_t row = 0) const { return screen->rows()[row].value(); }
+  // Moves the focus to `row` and steps its value.
+  void Step(size_t row, NavCommand command) {
+    REQUIRE(screen->SetFocus(row));
+    screen->Handle(command);
+  }
   std::string File() const {
     std::ifstream file(path, std::ios::binary);
     std::ostringstream text;
@@ -121,4 +131,36 @@ TEST_CASE("A saved count out of range is ignored", "[gameplay_page]") {
   Page page("fm4_quick_race_laps = 150\n");
   ui::ApplySavedGameplaySettings(page.config);
   CHECK(QuickRaceLapsSetting() == 0);
+}
+
+TEST_CASE("ONLINE MENU ITEMS are shown by default and HIDDEN saves and applies",
+          "[gameplay_page]") {
+  Page page("");
+  CHECK(page.screen->rows()[1].label == "ONLINE MENU ITEMS");
+  CHECK(page.Value(1) == "SHOWN");
+  page.Step(1, NavCommand::kRight);
+  CHECK(page.Value(1) == "HIDDEN");
+  CHECK(page.screen->rows()[1].unapplied());
+  CHECK(rex::cvar::GetFlagByName("fm4_hide_online_items") == "false");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File() == "fm4_hide_online_items = true\n");
+  CHECK(rex::cvar::GetFlagByName("fm4_hide_online_items") == "true");
+  page.Step(1, NavCommand::kRight);
+  CHECK(page.Value(1) == "SHOWN");
+  page.screen->Handle(NavCommand::kApply);
+  CHECK(page.File().find("fm4_hide_online_items") == std::string::npos);  // SHOWN is the default: its line goes
+  CHECK(rex::cvar::GetFlagByName("fm4_hide_online_items") == "false");
+}
+
+TEST_CASE("A saved online items setting is applied at startup, a bad one ignored",
+          "[gameplay_page]") {
+  {
+    Page page("fm4_hide_online_items = true\n");
+    ui::ApplySavedGameplaySettings(page.config);
+    CHECK(rex::cvar::GetFlagByName("fm4_hide_online_items") == "true");
+    CHECK(page.Value(1) == "HIDDEN");
+  }
+  Page page("fm4_hide_online_items = sometimes\n");
+  ui::ApplySavedGameplaySettings(page.config);
+  CHECK(rex::cvar::GetFlagByName("fm4_hide_online_items") == "false");
 }
